@@ -1,0 +1,228 @@
+.searchContainer {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.searchInputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 1rem 3rem 1rem 1.5rem;
+  font-size: 1.1rem;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--jukebox-white);
+  outline: none;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.searchInput::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.searchInput:focus {
+  border-color: var(--jukebox-gold);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
+}
+
+.clearButton {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.clearButton:hover {
+  color: var(--jukebox-white);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.keyboard {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(20, 20, 30, 0.98);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1rem;
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.keyboardRow {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.keyboardRow:last-child {
+  margin-bottom: 0;
+}
+
+.key {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.75rem 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-md);
+  color: var(--jukebox-white);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-transform: uppercase;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.key:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: var(--jukebox-gold);
+}
+
+.key:active {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(0.95);
+}
+
+.specialKey {
+  background: rgba(255, 215, 0, 0.2);
+  border-color: var(--jukebox-gold);
+  color: var(--jukebox-gold);
+  font-weight: 700;
+}
+
+.specialKey:hover {
+  background: rgba(255, 215, 0, 0.3);
+}
+
+.backspaceKey {
+  min-width: 60px;
+}
+
+.spaceKey {
+  min-width: 200px;
+  flex: 1;
+  max-width: 300px;
+}
+
+.clearKey {
+  min-width: 80px;
+}
+
+.doneKey {
+  min-width: 80px;
+  background: var(--jukebox-gold);
+  color: var(--jukebox-dark);
+  border-color: var(--jukebox-gold);
+}
+
+.doneKey:hover {
+  background: rgba(255, 215, 0, 0.8);
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .searchInput {
+    padding: 1.25rem 3.5rem 1.25rem 1.75rem;
+    font-size: 1.2rem;
+    min-height: 56px;
+  }
+
+  .clearButton {
+    right: 1.25rem;
+    min-width: 48px;
+    min-height: 48px;
+    font-size: 1.3rem;
+  }
+
+  .keyboard {
+    padding: 1.25rem;
+  }
+
+  .key {
+    min-width: 48px;
+    min-height: 48px;
+    padding: 1rem 0.75rem;
+    font-size: 1.1rem;
+  }
+
+  .backspaceKey {
+    min-width: 70px;
+  }
+
+  .spaceKey {
+    min-width: 180px;
+  }
+
+  .clearKey, .doneKey {
+    min-width: 90px;
+  }
+}
+
+/* Large touch screen optimizations */
+@media (min-width: 1024px) and (pointer: coarse) {
+  .searchInput {
+    padding: 1.5rem 4rem 1.5rem 2rem;
+    font-size: 1.3rem;
+    min-height: 64px;
+  }
+
+  .clearButton {
+    right: 1.5rem;
+    min-width: 56px;
+    min-height: 56px;
+    font-size: 1.5rem;
+  }
+
+  .keyboard {
+    padding: 1.5rem;
+  }
+
+  .key {
+    min-width: 56px;
+    min-height: 56px;
+    padding: 1.25rem 1rem;
+    font-size: 1.2rem;
+  }
+
+  .backspaceKey {
+    min-width: 80px;
+  }
+
+  .spaceKey {
+    min-width: 250px;
+  }
+
+  .clearKey, .doneKey {
+    min-width: 110px;
+  }
+} 

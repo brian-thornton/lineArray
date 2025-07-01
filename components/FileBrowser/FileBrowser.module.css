@@ -1,0 +1,336 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  backdrop-filter: blur(10px);
+}
+
+.modal {
+  background: var(--jukebox-darker);
+  border: 2px solid var(--jukebox-accent);
+  border-radius: var(--radius-lg);
+  width: 90vw;
+  max-width: 800px;
+  max-height: 80vh;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  animation: slideIn 0.3s ease-out;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-lg);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  color: var(--jukebox-white);
+  margin: 0;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  color: var(--jukebox-gray);
+  font-size: 2rem;
+  cursor: pointer;
+  padding: var(--spacing-xs);
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.closeButton:hover {
+  color: var(--jukebox-accent);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  height: calc(80vh - 80px);
+}
+
+.systemDirectories {
+  padding: var(--spacing-lg);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sectionTitle {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  color: var(--jukebox-white);
+  margin: 0 0 var(--spacing-md) 0;
+}
+
+.systemGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--spacing-sm);
+}
+
+.systemButton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-md);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  color: var(--jukebox-white);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 80px;
+}
+
+.systemButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--jukebox-accent);
+  transform: translateY(-2px);
+}
+
+.systemIcon {
+  width: 24px;
+  height: 24px;
+  color: var(--jukebox-gold);
+}
+
+.browser {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.pathBar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.backButton {
+  background: var(--jukebox-accent);
+  color: var(--jukebox-white);
+  border: none;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  min-height: 44px;
+}
+
+.backButton:hover:not(:disabled) {
+  background: var(--jukebox-gold);
+  transform: translateY(-1px);
+}
+
+.backButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.currentPath {
+  flex: 1;
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  color: var(--jukebox-gray);
+  word-break: break-all;
+}
+
+.error {
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: rgba(255, 107, 107, 0.1);
+  color: var(--jukebox-accent);
+  border-radius: var(--radius-sm);
+  margin: var(--spacing-md);
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-2xl);
+  color: var(--jukebox-gray);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-top: 4px solid var(--jukebox-gold);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: var(--spacing-md);
+}
+
+.fileList {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-md);
+}
+
+.fileItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.fileItem:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.fileIcon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.folderIcon {
+  width: 24px;
+  height: 24px;
+  color: var(--jukebox-gold);
+}
+
+.fileIconPlaceholder {
+  width: 16px;
+  height: 16px;
+  background: var(--jukebox-gray);
+  border-radius: 2px;
+}
+
+.fileInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.fileName {
+  display: block;
+  font-size: 1rem;
+  color: var(--jukebox-white);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileType {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--jukebox-gray);
+  margin-top: var(--spacing-xs);
+}
+
+.selectButton {
+  background: var(--jukebox-accent);
+  color: var(--jukebox-white);
+  border: none;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  min-height: 44px;
+  flex-shrink: 0;
+}
+
+.selectButton:hover {
+  background: var(--jukebox-gold);
+  transform: translateY(-1px);
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .modal {
+    width: 95vw;
+    max-height: 90vh;
+  }
+  
+  .content {
+    height: calc(90vh - 80px);
+  }
+  
+  .systemGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .systemButton {
+    min-height: 60px;
+    padding: var(--spacing-sm);
+  }
+  
+  .pathBar {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    align-items: flex-start;
+  }
+  
+  .backButton {
+    align-self: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding: var(--spacing-md);
+  }
+  
+  .title {
+    font-size: 1.2rem;
+  }
+  
+  .systemDirectories {
+    padding: var(--spacing-md);
+  }
+  
+  .systemGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .fileItem {
+    padding: var(--spacing-sm);
+  }
+  
+  .fileName {
+    font-size: 0.9rem;
+  }
+} 

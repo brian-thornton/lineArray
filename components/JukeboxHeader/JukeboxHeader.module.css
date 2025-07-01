@@ -1,0 +1,100 @@
+.header {
+  background: linear-gradient(90deg, var(--jukebox-dark) 0%, var(--jukebox-darker) 100%);
+  border-bottom: 2px solid var(--jukebox-accent);
+  padding: var(--spacing-lg) 0;
+  box-shadow: var(--shadow-lg);
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-lg);
+  text-align: center;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 3rem;
+  font-weight: 900;
+  margin-bottom: var(--spacing-sm);
+  letter-spacing: 0.2em;
+}
+
+.jukebox {
+  color: var(--jukebox-gold);
+  text-shadow: 0 0 10px var(--jukebox-gold);
+  animation: glow 2s ease-in-out infinite alternate;
+}
+
+.version {
+  color: var(--jukebox-accent);
+  font-size: 0.6em;
+  margin-left: var(--spacing-sm);
+  vertical-align: top;
+}
+
+.subtitle {
+  font-family: var(--font-body);
+  font-size: 1.1rem;
+  color: var(--jukebox-gray);
+  font-weight: 300;
+  letter-spacing: 0.1em;
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--jukebox-accent);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: color 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.logo:hover {
+  color: var(--jukebox-accent-light);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .title {
+    font-size: 2rem;
+  }
+  
+  .subtitle {
+    font-size: 1rem;
+  }
+  
+  .container {
+    padding: 0 var(--spacing-md);
+  }
+  
+  .logo {
+    font-size: 1.2rem;
+    max-width: 150px;
+  }
+}
+
+@media (max-width: 480px) {
+  .title {
+    font-size: 1.5rem;
+  }
+  
+  .subtitle {
+    font-size: 0.9rem;
+  }
+  
+  .container {
+    padding: 0 var(--spacing-sm);
+  }
+  
+  .logo {
+    font-size: 1rem;
+    max-width: 120px;
+  }
+} 

@@ -1,0 +1,29 @@
+{
+  "name": "jukebox-2.0",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@types/fs-extra": "^11.0.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "fs-extra": "^11.1.0",
+    "lucide-react": "^0.292.0",
+    "music-metadata": "^7.13.0",
+    "next": "14.0.0",
+    "play-sound": "^1.1.6",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "typescript": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.0.8",
+    "eslint": "^8.0.0",
+    "eslint-config-next": "14.0.0"
+  }
+}

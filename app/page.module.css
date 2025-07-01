@@ -1,0 +1,30 @@
+.container {
+  min-height: 100vh;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, var(--jukebox-dark) 0%, var(--jukebox-darker) 100%);
+  overflow: hidden;
+}
+
+.main {
+  flex: 1;
+  padding: var(--spacing-lg);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .main {
+    padding: var(--spacing-md);
+  }
+}
+
+@media (max-width: 480px) {
+  .main {
+    padding: var(--spacing-sm);
+  }
+} 

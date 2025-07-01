@@ -1,0 +1,482 @@
+.container {
+  min-height: 100vh;
+  padding: var(--spacing-lg);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-xl);
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--jukebox-white);
+  margin: 0;
+}
+
+.createButton {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: linear-gradient(135deg, var(--jukebox-accent) 0%, #ff5252 100%);
+  color: var(--jukebox-white);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 48px;
+  box-shadow: var(--shadow-md);
+}
+
+.createButton:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.plusIcon {
+  width: 20px;
+  height: 20px;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  color: var(--jukebox-gray);
+}
+
+.emptyIcon {
+  width: 80px;
+  height: 80px;
+  margin-bottom: var(--spacing-lg);
+  opacity: 0.5;
+}
+
+.emptyState h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: var(--spacing-sm);
+  color: var(--jukebox-white);
+}
+
+.emptyState p {
+  font-size: 1rem;
+  margin-bottom: var(--spacing-xl);
+}
+
+.createFirstButton {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: linear-gradient(135deg, var(--jukebox-accent) 0%, #ff5252 100%);
+  color: var(--jukebox-white);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 48px;
+}
+
+.createFirstButton:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.playlistsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: var(--spacing-lg);
+}
+
+.playlistCard {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.playlistCard:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.playlistHeader {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.playlistIcon {
+  flex-shrink: 0;
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, var(--jukebox-accent) 0%, var(--jukebox-purple) 100%);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.musicIcon {
+  width: 30px;
+  height: 30px;
+  color: var(--jukebox-white);
+}
+
+.playlistInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.playlistName {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--jukebox-white);
+  margin: 0 0 var(--spacing-xs) 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.playlistDescription {
+  font-size: 0.9rem;
+  color: var(--jukebox-gray);
+  margin: 0 0 var(--spacing-sm) 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.playlistMeta {
+  display: flex;
+  gap: var(--spacing-md);
+  font-size: 0.8rem;
+  color: var(--jukebox-gray);
+}
+
+.trackCount {
+  color: var(--jukebox-accent);
+  font-weight: 500;
+}
+
+.createdDate {
+  opacity: 0.8;
+}
+
+.playlistActions {
+  display: flex;
+  gap: var(--spacing-sm);
+  justify-content: flex-end;
+}
+
+.playButton,
+.editButton,
+.deleteButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1rem;
+}
+
+.playButton {
+  background: linear-gradient(135deg, var(--jukebox-accent) 0%, #ff5252 100%);
+  color: var(--jukebox-white);
+}
+
+.playButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.playButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.editButton {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--jukebox-white);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.editButton:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.deleteButton {
+  background: rgba(255, 59, 48, 0.1);
+  color: #ff3b30;
+  border: 1px solid rgba(255, 59, 48, 0.3);
+}
+
+.deleteButton:hover {
+  background: rgba(255, 59, 48, 0.2);
+  transform: translateY(-1px);
+}
+
+.playIcon,
+.editIcon,
+.deleteIcon {
+  width: 18px;
+  height: 18px;
+}
+
+/* Modal Styles */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--spacing-lg);
+}
+
+.modal {
+  background: var(--jukebox-dark);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-xl);
+  max-width: 500px;
+  width: 100%;
+  backdrop-filter: blur(20px);
+}
+
+.modal h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--jukebox-white);
+  margin: 0 0 var(--spacing-lg) 0;
+}
+
+.modal p {
+  color: var(--jukebox-gray);
+  margin-bottom: var(--spacing-lg);
+  line-height: 1.5;
+}
+
+.formGroup {
+  margin-bottom: var(--spacing-lg);
+}
+
+.formGroup label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--jukebox-white);
+  margin-bottom: var(--spacing-sm);
+}
+
+.input,
+.textarea {
+  width: 100%;
+  padding: var(--spacing-md);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-md);
+  color: var(--jukebox-white);
+  font-size: 1rem;
+  transition: border-color 0.2s ease;
+}
+
+.input:focus,
+.textarea:focus {
+  outline: none;
+  border-color: var(--jukebox-accent);
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--jukebox-gray);
+}
+
+.modalActions {
+  display: flex;
+  gap: var(--spacing-md);
+  justify-content: flex-end;
+  margin-top: var(--spacing-xl);
+}
+
+.cancelButton,
+.saveButton,
+.deleteConfirmButton {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 44px;
+  min-width: 100px;
+}
+
+.cancelButton {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--jukebox-white);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.cancelButton:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.saveButton {
+  background: linear-gradient(135deg, var(--jukebox-accent) 0%, #ff5252 100%);
+  color: var(--jukebox-white);
+}
+
+.saveButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.saveButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.deleteConfirmButton {
+  background: linear-gradient(135deg, #ff3b30 0%, #ff6b6b 100%);
+  color: var(--jukebox-white);
+}
+
+.deleteConfirmButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.deleteConfirmButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Loading Styles */
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  color: var(--jukebox-gray);
+}
+
+.loadingSpinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top: 3px solid var(--jukebox-accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: var(--spacing-lg);
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .container {
+    padding: var(--spacing-md);
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-md);
+  }
+
+  .title {
+    font-size: 2rem;
+    text-align: center;
+  }
+
+  .createButton {
+    justify-content: center;
+  }
+
+  .playlistsGrid {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+  }
+
+  .playlistCard {
+    padding: var(--spacing-md);
+  }
+
+  .playlistHeader {
+    flex-direction: column;
+    text-align: center;
+    gap: var(--spacing-sm);
+  }
+
+  .playlistIcon {
+    align-self: center;
+  }
+
+  .playlistActions {
+    justify-content: center;
+  }
+
+  .modal {
+    margin: var(--spacing-md);
+    padding: var(--spacing-lg);
+  }
+
+  .modalActions {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .playlistMeta {
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+
+  .playlistActions {
+    gap: var(--spacing-xs);
+  }
+
+  .playButton,
+  .editButton,
+  .deleteButton {
+    width: 40px;
+    height: 40px;
+  }
+} 

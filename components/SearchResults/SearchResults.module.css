@@ -1,0 +1,229 @@
+.container {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.resultItem {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.resultItem:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--jukebox-gold);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.albumResult, .trackResult {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  text-decoration: none;
+  color: inherit;
+  background: none;
+  border: none;
+  width: 100%;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+
+.trackResultContainer {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.trackResult {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  text-decoration: none;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+
+.addToPlaylistButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--jukebox-gold);
+  transition: all 0.2s ease;
+  margin-right: 0.5rem;
+}
+
+.addToPlaylistButton:hover {
+  background: var(--jukebox-gold);
+  color: var(--jukebox-dark);
+  transform: scale(1.1);
+}
+
+.plusIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.resultIcon {
+  font-size: 1.5rem;
+  margin-right: 1rem;
+  min-width: 2rem;
+  text-align: center;
+}
+
+.resultContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.resultTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--jukebox-white);
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.resultAlbum {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.resultType {
+  font-size: 0.75rem;
+  color: var(--jukebox-gold);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.loading, .empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+}
+
+.spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top: 2px solid var(--jukebox-gold);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .container {
+    padding: 0.75rem;
+  }
+
+  .albumResult, .trackResult {
+    padding: 1.25rem;
+    min-height: 72px;
+  }
+
+  .addToPlaylistButton {
+    width: 3.5rem;
+    height: 3.5rem;
+    margin-right: 0.75rem;
+  }
+
+  .plusIcon {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  .resultIcon {
+    font-size: 1.75rem;
+    margin-right: 1.25rem;
+    min-width: 2.5rem;
+  }
+
+  .resultTitle {
+    font-size: 1.2rem;
+  }
+
+  .resultAlbum {
+    font-size: 0.9rem;
+  }
+
+  .resultType {
+    font-size: 0.8rem;
+  }
+}
+
+/* Large touch screen optimizations */
+@media (min-width: 1024px) and (pointer: coarse) {
+  .albumResult, .trackResult {
+    padding: 1.5rem;
+    min-height: 80px;
+  }
+
+  .addToPlaylistButton {
+    width: 4rem;
+    height: 4rem;
+    margin-right: 1rem;
+  }
+
+  .plusIcon {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+
+  .resultIcon {
+    font-size: 2rem;
+    margin-right: 1.5rem;
+    min-width: 3rem;
+  }
+
+  .resultTitle {
+    font-size: 1.3rem;
+  }
+
+  .resultAlbum {
+    font-size: 1rem;
+  }
+
+  .resultType {
+    font-size: 0.85rem;
+  }
+} 

@@ -1,0 +1,200 @@
+.paginationContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  flex-shrink: 0;
+}
+
+.info {
+  text-align: center;
+}
+
+.results {
+  color: var(--jukebox-gray);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.pageButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 var(--spacing-md);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--jukebox-white);
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  outline: none;
+}
+
+.pageButton:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.pageButton:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.pageButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.navButton {
+  gap: var(--spacing-xs);
+  min-width: 100px;
+}
+
+.navText {
+  font-size: 0.85rem;
+}
+
+.pageNumbers {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.numberButton {
+  min-width: 44px;
+  width: 44px;
+  padding: 0;
+}
+
+.numberButton.active {
+  background: var(--jukebox-gold);
+  border-color: var(--jukebox-gold);
+  color: var(--jukebox-dark);
+  font-weight: 700;
+}
+
+.numberButton.active:hover {
+  background: var(--jukebox-gold);
+  border-color: var(--jukebox-gold);
+  transform: none;
+}
+
+.ellipsis {
+  color: var(--jukebox-gray);
+  font-weight: 600;
+  padding: 0 var(--spacing-sm);
+  user-select: none;
+}
+
+/* Tablet-friendly responsive design */
+@media (max-width: 1024px) {
+  .paginationContainer {
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) 0;
+  }
+  
+  .pagination {
+    gap: var(--spacing-xs);
+  }
+  
+  .pageButton {
+    min-width: 40px;
+    height: 40px;
+    font-size: 0.85rem;
+  }
+  
+  .navButton {
+    min-width: 90px;
+  }
+  
+  .navText {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .paginationContainer {
+    padding: var(--spacing-sm) 0;
+  }
+  
+  .pagination {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+  
+  .pageNumbers {
+    order: 2;
+  }
+  
+  .navButton {
+    order: 1;
+    min-width: 120px;
+    height: 48px;
+  }
+  
+  .pageButton {
+    min-width: 48px;
+    height: 48px;
+    font-size: 1rem;
+  }
+  
+  .results {
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .pageNumbers {
+    gap: var(--spacing-xs);
+  }
+  
+  .pageButton {
+    min-width: 44px;
+    height: 44px;
+    font-size: 0.9rem;
+  }
+  
+  .navButton {
+    min-width: 100px;
+    height: 44px;
+  }
+  
+  .navText {
+    font-size: 0.8rem;
+  }
+}
+
+/* Focus styles for accessibility */
+.pageButton:focus-visible {
+  outline: 2px solid var(--jukebox-gold);
+  outline-offset: 2px;
+}
+
+/* Touch-friendly on mobile */
+@media (hover: none) and (pointer: coarse) {
+  .pageButton {
+    min-height: 48px;
+  }
+  
+  .pageButton:hover {
+    transform: none;
+  }
+} 
