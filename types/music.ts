@@ -17,6 +17,10 @@ export interface Album {
   coverPath?: string
   folderPath?: string
   tracks: Track[]
+  setlistInfo?: {
+    filename: string
+    content: string
+  }
 }
 
 export interface Playlist {
@@ -36,6 +40,47 @@ export interface PlaylistTrack {
   position: number
   addedAt: string
   track: Track
+}
+
+export interface Theme {
+  id: string
+  name: string
+  description: string
+  colors: {
+    primary: string
+    secondary: string
+    accent: string
+    background: string
+    surface: string
+    text: string
+    textSecondary: string
+    textTertiary: string
+    border: string
+    shadow: string
+    success: string
+    error: string
+    warning: string
+  }
+}
+
+export interface Settings {
+  scanPath: string
+  jukeboxName: string
+  adminPin?: string
+  theme: string
+  partyMode: {
+    enabled: boolean
+    allowPlay: boolean
+    allowStop: boolean
+    allowNext: boolean
+    allowPrevious: boolean
+    allowCreatePlaylists: boolean
+    allowEditPlaylists: boolean
+    allowDeletePlaylists: boolean
+    allowAddToQueue: boolean
+    allowRemoveFromQueue: boolean
+    allowSkipInQueue: boolean
+  }
 }
 
 export interface CreatePlaylistRequest {

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { X, Plus, Music } from 'lucide-react'
 import { Playlist } from '../../types/music'
+import { useSettings } from '@/contexts/SettingsContext'
 import styles from './PlaylistModal.module.css'
 
 interface PlaylistModalProps {
@@ -18,6 +19,7 @@ export default function PlaylistModal({
   selectedTracks, 
   onAddToPlaylist 
 }: PlaylistModalProps) {
+  const { canPerformAction } = useSettings()
   const [playlists, setPlaylists] = useState<Playlist[]>([])
   const [loading, setLoading] = useState(false)
   const [newPlaylistName, setNewPlaylistName] = useState('')
@@ -52,6 +54,11 @@ export default function PlaylistModal({
   const handleCreatePlaylist = async () => {
     if (!newPlaylistName.trim()) return
 
+    if (!canPerformAction('allowCreatePlaylists')) {
+      alert('Creating playlists is restricted in party mode')
+      return
+    }
+
     setCreating(true)
     try {
       const response = await fetch('/api/playlists', {
@@ -82,6 +89,11 @@ export default function PlaylistModal({
   }
 
   const handleAddToExistingPlaylist = async (playlistId: string) => {
+    if (!canPerformAction('allowEditPlaylists')) {
+      alert('Editing playlists is restricted in party mode')
+      return
+    }
+
     try {
       onAddToPlaylist(playlistId, selectedTracks)
       onClose()
@@ -126,6 +138,8 @@ export default function PlaylistModal({
                         key={playlist.id}
                         onClick={() => handleAddToExistingPlaylist(playlist.id)}
                         className={styles.playlistItem}
+                        disabled={!canPerformAction('allowEditPlaylists')}
+                        title={!canPerformAction('allowEditPlaylists') ? 'Editing playlists is restricted in party mode' : `Add to ${playlist.name}`}
                       >
                         <Music className={styles.playlistIcon} />
                         <div className={styles.playlistInfo}>
@@ -149,6 +163,8 @@ export default function PlaylistModal({
                   <button
                     onClick={() => setShowCreateForm(true)}
                     className={styles.createButton}
+                    disabled={!canPerformAction('allowCreatePlaylists')}
+                    title={!canPerformAction('allowCreatePlaylists') ? 'Creating playlists is restricted in party mode' : 'Create new playlist'}
                   >
                     <Plus className={styles.plusIcon} />
                     Create New Playlist

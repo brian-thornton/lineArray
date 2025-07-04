@@ -16,7 +16,7 @@ interface FileItem {
   children?: FileItem[]
 }
 
-const FileBrowser: React.FC<FileBrowserProps> = ({ onSelectPath, isOpen, onClose }) => {
+function FileBrowser({ onSelectPath, isOpen, onClose }: FileBrowserProps) {
   const [currentPath, setCurrentPath] = useState('')
   const [items, setItems] = useState<FileItem[]>([])
   const [loading, setLoading] = useState(false)

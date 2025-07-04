@@ -9,12 +9,13 @@ import { useSearch } from '@/contexts/SearchContext'
 import styles from './page.module.css'
 
 export default function Home() {
-  const { searchQuery, searchResults, isSearching, addTrackToQueue } = useSearch()
+  const { searchQuery, searchResults, isSearching, addTrackToQueue, hideKeyboard } = useSearch()
   const [albums, setAlbums] = useState<Album[]>([])
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isScanning, setIsScanning] = useState(false)
-  const [currentPath, setCurrentPath] = useState('')
+  const [currentPaths, setCurrentPaths] = useState<string[]>([])
+  const [scanResults, setScanResults] = useState<{ [path: string]: { albums: number; files: number; lastScanned: string } }>({})
 
   useEffect(() => {
     loadAlbums()
@@ -26,7 +27,8 @@ export default function Home() {
       if (response.ok) {
         const data = await response.json()
         setAlbums(data.albums || [])
-        setCurrentPath(data.scanPath || '')
+        setCurrentPaths(data.scanPaths || [])
+        setScanResults(data.scanResults || {})
       }
     } catch (error) {
       console.error('Error loading albums:', error)
@@ -53,6 +55,19 @@ export default function Home() {
 
   const handleTrackClick = async (path: string) => {
     await addTrackToQueue(path)
+    hideKeyboard()
+    
+    // Set flag to show player controls
+    if (typeof window !== 'undefined') {
+      (window as any).hasAddedTrackToQueue = true
+    }
+    
+    // Immediately check player status to show controls faster
+    if (typeof window !== 'undefined' && (window as any).checkPlayerStatusImmediately) {
+      setTimeout(() => {
+        (window as any).checkPlayerStatusImmediately()
+      }, 100)
+    }
   }
 
   // Create a default track if no track is selected

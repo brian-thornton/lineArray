@@ -60,6 +60,17 @@
   text-align: left;
 }
 
+.trackResult:disabled {
+  color: var(--jukebox-gray);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.trackResult:disabled:hover {
+  background: none;
+  transform: none;
+}
+
 .addToPlaylistButton {
   display: flex;
   align-items: center;
@@ -75,10 +86,23 @@
   margin-right: 0.5rem;
 }
 
-.addToPlaylistButton:hover {
+.addToPlaylistButton:hover:not(:disabled) {
   background: var(--jukebox-gold);
   color: var(--jukebox-dark);
   transform: scale(1.1);
+}
+
+.addToPlaylistButton:disabled {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--jukebox-gray);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.addToPlaylistButton:disabled:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--jukebox-gray);
+  transform: none;
 }
 
 .plusIcon {

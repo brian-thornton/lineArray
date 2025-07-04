@@ -1,0 +1,71 @@
+.container {
+  min-height: 100vh;
+  padding: var(--spacing-lg);
+  padding-bottom: calc(var(--spacing-lg) + 120px); /* Extra space for player */
+  background: var(--jukebox-background);
+}
+
+.header {
+  text-align: center;
+  margin-bottom: var(--spacing-2xl);
+  padding: var(--spacing-xl) 0;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 3rem;
+  color: var(--jukebox-white);
+  margin: 0 0 var(--spacing-md) 0;
+  background: linear-gradient(135deg, var(--jukebox-accent) 0%, var(--jukebox-gold) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.subtitle {
+  font-size: 1.2rem;
+  color: var(--jukebox-gray);
+  margin: 0;
+  font-weight: 400;
+}
+
+.content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .container {
+    padding: var(--spacing-md);
+    padding-bottom: calc(var(--spacing-md) + 140px); /* More space on mobile */
+  }
+  
+  .header {
+    margin-bottom: var(--spacing-xl);
+    padding: var(--spacing-lg) 0;
+  }
+  
+  .title {
+    font-size: 2rem;
+  }
+  
+  .subtitle {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: var(--spacing-sm);
+    padding-bottom: calc(var(--spacing-sm) + 150px); /* Even more space on small screens */
+  }
+  
+  .title {
+    font-size: 1.8rem;
+  }
+  
+  .subtitle {
+    font-size: 0.9rem;
+  }
+} 

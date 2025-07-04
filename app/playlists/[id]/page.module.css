@@ -169,8 +169,16 @@
 }
 
 .playButton:disabled {
-  opacity: 0.5;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--jukebox-gray);
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.playButton:disabled:hover {
+  transform: none;
+  box-shadow: none;
 }
 
 .editButton {
@@ -179,9 +187,22 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.editButton:hover {
+.editButton:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.2);
   transform: translateY(-1px);
+}
+
+.editButton:disabled {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--jukebox-gray);
+  border-color: rgba(255, 255, 255, 0.1);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.editButton:disabled:hover {
+  background: rgba(255, 255, 255, 0.05);
+  transform: none;
 }
 
 .deleteButton {
@@ -190,9 +211,22 @@
   border: 1px solid rgba(255, 59, 48, 0.3);
 }
 
-.deleteButton:hover {
+.deleteButton:hover:not(:disabled) {
   background: rgba(255, 59, 48, 0.2);
   transform: translateY(-1px);
+}
+
+.deleteButton:disabled {
+  background: rgba(255, 59, 48, 0.05);
+  color: var(--jukebox-gray);
+  border-color: rgba(255, 59, 48, 0.1);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.deleteButton:disabled:hover {
+  background: rgba(255, 59, 48, 0.05);
+  transform: none;
 }
 
 .saveButton {
@@ -273,9 +307,22 @@
   min-height: 40px;
 }
 
-.addTracksButton:hover {
+.addTracksButton:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
+}
+
+.addTracksButton:disabled {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--jukebox-gray);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.addTracksButton:disabled:hover {
+  transform: none;
+  box-shadow: none;
 }
 
 .plusIcon {
@@ -437,9 +484,22 @@
   transition: all 0.2s ease;
 }
 
-.removeTrackButton:hover {
+.removeTrackButton:hover:not(:disabled) {
   background: rgba(255, 59, 48, 0.2);
   transform: translateY(-1px);
+}
+
+.removeTrackButton:disabled {
+  background: rgba(255, 59, 48, 0.05);
+  color: var(--jukebox-gray);
+  border-color: rgba(255, 59, 48, 0.1);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.removeTrackButton:disabled:hover {
+  background: rgba(255, 59, 48, 0.05);
+  transform: none;
 }
 
 .removeIcon {

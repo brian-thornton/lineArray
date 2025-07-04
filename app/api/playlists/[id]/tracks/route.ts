@@ -6,6 +6,37 @@ import { Playlist, AddTrackToPlaylistRequest, ReorderPlaylistRequest } from '@/t
 const playlistsPath = path.join(process.cwd(), 'data', 'playlists.json')
 const musicLibraryPath = path.join(process.cwd(), 'data', 'music-library.json')
 
+function loadSettings() {
+  try {
+    const settingsPath = path.join(process.cwd(), 'data', 'settings.json')
+    if (fs.existsSync(settingsPath)) {
+      const data = fs.readFileSync(settingsPath, 'utf-8')
+      return JSON.parse(data)
+    }
+  } catch (error) {
+    console.error('Error loading settings:', error)
+  }
+  return { partyMode: { enabled: false } }
+}
+
+function checkPartyModePermission(action: string): boolean {
+  const settings = loadSettings()
+  const { partyMode } = settings
+  
+  // If party mode is disabled, all actions are allowed
+  if (!partyMode.enabled) {
+    return true
+  }
+  
+  // Check specific permissions based on action
+  switch (action) {
+    case 'edit':
+      return partyMode.allowEditPlaylists
+    default:
+      return true
+  }
+}
+
 function loadPlaylists(): Playlist[] {
   try {
     if (fs.existsSync(playlistsPath)) {
@@ -57,6 +88,10 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
+    if (!checkPartyModePermission('edit')) {
+      return NextResponse.json({ error: 'Editing playlists is restricted in party mode' }, { status: 403 })
+    }
+
     const body: AddTrackToPlaylistRequest = await request.json()
     const { trackPath, position } = body
 
@@ -123,6 +158,10 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    if (!checkPartyModePermission('edit')) {
+      return NextResponse.json({ error: 'Editing playlists is restricted in party mode' }, { status: 403 })
+    }
+
     const body: ReorderPlaylistRequest = await request.json()
     const { trackIds } = body
 

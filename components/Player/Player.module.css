@@ -17,6 +17,7 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-lg);
+  justify-content: space-between;
 }
 
 .trackInfo {
@@ -25,6 +26,7 @@
   gap: var(--spacing-md);
   flex-shrink: 0;
   min-width: 0;
+  height: 60px; /* Match the cover height */
 }
 
 .cover {
@@ -79,18 +81,12 @@
   white-space: nowrap;
 }
 
-.controls {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-  min-width: 0;
-}
-
 .mainControls {
   display: flex;
   justify-content: center;
   align-items: center;
+  height: 60px; /* Match the track info height */
+  gap: var(--spacing-sm);
 }
 
 .controlButton {
@@ -104,11 +100,19 @@
   justify-content: center;
   transition: all 0.2s ease;
   margin: 0 var(--spacing-sm);
+  border: none;
+  cursor: pointer;
 }
 
 .controlButton:hover {
   background: var(--jukebox-gold);
   transform: scale(1.1);
+}
+
+.activeButton {
+  background: var(--jukebox-gold) !important;
+  color: var(--jukebox-background) !important;
+  transform: scale(1.05);
 }
 
 .clearButton {
@@ -122,13 +126,15 @@
 }
 
 .clearButton:disabled {
-  background: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.1);
   color: var(--jukebox-gray);
   cursor: not-allowed;
+  transform: none;
 }
 
 .clearButton:disabled:hover {
-  background: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--jukebox-gray);
   transform: none;
 }
 
@@ -189,6 +195,29 @@
   flex-shrink: 0;
 }
 
+.volumeButton {
+  background: transparent;
+  color: var(--jukebox-accent);
+  border: none;
+  padding: var(--spacing-xs);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.volumeButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--jukebox-gold);
+}
+
+.volumeIcon {
+  width: 18px;
+  height: 18px;
+}
+
 .volumeBar {
   width: 80px;
   height: 6px;
@@ -239,13 +268,16 @@
 }
 
 .controlButton:disabled {
-  opacity: 0.5;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--jukebox-gray);
   cursor: not-allowed;
+  transform: none;
 }
 
 .controlButton:disabled:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--jukebox-gray);
   transform: none;
-  background: var(--jukebox-accent);
 }
 
 /* Responsive design */
@@ -265,21 +297,27 @@
   }
   
   .content {
-    flex-direction: column;
+    flex-direction: row;
     gap: var(--spacing-sm);
+    justify-content: center;
+    align-items: center;
   }
   
   .trackInfo {
-    width: 100%;
-    justify-content: center;
+    display: none; /* Hide album info on mobile */
   }
   
-  .controls {
-    width: 100%;
+  .mainControls {
+    height: auto; /* Allow natural height on mobile */
+    gap: var(--spacing-xs);
+  }
+  
+  .controlButton {
+    margin: 0 var(--spacing-xs);
   }
   
   .volume {
-    width: 100%;
+    width: auto;
     justify-content: center;
   }
   
@@ -287,8 +325,14 @@
     width: 100px;
   }
   
-  .status {
-    justify-content: center;
+  /* Hide volume slider on mobile, only show volume button */
+  .volume input[type="range"] {
+    display: none;
+  }
+  
+  /* Hide MeterBridge on mobile */
+  .player > div:first-child {
+    display: none;
   }
 }
 
@@ -296,6 +340,15 @@
   .cover {
     width: 50px;
     height: 50px;
+  }
+  
+  .trackInfo {
+    height: 50px; /* Match the smaller cover height */
+  }
+  
+  .mainControls {
+    height: 50px; /* Match the track info height */
+    gap: 4px;
   }
   
   .title {
@@ -309,6 +362,7 @@
   .controlButton {
     width: 44px;
     height: 44px;
+    margin: 0 2px;
   }
   
   .controlIcon {

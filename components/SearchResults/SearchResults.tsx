@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { Plus } from 'lucide-react'
 import PlaylistModal from '../PlaylistModal'
+import { useSettings } from '@/contexts/SettingsContext'
 import styles from './SearchResults.module.css'
 
 interface SearchResult {
@@ -22,6 +23,7 @@ interface SearchResultsProps {
 }
 
 export default function SearchResults({ results, onTrackClick, isLoading }: SearchResultsProps) {
+  const { canPerformAction } = useSettings()
   const [showPlaylistModal, setShowPlaylistModal] = useState(false)
   const [selectedTrack, setSelectedTrack] = useState<string | null>(null)
 
@@ -48,12 +50,20 @@ export default function SearchResults({ results, onTrackClick, isLoading }: Sear
 
   const handleTrackClick = (e: React.MouseEvent, path: string) => {
     e.preventDefault()
+    if (!canPerformAction('allowAddToQueue')) {
+      alert('Adding to queue is restricted in party mode')
+      return
+    }
     onTrackClick(path)
   }
 
   const handleAddToPlaylist = (e: React.MouseEvent, trackPath: string) => {
     e.preventDefault()
     e.stopPropagation()
+    if (!canPerformAction('allowCreatePlaylists')) {
+      alert('Creating playlists is restricted in party mode')
+      return
+    }
     setSelectedTrack(trackPath)
     setShowPlaylistModal(true)
   }
@@ -95,6 +105,8 @@ export default function SearchResults({ results, onTrackClick, isLoading }: Sear
                 <button
                   onClick={(e) => handleTrackClick(e, result.path!)}
                   className={styles.trackResult}
+                  disabled={!canPerformAction('allowAddToQueue')}
+                  title={!canPerformAction('allowAddToQueue') ? 'Adding to queue is restricted in party mode' : 'Play track'}
                 >
                   <div className={styles.resultIcon}>🎵</div>
                   <div className={styles.resultContent}>
@@ -106,7 +118,8 @@ export default function SearchResults({ results, onTrackClick, isLoading }: Sear
                 <button
                   onClick={(e) => handleAddToPlaylist(e, result.path!)}
                   className={styles.addToPlaylistButton}
-                  title="Add to Playlist"
+                  disabled={!canPerformAction('allowCreatePlaylists')}
+                  title={!canPerformAction('allowCreatePlaylists') ? 'Creating playlists is restricted in party mode' : 'Add to Playlist'}
                 >
                   <Plus className={styles.plusIcon} />
                 </button>

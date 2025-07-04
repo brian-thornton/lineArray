@@ -1,6 +1,7 @@
 .container {
   min-height: 100vh;
   padding: var(--spacing-lg);
+  padding-bottom: calc(var(--spacing-lg) + 120px); /* Extra space for player */
   max-width: 1200px;
   margin: 0 auto;
 }
@@ -39,9 +40,22 @@
   box-shadow: var(--shadow-md);
 }
 
-.createButton:hover {
+.createButton:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
+}
+
+.createButton:disabled {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--jukebox-gray);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.createButton:disabled:hover {
+  transform: none;
+  box-shadow: none;
 }
 
 .plusIcon {
@@ -94,9 +108,22 @@
   min-height: 48px;
 }
 
-.createFirstButton:hover {
+.createFirstButton:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
+}
+
+.createFirstButton:disabled {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--jukebox-gray);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.createFirstButton:disabled:hover {
+  transform: none;
+  box-shadow: none;
 }
 
 .playlistsGrid {
@@ -217,8 +244,16 @@
 }
 
 .playButton:disabled {
-  opacity: 0.5;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--jukebox-gray);
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.playButton:disabled:hover {
+  transform: none;
+  box-shadow: none;
 }
 
 .editButton {
@@ -227,9 +262,22 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.editButton:hover {
+.editButton:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.2);
   transform: translateY(-1px);
+}
+
+.editButton:disabled {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--jukebox-gray);
+  border-color: rgba(255, 255, 255, 0.1);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.editButton:disabled:hover {
+  background: rgba(255, 255, 255, 0.05);
+  transform: none;
 }
 
 .deleteButton {
@@ -238,9 +286,22 @@
   border: 1px solid rgba(255, 59, 48, 0.3);
 }
 
-.deleteButton:hover {
+.deleteButton:hover:not(:disabled) {
   background: rgba(255, 59, 48, 0.2);
   transform: translateY(-1px);
+}
+
+.deleteButton:disabled {
+  background: rgba(255, 59, 48, 0.05);
+  color: var(--jukebox-gray);
+  border-color: rgba(255, 59, 48, 0.1);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.deleteButton:disabled:hover {
+  background: rgba(255, 59, 48, 0.05);
+  transform: none;
 }
 
 .playIcon,
@@ -413,6 +474,7 @@
 @media (max-width: 768px) {
   .container {
     padding: var(--spacing-md);
+    padding-bottom: calc(var(--spacing-md) + 140px); /* More space on mobile */
   }
 
   .header {

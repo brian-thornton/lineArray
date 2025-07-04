@@ -1,0 +1,325 @@
+.container {
+  width: 100%;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-xl);
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--jukebox-text);
+  margin: 0;
+}
+
+.titleIcon {
+  width: 24px;
+  height: 24px;
+  color: var(--jukebox-accent);
+}
+
+.refreshButton {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--jukebox-surface);
+  color: var(--jukebox-text);
+  border: 1px solid var(--jukebox-border);
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.refreshButton:hover {
+  background: var(--jukebox-accent);
+  color: var(--jukebox-background);
+  transform: translateY(-1px);
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-2xl);
+}
+
+.statCard {
+  background: var(--jukebox-surface);
+  border: 1px solid var(--jukebox-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  transition: all 0.2s ease;
+}
+
+.statCard:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--jukebox-shadow);
+}
+
+.statIcon {
+  width: 48px;
+  height: 48px;
+  background: var(--jukebox-accent);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--jukebox-background);
+  flex-shrink: 0;
+}
+
+.statContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.statValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--jukebox-text);
+  line-height: 1.2;
+}
+
+.statLabel {
+  font-size: 0.9rem;
+  color: var(--jukebox-text-secondary);
+  margin-top: var(--spacing-xs);
+}
+
+.section {
+  background: var(--jukebox-surface);
+  border: 1px solid var(--jukebox-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-xl);
+}
+
+.sectionTitle {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--jukebox-text);
+  margin: 0 0 var(--spacing-lg) 0;
+  border-bottom: 1px solid var(--jukebox-border);
+  padding-bottom: var(--spacing-md);
+}
+
+.emptyState {
+  text-align: center;
+  padding: var(--spacing-2xl);
+  color: var(--jukebox-text-secondary);
+}
+
+.emptyIcon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto var(--spacing-lg) auto;
+  opacity: 0.5;
+}
+
+.playCountsList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.trackItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--jukebox-background);
+  border: 1px solid var(--jukebox-border);
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
+}
+
+.trackItem:hover {
+  background: var(--jukebox-surface);
+  transform: translateX(4px);
+}
+
+.trackItem:nth-child(1) {
+  border-color: #ffd700;
+  background: rgba(255, 215, 0, 0.1);
+}
+
+.trackItem:nth-child(2) {
+  border-color: #c0c0c0;
+  background: rgba(192, 192, 192, 0.1);
+}
+
+.trackItem:nth-child(3) {
+  border-color: #cd7f32;
+  background: rgba(205, 127, 50, 0.1);
+}
+
+.rank {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--jukebox-accent);
+  min-width: 40px;
+  text-align: center;
+}
+
+.trackInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.trackTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--jukebox-text);
+  margin-bottom: var(--spacing-xs);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trackDetails {
+  font-size: 0.9rem;
+  color: var(--jukebox-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.playCount {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xs);
+  min-width: 80px;
+}
+
+.countNumber {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--jukebox-accent);
+}
+
+.countLabel {
+  font-size: 0.8rem;
+  color: var(--jukebox-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-2xl);
+  color: var(--jukebox-text-secondary);
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--jukebox-border);
+  border-top: 3px solid var(--jukebox-accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.error {
+  text-align: center;
+  padding: var(--spacing-2xl);
+  color: var(--jukebox-error);
+}
+
+.retryButton {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--jukebox-surface);
+  color: var(--jukebox-text);
+  border: 1px solid var(--jukebox-border);
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.retryButton:hover {
+  background: var(--jukebox-accent);
+  color: var(--jukebox-background);
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    gap: var(--spacing-md);
+    align-items: flex-start;
+  }
+  
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-md);
+  }
+  
+  .statCard {
+    padding: var(--spacing-md);
+  }
+  
+  .statIcon {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .statValue {
+    font-size: 1.2rem;
+  }
+  
+  .trackItem {
+    padding: var(--spacing-sm);
+    gap: var(--spacing-sm);
+  }
+  
+  .rank {
+    min-width: 30px;
+    font-size: 1rem;
+  }
+  
+  .playCount {
+    min-width: 60px;
+  }
+  
+  .countNumber {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .trackItem {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+  }
+  
+  .playCount {
+    align-self: flex-end;
+    flex-direction: row;
+    gap: var(--spacing-xs);
+  }
+} 

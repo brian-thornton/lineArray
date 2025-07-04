@@ -4,10 +4,12 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Edit, Trash2, Play, Music, Clock } from 'lucide-react'
 import { Playlist } from '@/types/music'
+import { useSettings } from '@/contexts/SettingsContext'
 import styles from './page.module.css'
 
 export default function PlaylistsPage() {
   const router = useRouter()
+  const { canPerformAction } = useSettings()
   const [playlists, setPlaylists] = useState<Playlist[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -41,6 +43,11 @@ export default function PlaylistsPage() {
     e.preventDefault()
     if (!newPlaylistName.trim()) return
 
+    if (!canPerformAction('allowCreatePlaylists')) {
+      alert('Creating playlists is restricted in party mode')
+      return
+    }
+
     setIsCreating(true)
     try {
       const response = await fetch('/api/playlists', {
@@ -71,6 +78,11 @@ export default function PlaylistsPage() {
   }
 
   const handleDeletePlaylist = async (playlistId: string) => {
+    if (!canPerformAction('allowDeletePlaylists')) {
+      alert('Deleting playlists is restricted in party mode')
+      return
+    }
+
     setIsDeleting(true)
     try {
       const response = await fetch(`/api/playlists/${playlistId}`, {
@@ -93,6 +105,11 @@ export default function PlaylistsPage() {
   }
 
   const handlePlayPlaylist = async (playlist: Playlist) => {
+    if (!canPerformAction('allowAddToQueue')) {
+      alert('Adding to queue is restricted in party mode')
+      return
+    }
+
     if (playlist.tracks.length === 0) {
       alert('This playlist is empty')
       return
@@ -139,6 +156,8 @@ export default function PlaylistsPage() {
         <button 
           onClick={() => setShowCreateModal(true)}
           className={styles.createButton}
+          disabled={!canPerformAction('allowCreatePlaylists')}
+          title={!canPerformAction('allowCreatePlaylists') ? 'Creating playlists is restricted in party mode' : 'Create new playlist'}
         >
           <Plus className={styles.plusIcon} />
           New Playlist
@@ -153,6 +172,8 @@ export default function PlaylistsPage() {
           <button 
             onClick={() => setShowCreateModal(true)}
             className={styles.createFirstButton}
+            disabled={!canPerformAction('allowCreatePlaylists')}
+            title={!canPerformAction('allowCreatePlaylists') ? 'Creating playlists is restricted in party mode' : 'Create your first playlist'}
           >
             <Plus className={styles.plusIcon} />
             Create Playlist
@@ -186,22 +207,30 @@ export default function PlaylistsPage() {
                 <button
                   onClick={() => handlePlayPlaylist(playlist)}
                   className={styles.playButton}
-                  disabled={playlist.trackCount === 0}
-                  title={playlist.trackCount === 0 ? 'Playlist is empty' : 'Play playlist'}
+                  disabled={playlist.trackCount === 0 || !canPerformAction('allowAddToQueue')}
+                  title={
+                    playlist.trackCount === 0 
+                      ? 'Playlist is empty' 
+                      : !canPerformAction('allowAddToQueue')
+                      ? 'Adding to queue is restricted in party mode'
+                      : 'Play playlist'
+                  }
                 >
                   <Play className={styles.playIcon} />
                 </button>
                 <button
                   onClick={() => router.push(`/playlists/${playlist.id}`)}
                   className={styles.editButton}
-                  title="Edit playlist"
+                  disabled={!canPerformAction('allowEditPlaylists')}
+                  title={!canPerformAction('allowEditPlaylists') ? 'Editing playlists is restricted in party mode' : 'Edit playlist'}
                 >
                   <Edit className={styles.editIcon} />
                 </button>
                 <button
                   onClick={() => setShowDeleteModal(playlist.id)}
                   className={styles.deleteButton}
-                  title="Delete playlist"
+                  disabled={!canPerformAction('allowDeletePlaylists')}
+                  title={!canPerformAction('allowDeletePlaylists') ? 'Deleting playlists is restricted in party mode' : 'Delete playlist'}
                 >
                   <Trash2 className={styles.deleteIcon} />
                 </button>

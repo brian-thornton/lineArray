@@ -1,16 +1,14 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-
-interface Settings {
-  scanPath: string
-  jukeboxName: string
-}
+import { Settings } from '@/types/music'
 
 interface SettingsContextType {
   settings: Settings
   updateSettings: (newSettings: Partial<Settings>) => Promise<void>
   refreshSettings: () => Promise<void>
+  isPartyModeEnabled: () => boolean
+  canPerformAction: (action: keyof Settings['partyMode']) => boolean
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined)
@@ -18,7 +16,22 @@ const SettingsContext = createContext<SettingsContextType | undefined>(undefined
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<Settings>({
     scanPath: '/Users/brianthornton/Desktop/Music/Dave Matthews',
-    jukeboxName: 'Jukebox 2.0'
+    jukeboxName: 'Jukebox 2.0',
+    adminPin: '1234',
+    theme: 'jukebox-classic',
+    partyMode: {
+      enabled: false,
+      allowPlay: true,
+      allowStop: true,
+      allowNext: true,
+      allowPrevious: true,
+      allowCreatePlaylists: true,
+      allowEditPlaylists: true,
+      allowDeletePlaylists: true,
+      allowAddToQueue: true,
+      allowRemoveFromQueue: true,
+      allowSkipInQueue: true
+    }
   })
 
   const loadSettings = async () => {
@@ -26,6 +39,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       const response = await fetch('/api/settings')
       if (response.ok) {
         const data = await response.json()
+        console.log('Loaded settings:', data)
         setSettings(data)
       }
     } catch (error) {
@@ -35,18 +49,39 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   const updateSettings = async (newSettings: Partial<Settings>) => {
     try {
+      console.log('Updating settings with:', newSettings)
+      console.log('Current settings before update:', settings)
+      
+      // Create a properly merged settings object
+      const mergedSettings = {
+        ...settings,
+        ...newSettings,
+        // Ensure partyMode is properly merged if it exists in newSettings
+        ...(newSettings.partyMode && {
+          partyMode: {
+            ...settings.partyMode,
+            ...newSettings.partyMode
+          }
+        })
+      }
+      
+      console.log('Merged settings to send:', mergedSettings)
+      
       const response = await fetch('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...settings,
-          ...newSettings
-        }),
+        body: JSON.stringify(mergedSettings),
       })
       
       if (response.ok) {
         const updatedSettings = await response.json()
+        console.log('Settings updated successfully:', updatedSettings)
         setSettings(updatedSettings)
+      } else {
+        console.error('Failed to update settings:', response.status, response.statusText)
+        const errorText = await response.text()
+        console.error('Error response:', errorText)
+        throw new Error(`Failed to update settings: ${response.status}`)
       }
     } catch (error) {
       console.error('Error updating settings:', error)
@@ -58,12 +93,32 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     await loadSettings()
   }
 
+  const isPartyModeEnabled = () => {
+    return settings.partyMode.enabled
+  }
+
+  const canPerformAction = (action: keyof Settings['partyMode']) => {
+    // If party mode is disabled, all actions are allowed
+    if (!settings.partyMode.enabled) {
+      return true
+    }
+    
+    // Check if the specific action is allowed
+    return settings.partyMode[action]
+  }
+
   useEffect(() => {
     loadSettings()
   }, [])
 
   return (
-    <SettingsContext.Provider value={{ settings, updateSettings, refreshSettings }}>
+    <SettingsContext.Provider value={{ 
+      settings, 
+      updateSettings, 
+      refreshSettings, 
+      isPartyModeEnabled, 
+      canPerformAction 
+    }}>
       {children}
     </SettingsContext.Provider>
   )

@@ -13,6 +13,10 @@
 }
 
 .modal {
+  position: fixed;
+  top: 2vh;
+  left: 50%;
+  transform: translateX(-50%);
   background: var(--jukebox-darker);
   border: 2px solid var(--jukebox-accent);
   border-radius: var(--radius-lg);

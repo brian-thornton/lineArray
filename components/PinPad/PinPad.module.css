@@ -1,0 +1,256 @@
+.pinPadContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.pinDisplay {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.pinDot {
+  width: 3rem;
+  height: 3rem;
+  border: 3px solid var(--jukebox-border);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--jukebox-text);
+  background: var(--jukebox-surface);
+  transition: all 0.2s ease;
+}
+
+.pinDot.filled {
+  border-color: var(--jukebox-accent);
+  background: var(--jukebox-accent);
+  color: var(--jukebox-background);
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+}
+
+.numberPad {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.row {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.numberButton {
+  width: 4rem;
+  height: 4rem;
+  border: 2px solid var(--jukebox-border);
+  border-radius: 50%;
+  background: var(--jukebox-surface);
+  color: var(--jukebox-text);
+  font-size: 1.5rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 4rem;
+  min-height: 4rem;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.numberButton:hover:not(:disabled) {
+  background: var(--jukebox-accent);
+  border-color: var(--jukebox-accent);
+  color: var(--jukebox-background);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+}
+
+.numberButton:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(255, 215, 0, 0.3);
+}
+
+.numberButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.zeroButton {
+  width: 4rem;
+  height: 4rem;
+}
+
+.emptySpace {
+  width: 4rem;
+  height: 4rem;
+}
+
+.actionRow {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+.actionButton {
+  width: 4rem;
+  height: 3rem;
+  border: 2px solid var(--jukebox-border);
+  border-radius: var(--radius-md);
+  background: var(--jukebox-surface);
+  color: var(--jukebox-text);
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 4rem;
+  min-height: 3rem;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.actionButton:hover:not(:disabled) {
+  background: var(--jukebox-accent);
+  border-color: var(--jukebox-accent);
+  color: var(--jukebox-background);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+}
+
+.actionButton:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(255, 215, 0, 0.3);
+}
+
+.actionButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.clearButton {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #f87171;
+}
+
+.clearButton:hover:not(:disabled) {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: white;
+}
+
+.deleteButton {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #f59e0b;
+  font-size: 1.2rem;
+}
+
+.deleteButton:hover:not(:disabled) {
+  background: #f59e0b;
+  border-color: #f59e0b;
+  color: white;
+}
+
+/* Mobile and touch screen optimizations */
+@media (max-width: 768px) {
+  .pinPadContainer {
+    gap: 1.5rem;
+  }
+  
+  .pinDisplay {
+    gap: 0.75rem;
+  }
+  
+  .pinDot {
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: 1.2rem;
+  }
+  
+  .numberButton {
+    width: 3.5rem;
+    height: 3.5rem;
+    font-size: 1.3rem;
+    min-width: 3.5rem;
+    min-height: 3.5rem;
+  }
+  
+  .zeroButton {
+    width: 3.5rem;
+    height: 3.5rem;
+  }
+  
+  .emptySpace {
+    width: 3.5rem;
+    height: 3.5rem;
+  }
+  
+  .actionButton {
+    width: 3.5rem;
+    height: 2.5rem;
+    min-width: 3.5rem;
+    min-height: 2.5rem;
+  }
+  
+  .row {
+    gap: 0.5rem;
+  }
+  
+  .actionRow {
+    gap: 0.5rem;
+  }
+}
+
+/* Large touch screen optimizations */
+@media (min-width: 1024px) and (pointer: coarse) {
+  .numberButton {
+    width: 5rem;
+    height: 5rem;
+    font-size: 1.8rem;
+    min-width: 5rem;
+    min-height: 5rem;
+  }
+  
+  .zeroButton {
+    width: 5rem;
+    height: 5rem;
+  }
+  
+  .emptySpace {
+    width: 5rem;
+    height: 5rem;
+  }
+  
+  .actionButton {
+    width: 5rem;
+    height: 4rem;
+    font-size: 1.2rem;
+    min-width: 5rem;
+    min-height: 4rem;
+  }
+  
+  .pinDot {
+    width: 3.5rem;
+    height: 3.5rem;
+    font-size: 1.8rem;
+  }
+} 

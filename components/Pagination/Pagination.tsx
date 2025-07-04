@@ -11,13 +11,7 @@ interface PaginationProps {
   itemsPerPage: number
 }
 
-const Pagination: React.FC<PaginationProps> = ({
-  currentPage,
-  totalPages,
-  onPageChange,
-  totalItems,
-  itemsPerPage
-}) => {
+function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPerPage }: PaginationProps) {
   if (totalPages <= 1) return null
 
   const startItem = (currentPage - 1) * itemsPerPage + 1

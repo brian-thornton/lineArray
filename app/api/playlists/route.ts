@@ -6,6 +6,41 @@ import { Playlist, CreatePlaylistRequest, UpdatePlaylistRequest } from '@/types/
 const playlistsPath = path.join(process.cwd(), 'data', 'playlists.json')
 const musicLibraryPath = path.join(process.cwd(), 'data', 'music-library.json')
 
+function loadSettings() {
+  try {
+    const settingsPath = path.join(process.cwd(), 'data', 'settings.json')
+    if (fs.existsSync(settingsPath)) {
+      const data = fs.readFileSync(settingsPath, 'utf-8')
+      return JSON.parse(data)
+    }
+  } catch (error) {
+    console.error('Error loading settings:', error)
+  }
+  return { partyMode: { enabled: false } }
+}
+
+function checkPartyModePermission(action: string): boolean {
+  const settings = loadSettings()
+  const { partyMode } = settings
+  
+  // If party mode is disabled, all actions are allowed
+  if (!partyMode.enabled) {
+    return true
+  }
+  
+  // Check specific permissions based on action
+  switch (action) {
+    case 'create':
+      return partyMode.allowCreatePlaylists
+    case 'edit':
+      return partyMode.allowEditPlaylists
+    case 'delete':
+      return partyMode.allowDeletePlaylists
+    default:
+      return true
+  }
+}
+
 function loadPlaylists(): Playlist[] {
   try {
     if (fs.existsSync(playlistsPath)) {
@@ -65,6 +100,10 @@ export async function GET() {
 // POST /api/playlists - Create a new playlist
 export async function POST(request: NextRequest) {
   try {
+    if (!checkPartyModePermission('create')) {
+      return NextResponse.json({ error: 'Creating playlists is restricted in party mode' }, { status: 403 })
+    }
+
     const body: CreatePlaylistRequest = await request.json()
     const { name, description } = body
 

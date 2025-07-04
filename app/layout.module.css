@@ -1,72 +1,14 @@
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1.5rem 2rem 1.5rem 2rem;
-  background: rgba(30, 30, 40, 0.95);
-  border-bottom: 1px solid rgba(255,255,255,0.07);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  gap: 2rem;
-}
-.logo {
-  font-family: var(--font-display);
-  font-size: 1.7rem;
-  font-weight: 700;
-  color: var(--jukebox-accent);
-  letter-spacing: 2px;
-  flex-shrink: 0;
-}
-.searchSection {
-  flex: 1;
-  max-width: 600px;
-  margin: 0 1rem;
-}
-.nav {
-  display: flex;
-  gap: 1rem;
-  flex-shrink: 0;
-}
-.nav a {
-  color: var(--jukebox-white);
-  font-weight: 600;
-  font-size: 1.1rem;
-  text-decoration: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: var(--radius-lg);
-  transition: all 0.2s ease;
-  background: rgba(255, 255, 255, 0.05);
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  min-width: 100px;
-  text-align: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
-}
-.nav a:hover, .nav a:focus {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: var(--jukebox-gold);
-  color: var(--jukebox-gold);
-  outline: none;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-.nav a:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-  background: rgba(255, 255, 255, 0.2);
-}
 .main {
-  min-height: calc(100vh - 80px - 100px); /* Account for header and potential player */
-  padding-bottom: 100px; /* Space for player */
+  min-height: calc(100vh - 80px - 120px); /* Account for header and player */
+  padding-bottom: 120px; /* Space for player - increased to ensure content is visible */
 }
 
 /* Mobile and touch screen optimizations */
 @media (max-width: 768px) {
+  .main {
+    padding-bottom: 140px; /* More space on mobile for larger player */
+  }
+  
   .header {
     padding: 1rem 1.5rem;
     flex-direction: column;
@@ -97,6 +39,18 @@
   }
 }
 
+/* Hide search on mobile for album detail pages */
+@media (max-width: 768px) {
+  .header.albumPage .searchSection {
+    display: none;
+  }
+  
+  .header.albumPage {
+    padding: 0.75rem 1.5rem;
+    gap: 0.5rem;
+  }
+}
+
 /* Large touch screen optimizations */
 @media (min-width: 1024px) and (pointer: coarse) {
   .nav a {
@@ -104,5 +58,12 @@
     font-size: 1.2rem;
     min-width: 120px;
     min-height: 56px;
+  }
+}
+
+/* Small screen adjustments */
+@media (max-width: 480px) {
+  .main {
+    padding-bottom: 150px; /* Even more space on very small screens */
   }
 } 

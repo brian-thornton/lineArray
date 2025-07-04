@@ -1,6 +1,7 @@
 .container {
   min-height: 100vh;
   padding: var(--spacing-lg);
+  padding-bottom: calc(var(--spacing-lg) + 120px); /* Extra space for player */
   max-width: 1200px;
   margin: 0 auto;
 }
@@ -19,11 +20,22 @@
   font-weight: 600;
   transition: all 0.2s ease;
   min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
 }
 
 .backButton:hover {
   background: rgba(255, 255, 255, 0.2);
   transform: translateY(-1px);
+}
+
+.backIcon {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .albumInfo {
@@ -97,8 +109,6 @@
   min-width: 0;
 }
 
-
-
 .year {
   font-size: 1rem;
   color: var(--jukebox-gray);
@@ -164,6 +174,19 @@
   box-shadow: var(--shadow-lg);
 }
 
+.playButton:disabled {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--jukebox-gray);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.playButton:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
 .playlistButton {
   background: rgba(255, 255, 255, 0.1);
   color: var(--jukebox-white);
@@ -173,6 +196,19 @@
 .playlistButton:hover {
   background: rgba(255, 255, 255, 0.2);
   transform: translateY(-1px);
+}
+
+.playlistButton:disabled {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--jukebox-gray);
+  border-color: rgba(255, 255, 255, 0.1);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.playlistButton:disabled:hover {
+  background: rgba(255, 255, 255, 0.05);
+  transform: none;
 }
 
 .playIcon,
@@ -344,6 +380,18 @@
   transform: scale(1.1);
 }
 
+.playTrackButton:disabled {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--jukebox-gray);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.playTrackButton:disabled:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: none;
+}
+
 .loadingContainer,
 .errorContainer {
   display: flex;
@@ -418,6 +466,7 @@
 @media (max-width: 768px) {
   .container {
     padding: var(--spacing-md);
+    padding-bottom: calc(var(--spacing-md) + 140px); /* More space on mobile */
   }
   
   .albumInfo {
@@ -426,10 +475,21 @@
     padding: var(--spacing-lg);
   }
   
+  .coverSection {
+    position: relative;
+    align-self: center;
+  }
+  
   .cover {
     width: 150px;
     height: 150px;
-    align-self: center;
+  }
+  
+  .trackCount {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    z-index: 10;
   }
   
   .title {
@@ -440,24 +500,37 @@
   }
   
   .actions {
-    flex-direction: column;
+    flex-direction: row;
+    gap: var(--spacing-md);
+  }
+  
+  .playButton,
+  .playlistButton {
+    flex: 1;
+    justify-content: center;
   }
   
   .tracksHeader {
-    flex-direction: column;
+    flex-direction: row;
     gap: var(--spacing-md);
-    align-items: flex-start;
+    align-items: center;
+    justify-content: space-between;
   }
   
   .tracksActions {
-    width: 100%;
-    justify-content: space-between;
+    width: auto;
+    gap: var(--spacing-sm);
   }
 }
 
 @media (max-width: 480px) {
   .container {
     padding: var(--spacing-sm);
+    padding-bottom: calc(var(--spacing-sm) + 150px); /* Even more space on small screens */
+  }
+  
+  .header {
+    display: none;
   }
   
   .albumInfo {
@@ -467,6 +540,15 @@
   .cover {
     width: 120px;
     height: 120px;
+  }
+  
+  .trackCount {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    z-index: 10;
+    font-size: 0.8rem;
+    padding: var(--spacing-xs) var(--spacing-sm);
   }
   
   .title {
@@ -483,4 +565,69 @@
   .trackInfo {
     gap: var(--spacing-sm);
   }
+  
+  .actions {
+    flex-direction: row;
+    gap: var(--spacing-sm);
+  }
+  
+  .playButton,
+  .playlistButton {
+    flex: 1;
+    padding: var(--spacing-sm) var(--spacing-sm);
+    font-size: 0.85rem;
+  }
+  
+  .tracksHeader {
+    flex-direction: row;
+    gap: var(--spacing-sm);
+    align-items: center;
+    justify-content: space-between;
+  }
+  
+  .tracksActions {
+    width: auto;
+    gap: var(--spacing-xs);
+  }
+  
+  .selectAllButton,
+  .addSelectedButton {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: 0.8rem;
+  }
+}
+
+.setlistSection {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-lg);
+  margin: var(--spacing-lg) 0;
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.setlistTitle {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--jukebox-accent);
+  margin-bottom: var(--spacing-sm);
+}
+
+.setlistFilename {
+  font-size: 0.95rem;
+  color: var(--jukebox-gray);
+  margin-bottom: var(--spacing-xs);
+  font-family: var(--font-mono, monospace);
+}
+
+.setlistContent {
+  background: rgba(0,0,0,0.15);
+  color: var(--jukebox-white);
+  font-size: 0.95rem;
+  font-family: var(--font-mono, monospace);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  white-space: pre-wrap;
+  overflow-x: auto;
+  margin: 0;
 } 

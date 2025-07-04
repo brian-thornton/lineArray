@@ -4,10 +4,14 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Play, Edit, Save, X, Trash2, Plus, Music, GripVertical } from 'lucide-react'
 import { Playlist, PlaylistTrack } from '@/types/music'
+import { useSettings } from '@/contexts/SettingsContext'
+import { useSearch } from '@/contexts/SearchContext'
 import styles from './page.module.css'
 
 export default function PlaylistDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter()
+  const { canPerformAction } = useSettings()
+  const { hideKeyboard } = useSearch()
   const [playlist, setPlaylist] = useState<Playlist | null>(null)
   const [loading, setLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
@@ -45,6 +49,11 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
   const handleSaveEdit = async () => {
     if (!playlist) return
 
+    if (!canPerformAction('allowEditPlaylists')) {
+      alert('Editing playlists is restricted in party mode')
+      return
+    }
+
     setIsSaving(true)
     try {
       const response = await fetch(`/api/playlists/${playlist.id}`, {
@@ -75,6 +84,11 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
   const handleDeletePlaylist = async () => {
     if (!playlist) return
 
+    if (!canPerformAction('allowDeletePlaylists')) {
+      alert('Deleting playlists is restricted in party mode')
+      return
+    }
+
     setIsDeleting(true)
     try {
       const response = await fetch(`/api/playlists/${playlist.id}`, {
@@ -98,6 +112,11 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
   const handleRemoveTrack = async (trackId: string) => {
     if (!playlist) return
 
+    if (!canPerformAction('allowEditPlaylists')) {
+      alert('Editing playlists is restricted in party mode')
+      return
+    }
+
     try {
       const response = await fetch(`/api/playlists/${playlist.id}/tracks/${trackId}`, {
         method: 'DELETE'
@@ -117,6 +136,11 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
   }
 
   const handlePlayPlaylist = async () => {
+    if (!canPerformAction('allowAddToQueue')) {
+      alert('Adding to queue is restricted in party mode')
+      return
+    }
+
     if (!playlist || playlist.tracks.length === 0) {
       alert('This playlist is empty')
       return
@@ -137,6 +161,7 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
 
       // Navigate back to main page to see the player
       router.push('/')
+      hideKeyboard()
     } catch (error) {
       console.error('Error playing playlist:', error)
       alert('Failed to play playlist')
@@ -153,39 +178,37 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
     e.dataTransfer.dropEffect = 'move'
   }
 
-  const handleDrop = async (e: React.DragEvent, dropTrackId: string) => {
+  const handleDrop = async (e: React.DragEvent, targetTrackId: string) => {
     e.preventDefault()
-    if (!playlist || !draggedTrack || draggedTrack === dropTrackId) return
+    
+    if (!draggedTrack || draggedTrack === targetTrackId) {
+      setDraggedTrack(null)
+      return
+    }
+
+    if (!canPerformAction('allowEditPlaylists')) {
+      alert('Editing playlists is restricted in party mode')
+      setDraggedTrack(null)
+      return
+    }
 
     try {
-      // Get current track order
-      const trackIds = playlist.tracks.map(pt => pt.id)
-      
-      // Remove dragged track from its current position
-      const draggedIndex = trackIds.indexOf(draggedTrack)
-      trackIds.splice(draggedIndex, 1)
-      
-      // Insert dragged track at drop position
-      const dropIndex = trackIds.indexOf(dropTrackId)
-      trackIds.splice(dropIndex, 0, draggedTrack)
-
-      // Send reorder request
-      const response = await fetch(`/api/playlists/${playlist.id}/tracks`, {
+      const response = await fetch(`/api/playlists/${playlist?.id}/tracks/reorder`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ trackIds })
+        body: JSON.stringify({
+          draggedTrackId: draggedTrack,
+          targetTrackId: targetTrackId
+        })
       })
 
       if (response.ok) {
-        // Reload playlist to get updated data
         await loadPlaylist()
       } else {
-        const error = await response.json()
-        alert(error.error || 'Failed to reorder tracks')
+        console.error('Failed to reorder tracks')
       }
     } catch (error) {
       console.error('Error reordering tracks:', error)
-      alert('Failed to reorder tracks')
     } finally {
       setDraggedTrack(null)
     }
@@ -207,8 +230,9 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
   if (!playlist) {
     return (
       <div className={styles.errorContainer}>
-        <p>Playlist not found</p>
+        <h2>Playlist not found</h2>
         <button onClick={() => router.push('/playlists')} className={styles.backButton}>
+          <ArrowLeft className={styles.backIcon} />
           Back to Playlists
         </button>
       </div>
@@ -298,8 +322,14 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
               <button
                 onClick={handlePlayPlaylist}
                 className={styles.playButton}
-                disabled={playlist.trackCount === 0}
-                title={playlist.trackCount === 0 ? 'Playlist is empty' : 'Play playlist'}
+                disabled={playlist.trackCount === 0 || !canPerformAction('allowAddToQueue')}
+                title={
+                  playlist.trackCount === 0 
+                    ? 'Playlist is empty' 
+                    : !canPerformAction('allowAddToQueue')
+                    ? 'Adding to queue is restricted in party mode'
+                    : 'Play playlist'
+                }
               >
                 <Play className={styles.playIcon} />
                 Play Playlist
@@ -307,7 +337,8 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
               <button
                 onClick={() => setIsEditing(true)}
                 className={styles.editButton}
-                title="Edit playlist"
+                disabled={!canPerformAction('allowEditPlaylists')}
+                title={!canPerformAction('allowEditPlaylists') ? 'Editing playlists is restricted in party mode' : 'Edit playlist'}
               >
                 <Edit className={styles.editIcon} />
                 Edit
@@ -315,7 +346,8 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
               <button
                 onClick={() => setShowDeleteModal(true)}
                 className={styles.deleteButton}
-                title="Delete playlist"
+                disabled={!canPerformAction('allowDeletePlaylists')}
+                title={!canPerformAction('allowDeletePlaylists') ? 'Deleting playlists is restricted in party mode' : 'Delete playlist'}
               >
                 <Trash2 className={styles.deleteIcon} />
                 Delete
@@ -329,8 +361,10 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
         <div className={styles.tracksHeader}>
           <h2 className={styles.tracksTitle}>Tracks</h2>
           <button
-            onClick={() => router.push(`/playlists/${playlist.id}/add-tracks`)}
+            onClick={() => router.push('/')}
             className={styles.addTracksButton}
+            disabled={!canPerformAction('allowEditPlaylists')}
+            title={!canPerformAction('allowEditPlaylists') ? 'Editing playlists is restricted in party mode' : 'Add tracks from library'}
           >
             <Plus className={styles.plusIcon} />
             Add Tracks
@@ -340,11 +374,13 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
         {playlist.tracks.length === 0 ? (
           <div className={styles.emptyTracks}>
             <Music className={styles.emptyIcon} />
-            <h3>No tracks in this playlist</h3>
-            <p>Add some tracks to get started</p>
+            <h3>No tracks yet</h3>
+            <p>Add some tracks from your music library to get started</p>
             <button
-              onClick={() => router.push(`/playlists/${playlist.id}/add-tracks`)}
-              className={styles.addFirstTracksButton}
+              onClick={() => router.push('/')}
+              className={styles.addTracksButton}
+              disabled={!canPerformAction('allowEditPlaylists')}
+              title={!canPerformAction('allowEditPlaylists') ? 'Editing playlists is restricted in party mode' : 'Add tracks from library'}
             >
               <Plus className={styles.plusIcon} />
               Add Tracks
@@ -356,7 +392,7 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
               <div
                 key={playlistTrack.id}
                 className={`${styles.trackItem} ${draggedTrack === playlistTrack.id ? styles.dragging : ''}`}
-                draggable
+                draggable={canPerformAction('allowEditPlaylists')}
                 onDragStart={(e) => handleDragStart(e, playlistTrack.id)}
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, playlistTrack.id)}
@@ -379,7 +415,8 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
                   <button
                     onClick={() => handleRemoveTrack(playlistTrack.id)}
                     className={styles.removeTrackButton}
-                    title="Remove from playlist"
+                    disabled={!canPerformAction('allowEditPlaylists')}
+                    title={!canPerformAction('allowEditPlaylists') ? 'Editing playlists is restricted in party mode' : 'Remove from playlist'}
                   >
                     <Trash2 className={styles.removeIcon} />
                   </button>

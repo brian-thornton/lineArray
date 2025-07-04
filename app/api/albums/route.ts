@@ -9,20 +9,32 @@ export async function GET() {
     if (!fs.existsSync(dataPath)) {
       return NextResponse.json({
         albums: [],
-        scanPath: '',
-        lastScanned: null
+        scanPaths: [],
+        lastScanned: null,
+        totalFiles: 0,
+        totalAlbums: 0,
+        scanResults: {}
       })
     }
 
     const data = fs.readFileSync(dataPath, 'utf8')
     const libraryData = JSON.parse(data)
 
+    // Handle both old and new data formats
+    const albums = libraryData.albums || []
+    const scanPaths = libraryData.scanPaths || (libraryData.scanPath ? [libraryData.scanPath] : [])
+    const lastScanned = libraryData.lastScanned || null
+    const totalFiles = libraryData.totalFiles || 0
+    const totalAlbums = libraryData.totalAlbums || albums.length
+    const scanResults = libraryData.scanResults || {}
+
     return NextResponse.json({
-      albums: libraryData.albums || [],
-      scanPath: libraryData.scanPath || '',
-      lastScanned: libraryData.lastScanned || null,
-      totalFiles: libraryData.totalFiles || 0,
-      totalAlbums: libraryData.totalAlbums || 0
+      albums,
+      scanPaths,
+      lastScanned,
+      totalFiles,
+      totalAlbums,
+      scanResults
     })
 
   } catch (error) {

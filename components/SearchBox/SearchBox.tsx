@@ -1,14 +1,41 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef } from 'react'
 import { useSearch } from '@/contexts/SearchContext'
 import styles from './SearchBox.module.css'
 
-export default function SearchBox() {
+export interface SearchBoxRef {
+  hideKeyboard: () => void
+}
+
+const SearchBox = forwardRef<SearchBoxRef>((props, ref) => {
   const { performSearch, clearSearch, isSearching } = useSearch()
   const [query, setQuery] = useState('')
   const [showKeyboard, setShowKeyboard] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // Detect mobile devices
+  useEffect(() => {
+    const checkMobile = () => {
+      const isMobileDevice = window.innerWidth <= 768 || 
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      setIsMobile(isMobileDevice)
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  const hideKeyboard = () => {
+    setShowKeyboard(false)
+    inputRef.current?.blur()
+  }
+
+  useImperativeHandle(ref, () => ({
+    hideKeyboard
+  }))
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
@@ -36,7 +63,10 @@ export default function SearchBox() {
   }
 
   const handleInputFocus = () => {
-    setShowKeyboard(true)
+    // Only show on-screen keyboard on desktop/tablet, not on mobile
+    if (!isMobile) {
+      setShowKeyboard(true)
+    }
   }
 
   const handleInputBlur = () => {
@@ -92,7 +122,7 @@ export default function SearchBox() {
         )}
       </div>
 
-      {showKeyboard && (
+      {showKeyboard && !isMobile && (
         <div className={styles.keyboard}>
           {keyboardKeys.map((row, rowIndex) => (
             <div key={rowIndex} className={styles.keyboardRow}>
@@ -136,4 +166,6 @@ export default function SearchBox() {
       )}
     </div>
   )
-} 
+})
+
+export default SearchBox 

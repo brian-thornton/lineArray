@@ -11,12 +11,7 @@ interface AlbumCardProps {
   onSelect: () => void
 }
 
-const AlbumCard: React.FC<AlbumCardProps> = ({ 
-  album, 
-  onPlayTrack, 
-  isSelected, 
-  onSelect 
-}) => {
+function AlbumCard({ album, onPlayTrack, isSelected, onSelect }: AlbumCardProps) {
   const router = useRouter()
 
   const handlePlayTrack = (track: Track, e: React.MouseEvent) => {

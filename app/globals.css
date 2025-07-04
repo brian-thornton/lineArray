@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
-  /* Color Palette */
+  /* Color Palette - Legacy variables for backward compatibility */
   --jukebox-dark: #1a1a2e;
   --jukebox-darker: #16213e;
   --jukebox-accent: #0ea5e9;
@@ -11,6 +11,20 @@
   --jukebox-white: #ffffff;
   --jukebox-gray: #6b7280;
   --jukebox-light-gray: #f3f4f6;
+  
+  /* New theme variables */
+  --jukebox-primary: #1a1a2e;
+  --jukebox-secondary: #16213e;
+  --jukebox-background: #0f0f23;
+  --jukebox-surface: rgba(255, 255, 255, 0.05);
+  --jukebox-text: #ffffff;
+  --jukebox-text-secondary: #a0a0a0;
+  --jukebox-text-tertiary: #666666;
+  --jukebox-border: rgba(255, 255, 255, 0.1);
+  --jukebox-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  --jukebox-success: #4ade80;
+  --jukebox-error: #f87171;
+  --jukebox-warning: #fbbf24;
   
   /* Typography */
   --font-display: 'Orbitron', monospace;
@@ -48,8 +62,8 @@ body {
   max-width: 100vw;
   overflow-x: hidden;
   font-family: var(--font-body);
-  background: linear-gradient(135deg, var(--jukebox-dark) 0%, var(--jukebox-darker) 100%);
-  color: var(--jukebox-white);
+  background: var(--jukebox-background);
+  color: var(--jukebox-text);
   min-height: 100vh;
 }
 
@@ -75,11 +89,11 @@ button {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--jukebox-darker);
+  background: var(--jukebox-background);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--jukebox-blue);
+  background: var(--jukebox-accent);
   border-radius: var(--radius-sm);
 }
 

@@ -1,0 +1,15 @@
+.meter-bridge {
+  display: flex;
+  align-items: flex-end;
+  height: 32px;
+  gap: 2px;
+  background: rgba(0,0,0,0.2);
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+.meter-bar {
+  width: 6px;
+  background: linear-gradient(to top, #0ff040, #ffe600, #ff2a00);
+  border-radius: 3px;
+  transition: height 0.08s cubic-bezier(.4,2,.6,1);
+} 

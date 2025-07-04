@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import AlbumCard from '../AlbumCard'
 import Pagination from '../Pagination'
+import SwipeGestures from '../SwipeGestures'
 import { Album, Track } from '@/types/music'
 import styles from './AlbumGrid.module.css'
 
@@ -11,12 +12,7 @@ interface AlbumGridProps {
   itemsPerPage?: number
 }
 
-const AlbumGrid: React.FC<AlbumGridProps> = ({ 
-  albums, 
-  onPlayTrack, 
-  isLoading, 
-  itemsPerPage = 12 
-}) => {
+function AlbumGrid({ albums, onPlayTrack, isLoading, itemsPerPage = 12 }: AlbumGridProps) {
   const [selectedAlbum, setSelectedAlbum] = useState<Album | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [gridConfig, setGridConfig] = useState({
@@ -33,8 +29,14 @@ const AlbumGrid: React.FC<AlbumGridProps> = ({
       
       // Responsive layout based on screen size
       let columnsPerRow = 7 // Default for desktop
-      if (viewportWidth <= 1366) { // Tablet size
-        columnsPerRow = 6
+      if (viewportWidth <= 1024) { // Desktop
+        columnsPerRow = 3
+      }
+      if (viewportWidth <= 768) { // Tablet
+        columnsPerRow = 2
+      }
+      if (viewportWidth <= 480) { // Mobile
+        columnsPerRow = 2
       }
       
       const rowsPerPage = 3 // Always 3 rows
@@ -73,6 +75,18 @@ const AlbumGrid: React.FC<AlbumGridProps> = ({
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  const handleSwipeLeft = () => {
+    if (currentPage < totalPages) {
+      handlePageChange(currentPage + 1)
+    }
+  }
+
+  const handleSwipeRight = () => {
+    if (currentPage > 1) {
+      handlePageChange(currentPage - 1)
+    }
+  }
+
   // Generate dynamic CSS for grid columns
   const gridStyle = useMemo(() => ({
     display: 'grid',
@@ -80,8 +94,9 @@ const AlbumGrid: React.FC<AlbumGridProps> = ({
     gap: 'var(--spacing-lg)',
     width: '100%',
     flex: 1,
-    overflowY: 'auto' as const,
-    paddingBottom: 'var(--spacing-md)'
+    paddingBottom: 'var(--spacing-md)',
+    justifyItems: 'center',
+    alignItems: 'start'
   }), [gridConfig.columnsPerRow])
 
   if (isLoading) {
@@ -106,29 +121,35 @@ const AlbumGrid: React.FC<AlbumGridProps> = ({
   }
 
   return (
-    <div className={styles.container}>
-      <div 
-        style={gridStyle}
-      >
-        {currentAlbums.map((album) => (
-          <AlbumCard
-            key={album.id}
-            album={album}
-            onPlayTrack={onPlayTrack}
-            isSelected={selectedAlbum?.id === album.id}
-            onSelect={() => setSelectedAlbum(selectedAlbum?.id === album.id ? null : album)}
-          />
-        ))}
-      </div>
+    <SwipeGestures
+      onSwipeLeft={handleSwipeLeft}
+      onSwipeRight={handleSwipeRight}
+      disabled={totalPages <= 1}
+    >
+      <div className={styles.container}>
+        <div 
+          style={gridStyle}
+        >
+          {currentAlbums.map((album) => (
+            <AlbumCard
+              key={album.id}
+              album={album}
+              onPlayTrack={onPlayTrack}
+              isSelected={selectedAlbum?.id === album.id}
+              onSelect={() => setSelectedAlbum(selectedAlbum?.id === album.id ? null : album)}
+            />
+          ))}
+        </div>
 
-      <Pagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={handlePageChange}
-        totalItems={albums.length}
-        itemsPerPage={gridConfig.itemsPerPage}
-      />
-    </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+          totalItems={albums.length}
+          itemsPerPage={gridConfig.itemsPerPage}
+        />
+      </div>
+    </SwipeGestures>
   )
 }
 

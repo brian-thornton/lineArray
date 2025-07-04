@@ -1,14 +1,12 @@
 import React from 'react'
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
-import Link from 'next/link'
 import styles from './layout.module.css'
-import Player from '@/components/Player'
-import SearchBox from '@/components/SearchBox'
 import { SearchProvider } from '@/contexts/SearchContext'
 import { SettingsProvider } from '@/contexts/SettingsContext'
-import JukeboxHeader from '@/components/JukeboxHeader'
-import DynamicTitle from '@/components/DynamicTitle'
+import { ThemeProvider } from '@/contexts/ThemeContext'
+import { ToastProvider } from '@/contexts/ToastContext'
+import AppShell from '@/components/AppShell'
 
 export const metadata: Metadata = {
   title: 'Jukebox 2.0',
@@ -31,24 +29,13 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <SettingsProvider>
-          <SearchProvider>
-            <DynamicTitle />
-            <header className={styles.header}>
-              <JukeboxHeader />
-              <div className={styles.searchSection}>
-                <SearchBox />
-              </div>
-              <nav className={styles.nav}>
-                <Link href="/">Library</Link>
-                <Link href="/playlists">Playlists</Link>
-                <Link href="/settings">Settings</Link>
-              </nav>
-            </header>
-            <main className={styles.main}>
-              {children}
-            </main>
-            <Player />
-          </SearchProvider>
+          <ThemeProvider>
+            <SearchProvider>
+              <ToastProvider>
+                <AppShell>{children}</AppShell>
+              </ToastProvider>
+            </SearchProvider>
+          </ThemeProvider>
         </SettingsProvider>
       </body>
     </html>
