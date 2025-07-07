@@ -1,30 +1,25 @@
 import React from 'react'
 import { useRouter } from 'next/navigation'
-import { Play, Music } from 'lucide-react'
+import { Music } from 'lucide-react'
 import { Album, Track } from '@/types/music'
 import styles from './AlbumCard.module.css'
+import Image from 'next/image'
 
 interface AlbumCardProps {
   album: Album
   onPlayTrack: (track: Track) => void
   isSelected: boolean
-  onSelect: () => void
 }
 
-function AlbumCard({ album, onPlayTrack, isSelected, onSelect }: AlbumCardProps) {
+function AlbumCard({ album, onPlayTrack: _onPlayTrack, isSelected }: AlbumCardProps): JSX.Element {
   const router = useRouter()
 
-  const handlePlayTrack = (track: Track, e: React.MouseEvent) => {
-    e.stopPropagation()
-    onPlayTrack(track)
-  }
-
-  const handleCardClick = () => {
+  const handleCardClick = (): void => {
     router.push(`/album/${album.id}`)
   }
 
   // Generate cover URL using the API endpoint
-  const getCoverUrl = (coverPath: string | undefined) => {
+  const getCoverUrl = (coverPath: string | undefined): string | undefined => {
     if (!coverPath) return undefined
     return `/api/cover/${encodeURIComponent(coverPath)}`
   }
@@ -36,14 +31,17 @@ function AlbumCard({ album, onPlayTrack, isSelected, onSelect }: AlbumCardProps)
       tabIndex={0}
       role="button"
       aria-label={`View details for ${album.title}`}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') handleCardClick() }}
     >
       <div className={styles.header}>
         <div className={styles.cover}>
           {album.coverPath ? (
-            <img 
-              src={getCoverUrl(album.coverPath)}
+            <Image
+              src={getCoverUrl(album.coverPath) ?? ''}
               alt={`${album.title} cover`}
               className={styles.coverImage}
+              width={128}
+              height={128}
               onError={(e) => {
                 // Fallback to default cover if image fails to load
                 const target = e.target as HTMLImageElement

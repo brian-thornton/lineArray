@@ -8,8 +8,8 @@ export interface SearchBoxRef {
   hideKeyboard: () => void
 }
 
-const SearchBox = forwardRef<SearchBoxRef>((props, ref) => {
-  const { performSearch, clearSearch, isSearching } = useSearch()
+const SearchBox = forwardRef<SearchBoxRef>((_props, ref): JSX.Element => {
+  const { performSearch, clearSearch } = useSearch()
   const [query, setQuery] = useState('')
   const [showKeyboard, setShowKeyboard] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
@@ -17,7 +17,7 @@ const SearchBox = forwardRef<SearchBoxRef>((props, ref) => {
 
   // Detect mobile devices
   useEffect(() => {
-    const checkMobile = () => {
+    const checkMobile = (): void => {
       const isMobileDevice = window.innerWidth <= 768 || 
         /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
       setIsMobile(isMobileDevice)
@@ -28,7 +28,7 @@ const SearchBox = forwardRef<SearchBoxRef>((props, ref) => {
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  const hideKeyboard = () => {
+  const hideKeyboard = (): void => {
     setShowKeyboard(false)
     inputRef.current?.blur()
   }
@@ -37,18 +37,18 @@ const SearchBox = forwardRef<SearchBoxRef>((props, ref) => {
     hideKeyboard
   }))
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    const {value} = e.target
     setQuery(value)
     
     if (value.trim()) {
-      performSearch(value)
+      void performSearch(value)
     } else {
       clearSearch()
     }
   }
 
-  const handleKeyPress = (key: string) => {
+  const handleKeyPress = (key: string): void => {
     if (key === 'backspace') {
       setQuery(prev => prev.slice(0, -1))
     } else if (key === 'clear') {
@@ -62,21 +62,21 @@ const SearchBox = forwardRef<SearchBoxRef>((props, ref) => {
     }
   }
 
-  const handleInputFocus = () => {
+  const handleInputFocus = (): void => {
     // Only show on-screen keyboard on desktop/tablet, not on mobile
     if (!isMobile) {
       setShowKeyboard(true)
     }
   }
 
-  const handleInputBlur = () => {
+  const handleInputBlur = (): void => {
     // Don't hide keyboard on blur - only hide when "Done" is pressed
     // This allows the keyboard to stay open while typing
   }
 
   useEffect(() => {
     if (query.trim()) {
-      performSearch(query)
+      void performSearch(query)
     } else {
       clearSearch()
     }
@@ -125,7 +125,8 @@ const SearchBox = forwardRef<SearchBoxRef>((props, ref) => {
       {showKeyboard && !isMobile && (
         <div className={styles.keyboard}>
           {keyboardKeys.map((row, rowIndex) => (
-            <div key={rowIndex} className={styles.keyboardRow}>
+            // eslint-disable-next-line react/no-array-index-key -- static keyboard layout
+            <div key={`row-${rowIndex}`} className={styles.keyboardRow}>
               {row.map((key) => {
                 let keyClass = styles.key
                 let keyText = key
@@ -167,5 +168,7 @@ const SearchBox = forwardRef<SearchBoxRef>((props, ref) => {
     </div>
   )
 })
+
+SearchBox.displayName = 'SearchBox'
 
 export default SearchBox 

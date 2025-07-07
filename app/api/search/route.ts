@@ -33,23 +33,23 @@ interface SearchResult {
   path?: string
 }
 
-export async function GET(request: NextRequest) {
+export function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(request.url)
     const query = searchParams.get('q')
 
     if (!query || query.trim() === '') {
-      return NextResponse.json({ results: [] })
+      return Promise.resolve(NextResponse.json({ results: [] }))
     }
 
     const libraryPath = path.join(process.cwd(), 'data', 'music-library.json')
     
     if (!fs.existsSync(libraryPath)) {
-      return NextResponse.json({ results: [] })
+      return Promise.resolve(NextResponse.json({ results: [] }))
     }
 
     const libraryData = fs.readFileSync(libraryPath, 'utf-8')
-    const library: MusicLibrary = JSON.parse(libraryData)
+    const library: MusicLibrary = JSON.parse(libraryData) as MusicLibrary
 
     const searchTerm = query.toLowerCase().trim()
     const results: SearchResult[] = []
@@ -100,13 +100,13 @@ export async function GET(request: NextRequest) {
     // Limit results to prevent overwhelming response
     const limitedResults = results.slice(0, 100)
 
-    return NextResponse.json({ results: limitedResults })
+    return Promise.resolve(NextResponse.json({ results: limitedResults }))
 
   } catch (error) {
     console.error('Search API error:', error)
-    return NextResponse.json(
+    return Promise.resolve(NextResponse.json(
       { error: 'Failed to perform search' },
       { status: 500 }
-    )
+    ))
   }
 } 

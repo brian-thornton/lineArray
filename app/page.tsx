@@ -2,83 +2,55 @@
 
 import React, { useState, useEffect } from 'react'
 import { Album, Track } from '@/types/music'
-import JukeboxHeader from '@/components/JukeboxHeader'
 import AlbumGrid from '@/components/AlbumGrid'
 import SearchResults from '@/components/SearchResults'
 import { useSearch } from '@/contexts/SearchContext'
 import styles from './page.module.css'
 
-export default function Home() {
+interface WindowWithPlayer extends Window {
+  hasAddedTrackToQueue?: boolean
+  checkPlayerStatusImmediately?: () => Promise<void>
+}
+
+export default function Home(): JSX.Element {
   const { searchQuery, searchResults, isSearching, addTrackToQueue, hideKeyboard } = useSearch()
   const [albums, setAlbums] = useState<Album[]>([])
-  const [currentTrack, setCurrentTrack] = useState<Track | null>(null)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [isScanning, setIsScanning] = useState(false)
-  const [currentPaths, setCurrentPaths] = useState<string[]>([])
-  const [scanResults, setScanResults] = useState<{ [path: string]: { albums: number; files: number; lastScanned: string } }>({})
 
   useEffect(() => {
-    loadAlbums()
+    void loadAlbums()
   }, [])
 
-  const loadAlbums = async () => {
+  const loadAlbums = async (): Promise<void> => {
     try {
       const response = await fetch('/api/albums')
       if (response.ok) {
-        const data = await response.json()
+        const data = await response.json() as { albums: Album[]; scanPaths: string[]; scanResults: { [path: string]: { albums: number; files: number; lastScanned: string } } }
         setAlbums(data.albums || [])
-        setCurrentPaths(data.scanPaths || [])
-        setScanResults(data.scanResults || {})
       }
     } catch (error) {
       console.error('Error loading albums:', error)
     }
   }
 
-  const handlePlayTrack = (track: Track) => {
-    setCurrentTrack(track)
-    setIsPlaying(true)
+  const handlePlayTrack = (_track: Track): void => {
+    // Track play functionality can be implemented here
   }
 
-  const handlePlay = () => {
-    setIsPlaying(true)
-  }
-
-  const handlePause = () => {
-    setIsPlaying(false)
-  }
-
-  const handleStop = () => {
-    setIsPlaying(false)
-    setCurrentTrack(null)
-  }
-
-  const handleTrackClick = async (path: string) => {
+  const handleTrackClick = async (path: string): Promise<void> => {
     await addTrackToQueue(path)
     hideKeyboard()
     
     // Set flag to show player controls
     if (typeof window !== 'undefined') {
-      (window as any).hasAddedTrackToQueue = true
+      (window as WindowWithPlayer).hasAddedTrackToQueue = true
     }
     
     // Immediately check player status to show controls faster
-    if (typeof window !== 'undefined' && (window as any).checkPlayerStatusImmediately) {
+    if (typeof window !== 'undefined' && (window as WindowWithPlayer).checkPlayerStatusImmediately) {
       setTimeout(() => {
-        (window as any).checkPlayerStatusImmediately()
+        void (window as WindowWithPlayer).checkPlayerStatusImmediately?.()
       }, 100)
     }
-  }
-
-  // Create a default track if no track is selected
-  const defaultTrack: Track = {
-    id: 'default',
-    title: 'No track selected',
-    artist: 'Unknown',
-    album: 'Unknown',
-    path: '',
-    duration: 0,
-    trackNumber: 0
   }
 
   return (
@@ -87,14 +59,14 @@ export default function Home() {
         {searchQuery ? (
           <SearchResults 
             results={searchResults}
-            onTrackClick={handleTrackClick}
+            onTrackClick={path => { void handleTrackClick(path); }}
             isLoading={isSearching}
           />
         ) : (
           <AlbumGrid 
             albums={albums}
             onPlayTrack={handlePlayTrack}
-            isLoading={isScanning}
+            isLoading={false}
           />
         )}
       </main>

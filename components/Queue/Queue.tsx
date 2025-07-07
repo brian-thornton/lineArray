@@ -1,9 +1,10 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Play, X, GripVertical, Music, ChevronDown, ChevronUp } from 'lucide-react'
+import { Play, X, GripVertical, Music } from 'lucide-react'
 import { useSettings } from '@/contexts/SettingsContext'
 import styles from './Queue.module.css'
+import type { QueueResponse } from '@/types/api'
 
 interface QueueTrack {
   id: string
@@ -28,40 +29,40 @@ interface CurrentTrack {
   duration: string
 }
 
-export default function Queue({ isOpen, onClose }: QueueProps) {
+export default function Queue({ isOpen, onClose }: QueueProps): JSX.Element | null {
   const { canPerformAction } = useSettings()
   const [queue, setQueue] = useState<QueueTrack[]>([])
   const [currentTrack, setCurrentTrack] = useState<string | CurrentTrack | null>(null)
-  const [isPlaying, setIsPlaying] = useState(false)
+  // const [isPlaying, setIsPlaying] = useState(false)
   const [draggedTrack, setDraggedTrack] = useState<string | null>(null)
   const [dragTarget, setDragTarget] = useState<string | null>(null)
 
   useEffect(() => {
     if (isOpen) {
-      loadQueue()
-      const interval = setInterval(loadQueue, 2000)
+      void loadQueue()
+      const interval = setInterval(() => { void loadQueue() }, 2000)
       return () => clearInterval(interval)
     }
   }, [isOpen])
 
-  const loadQueue = async () => {
+  const loadQueue = async (): Promise<void> => {
     try {
       const response = await fetch('/api/queue')
       if (response.ok) {
-        const data = await response.json()
-        console.log('Queue data loaded:', data)
-        setQueue(data.queue || [])
+        const data = await response.json() as QueueResponse
+        // console.log('Queue data loaded:', data)
+        setQueue(data.queue ?? [])
         setCurrentTrack(data.currentTrack)
-        setIsPlaying(data.isPlaying)
+        // setIsPlaying(data.isPlaying)
       }
     } catch (error) {
       console.error('Error loading queue:', error)
     }
   }
 
-  const handleRemoveTrack = async (trackId: string) => {
+  const handleRemoveTrack = async (trackId: string): Promise<void> => {
     if (!canPerformAction('allowRemoveFromQueue')) {
-      alert('Removing from queue is restricted in party mode')
+      console.error('Removing from queue is restricted in party mode')
       return
     }
 
@@ -80,9 +81,9 @@ export default function Queue({ isOpen, onClose }: QueueProps) {
     }
   }
 
-  const handlePlayTrack = async (trackId: string) => {
+  const handlePlayTrack = async (trackId: string): Promise<void> => {
     if (!canPerformAction('allowAddToQueue')) {
-      alert('Playing tracks is restricted in party mode')
+      console.error('Playing tracks is restricted in party mode')
       return
     }
 
@@ -103,42 +104,42 @@ export default function Queue({ isOpen, onClose }: QueueProps) {
     }
   }
 
-  const handleDragStart = (e: React.DragEvent, trackId: string) => {
-    console.log('Drag start:', trackId)
+  const handleDragStart = (e: React.DragEvent, trackId: string): void => {
+    // console.log('Drag start:', trackId)
     setDraggedTrack(trackId)
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('text/plain', trackId)
   }
 
-  const handleDragEnd = (e: React.DragEvent) => {
-    console.log('Drag end')
+  const handleDragEnd = (_e: React.DragEvent): void => {
+    // console.log('Drag end')
     setDraggedTrack(null)
     setDragTarget(null)
   }
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = (e: React.DragEvent): void => {
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
   }
 
-  const handleDragEnter = (e: React.DragEvent, trackId: string) => {
+  const handleDragEnter = (e: React.DragEvent, trackId: string): void => {
     e.preventDefault()
     setDragTarget(trackId)
     ;(e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(255, 255, 255, 0.1)'
   }
 
-  const handleDragLeave = (e: React.DragEvent) => {
+  const handleDragLeave = (e: React.DragEvent): void => {
     e.preventDefault()
     setDragTarget(null)
     ;(e.currentTarget as HTMLElement).style.backgroundColor = ''
   }
 
-  const handleDrop = async (e: React.DragEvent, targetTrackId: string) => {
+  const handleDrop = async (e: React.DragEvent, targetTrackId: string): Promise<void> => {
     e.preventDefault()
     setDragTarget(null)
     ;(e.currentTarget as HTMLElement).style.backgroundColor = ''
     
-    console.log('Drop event:', { draggedTrack, targetTrackId })
+    // console.log('Drop event:', { draggedTrack, targetTrackId })
     
     if (!draggedTrack || draggedTrack === targetTrackId) {
       setDraggedTrack(null)
@@ -146,33 +147,36 @@ export default function Queue({ isOpen, onClose }: QueueProps) {
     }
 
     if (!canPerformAction('allowRemoveFromQueue')) {
-      alert('Queue management is restricted in party mode')
+      console.error('Queue management is restricted in party mode')
       setDraggedTrack(null)
       return
     }
 
     try {
-      console.log('Sending reorder request:', { draggedTrack, targetTrackId })
+      // console.log('Sending reorder request:', { draggedTrack, targetTrackId })
       const response = await fetch('/api/queue/reorder', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           draggedTrackId: draggedTrack,
-          targetTrackId: targetTrackId
+          targetTrackId
         })
       })
 
       if (response.ok) {
-        console.log('Reorder successful')
+        // console.log('Reorder successful')
         await loadQueue()
       } else {
-        const error = await response.json()
-        console.error('Failed to reorder tracks:', error)
-        alert('Failed to reorder tracks')
+        const error: unknown = await response.json()
+        if (typeof error === 'object' && error !== null && 'message' in error) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          console.error('Failed to reorder tracks:', (error as { message?: string }).message)
+        } else {
+          console.error('Failed to reorder tracks:', error)
+        }
       }
     } catch (error) {
       console.error('Error reordering tracks:', error)
-      alert('Error reordering tracks')
     } finally {
       setDraggedTrack(null)
     }
@@ -184,12 +188,26 @@ export default function Queue({ isOpen, onClose }: QueueProps) {
     return filename.replace(/\.[^/.]+$/, '')
   }
 
-  console.log('Queue component render:', { isOpen, queueLength: queue.length })
+  // console.log('Queue component render:', { isOpen, queueLength: queue.length })
   if (!isOpen) return null
 
   return (
-    <div className={styles.queueContainer} onClick={onClose}>
-      <div className={styles.queueModal} onClick={(e) => e.stopPropagation()}>
+    <div
+      className={styles.queueContainer}
+      onClick={onClose}
+      onKeyDown={e => { if (e.key === 'Escape') onClose() }}
+      tabIndex={0}
+      role="button"
+      aria-label="Close queue modal"
+    >
+      <div
+        className={styles.queueModal}
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={e => { if (e.key === 'Escape') onClose() }}
+        tabIndex={0}
+        role="button"
+        aria-label="Queue modal content"
+      >
         <div className={styles.header}>
           <h2 className={styles.title}>Queue ({queue.length} tracks)</h2>
           <button onClick={onClose} className={styles.closeButton}>
@@ -216,7 +234,7 @@ export default function Queue({ isOpen, onClose }: QueueProps) {
                   onDragOver={handleDragOver}
                   onDragEnter={(e) => handleDragEnter(e, track.id)}
                   onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e, track.id)}
+                  onDrop={(e) => { void handleDrop(e, track.id) }}
                 >
                   <div className={styles.dragHandle}>
                     <GripVertical className={styles.gripIcon} />
@@ -238,7 +256,7 @@ export default function Queue({ isOpen, onClose }: QueueProps) {
 
                   <div className={styles.trackActions}>
                     <button
-                      onClick={() => handlePlayTrack(track.id)}
+                      onClick={() => { void handlePlayTrack(track.id) }}
                       className={styles.playButton}
                       disabled={!canPerformAction('allowAddToQueue')}
                       title={!canPerformAction('allowAddToQueue') ? 'Playing tracks is restricted in party mode' : 'Play now'}
@@ -246,7 +264,7 @@ export default function Queue({ isOpen, onClose }: QueueProps) {
                       <Play className={styles.playIcon} />
                     </button>
                     <button
-                      onClick={() => handleRemoveTrack(track.id)}
+                      onClick={() => { void handleRemoveTrack(track.id) }}
                       className={styles.removeButton}
                       disabled={!canPerformAction('allowRemoveFromQueue')}
                       title={!canPerformAction('allowRemoveFromQueue') ? 'Removing from queue is restricted in party mode' : 'Remove from queue'}

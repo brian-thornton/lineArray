@@ -10,7 +10,7 @@ interface ToastProps {
   onClose?: () => void
 }
 
-function Toast({ message, type = 'info', duration = 3000, onClose }: ToastProps) {
+function Toast({ message, type = 'info', duration = 3000, onClose }: ToastProps): JSX.Element {
   const [isVisible, setIsVisible] = useState(true)
 
   useEffect(() => {
@@ -24,7 +24,7 @@ function Toast({ message, type = 'info', duration = 3000, onClose }: ToastProps)
     return () => clearTimeout(timer)
   }, [duration, onClose])
 
-  const handleClose = () => {
+  const handleClose = (): void => {
     setIsVisible(false)
     setTimeout(() => {
       onClose?.()

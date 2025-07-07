@@ -2,6 +2,12 @@
 
 import React, { createContext, useContext, useState, useCallback, useRef } from 'react'
 import { SearchBoxRef } from '@/components/SearchBox/SearchBox'
+import type { SearchResponse } from '@/types/api'
+
+interface WindowWithPlayer extends Window {
+  hasAddedTrackToQueue?: boolean
+  checkPlayerStatusImmediately?: () => Promise<void>
+}
 
 interface SearchResult {
   type: 'album' | 'track'
@@ -25,13 +31,13 @@ interface SearchContextType {
 
 const SearchContext = createContext<SearchContextType | undefined>(undefined)
 
-export function SearchProvider({ children }: { children: React.ReactNode }) {
+export function SearchProvider({ children }: { children: React.ReactNode }): JSX.Element {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const searchBoxRef = useRef<SearchBoxRef>(null)
 
-  const performSearch = useCallback(async (query: string) => {
+  const performSearch = useCallback(async (query: string): Promise<void> => {
     if (!query.trim()) {
       setSearchResults([])
       setSearchQuery('')
@@ -44,7 +50,7 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`)
       if (response.ok) {
-        const data = await response.json()
+        const data = await response.json() as SearchResponse
         setSearchResults(data.results || [])
       } else {
         console.error('Search failed:', response.statusText)
@@ -58,17 +64,17 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  const clearSearch = useCallback(() => {
+  const clearSearch = useCallback((): void => {
     setSearchQuery('')
     setSearchResults([])
     setIsSearching(false)
   }, [])
 
-  const hideKeyboard = useCallback(() => {
+  const hideKeyboard = useCallback((): void => {
     searchBoxRef.current?.hideKeyboard()
   }, [])
 
-  const addTrackToQueue = useCallback(async (path: string) => {
+  const addTrackToQueue = useCallback(async (path: string): Promise<void> => {
     try {
       const response = await fetch('/api/queue', {
         method: 'POST',
@@ -83,13 +89,13 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
       } else {
         // Set flag to show player controls
         if (typeof window !== 'undefined') {
-          (window as any).hasAddedTrackToQueue = true
+          (window as WindowWithPlayer).hasAddedTrackToQueue = true
         }
         
         // Immediately check player status to show controls faster
-        if (typeof window !== 'undefined' && (window as any).checkPlayerStatusImmediately) {
+        if (typeof window !== 'undefined' && (window as WindowWithPlayer).checkPlayerStatusImmediately) {
           setTimeout(() => {
-            (window as any).checkPlayerStatusImmediately()
+            (window as WindowWithPlayer).checkPlayerStatusImmediately?.()
           }, 100)
         }
       }
@@ -116,7 +122,7 @@ export function SearchProvider({ children }: { children: React.ReactNode }) {
   )
 }
 
-export function useSearch() {
+export function useSearch(): SearchContextType {
   const context = useContext(SearchContext)
   if (context === undefined) {
     throw new Error('useSearch must be used within a SearchProvider')

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Play, Pause, SkipForward, Square, Trash2, Volume2, VolumeX, List } from 'lucide-react'
 import styles from './Player.module.css'
 import MeterBridge from './MeterBridge'
@@ -8,18 +8,7 @@ import VolumeModal from '../VolumeModal'
 import { useSettings } from '@/contexts/SettingsContext'
 import { useSearch } from '@/contexts/SearchContext'
 import { useToast } from '@/contexts/ToastContext'
-
-interface Track {
-  id: string
-  path: string
-  title: string
-  artist: string
-  album: string
-  duration: string
-  progress?: number
-  isFinished?: boolean
-  estimatedDuration?: number
-}
+import type { QueueResponse, Track, ControlResponse } from '@/types/api'
 
 interface PlayerStatus {
   isPlaying: boolean
@@ -35,13 +24,17 @@ interface PlayerProps {
   showQueue: boolean
 }
 
-function Player({ setShowQueue, showQueue }: PlayerProps) {
+interface WindowWithPlayer extends Window {
+  hasAddedTrackToQueue?: boolean
+  checkPlayerStatusImmediately?: () => Promise<void>
+}
+
+function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
   const { canPerformAction } = useSettings()
   const { hideKeyboard } = useSearch()
   const { showToast } = useToast()
   const [loading, setLoading] = useState(false)
   const [hasLoaded, setHasLoaded] = useState(false)
-  const [playerActive, setPlayerActive] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [showVolumeModal, setShowVolumeModal] = useState(false)
   const [playerStatus, setPlayerStatus] = useState<PlayerStatus>({
@@ -51,11 +44,10 @@ function Player({ setShowQueue, showQueue }: PlayerProps) {
     volume: undefined,
     isMuted: false
   })
-  const playerActiveTimeout = React.useRef<NodeJS.Timeout | null>(null)
 
   // Detect mobile devices
   useEffect(() => {
-    const checkMobile = () => {
+    const checkMobile = (): void => {
       const isMobileDevice = window.innerWidth <= 768 || 
         /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
       setIsMobile(isMobileDevice)
@@ -66,26 +58,19 @@ function Player({ setShowQueue, showQueue }: PlayerProps) {
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  // Helper to keep player visible for 3 seconds after interaction
-  const keepPlayerActive = () => {
-    setPlayerActive(true)
-    if (playerActiveTimeout.current) clearTimeout(playerActiveTimeout.current)
-    playerActiveTimeout.current = setTimeout(() => setPlayerActive(false), 3000)
-  }
-
   // Poll for player status every 500ms for better responsiveness
   useEffect(() => {
-    const pollStatus = async () => {
+    const pollStatus = async (): Promise<void> => {
       try {
         const response = await fetch('/api/queue')
         if (response.ok) {
-          const data = await response.json()
+          const data = await response.json() as QueueResponse
           setPlayerStatus(prev => {
             const newStatus = {
               ...prev,
               isPlaying: data.isPlaying,
               currentTrack: data.currentTrack,
-              queue: data.queue || [],
+              queue: data.queue ?? [],
               volume: data.volume ?? prev.volume,
               isMuted: data.isMuted ?? prev.isMuted,
               progress: data.progress ?? prev.progress
@@ -94,26 +79,26 @@ function Player({ setShowQueue, showQueue }: PlayerProps) {
             // Show toast when playback starts on mobile
             if (isMobile && data.isPlaying && !prev.isPlaying && data.currentTrack) {
               const trackName = typeof data.currentTrack === 'string' 
-                ? data.currentTrack.split('/').pop()?.replace(/\.[^/.]+$/, '') || 'Unknown Track'
-                : data.currentTrack.title || 'Unknown Track'
+                ? data.currentTrack.split('/').pop()?.replace(/\.[^/.]+$/, '') ?? 'Unknown Track'
+                : data.currentTrack.title ?? 'Unknown Track'
               showToast(`Now playing: ${trackName}`, 'success', 4000)
             }
             
             if (!hasLoaded) setHasLoaded(true)
             // Clear the flag once we have proper status
-            if (typeof window !== 'undefined' && (window as any).hasAddedTrackToQueue) {
-              (window as any).hasAddedTrackToQueue = false
+            if (typeof window !== 'undefined' && (window as WindowWithPlayer).hasAddedTrackToQueue) {
+              (window as WindowWithPlayer).hasAddedTrackToQueue = false
             }
             return newStatus
           })
         }
       } catch (error) {
-        console.error('Error polling player status:', error)
+        // Silently handle error - this is just polling
       }
     }
 
     // Also check audio state periodically to handle recompile scenarios
-    const checkAudioState = async () => {
+    const checkAudioState = async (): Promise<void> => {
       try {
         await fetch('/api/control', {
           method: 'POST',
@@ -125,59 +110,56 @@ function Player({ setShowQueue, showQueue }: PlayerProps) {
       }
     }
 
-    pollStatus()
-    const statusInterval = setInterval(pollStatus, 500) // Poll every 500ms for better responsiveness
-    const audioCheckInterval = setInterval(checkAudioState, 5000) // Check audio state every 5 seconds (less aggressive)
+    void pollStatus();
+    const statusInterval = setInterval(() => { void pollStatus(); }, 500); // Poll every 500ms for better responsiveness
+    const audioCheckInterval = setInterval(() => { void checkAudioState(); }, 5000); // Check audio state every 5 seconds (less aggressive)
     
     return () => {
-      clearInterval(statusInterval)
-      clearInterval(audioCheckInterval)
+      clearInterval(statusInterval);
+      clearInterval(audioCheckInterval);
     }
-  }, [])
+  }, [hasLoaded, isMobile, showToast])
 
   // Add a function to immediately check status (for use after adding tracks)
-  const checkStatusImmediately = async () => {
+  const checkStatusImmediately = useCallback(async (): Promise<void> => {
     try {
-      console.log('Performing immediate status check...')
       const response = await fetch('/api/queue')
       if (response.ok) {
-        const data = await response.json()
-        console.log('Immediate status check result:', data)
+        const data = await response.json() as QueueResponse
         setPlayerStatus(prev => {
           const newStatus = {
             ...prev,
             isPlaying: data.isPlaying,
             currentTrack: data.currentTrack,
-            queue: data.queue || [],
+            queue: data.queue ?? [],
             volume: data.volume ?? prev.volume,
             isMuted: data.isMuted ?? prev.isMuted,
             progress: data.progress ?? prev.progress
           }
-          console.log('Player status updated:', newStatus)
           
           // Clear the flag once we have proper status
-          if (typeof window !== 'undefined' && (window as any).hasAddedTrackToQueue) {
-            (window as any).hasAddedTrackToQueue = false
+          if (typeof window !== 'undefined' && (window as WindowWithPlayer).hasAddedTrackToQueue) {
+            (window as WindowWithPlayer).hasAddedTrackToQueue = false
           }
           
           return newStatus
         })
       }
     } catch (error) {
-      console.error('Error checking status immediately:', error)
+      // Silently handle error
     }
-  }
+  }, [])
 
   // Expose the immediate check function to parent components
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      (window as any).checkPlayerStatusImmediately = checkStatusImmediately
+      (window as WindowWithPlayer).checkPlayerStatusImmediately = checkStatusImmediately
     }
-  }, [])
+  }, [checkStatusImmediately])
 
-  const handlePlayPause = async () => {
+  const handlePlayPause = async (): Promise<void> => {
     if (!canPerformAction('allowPlay')) {
-      alert('Playback is restricted in party mode')
+      showToast('Playback is restricted in party mode', 'error', 3000)
       return
     }
 
@@ -191,22 +173,22 @@ function Player({ setShowQueue, showQueue }: PlayerProps) {
       })
       
       if (response.ok) {
-        const data = await response.json()
+        const data = await response.json() as ControlResponse
         setPlayerStatus(prev => ({ ...prev, isPlaying: data.isPlaying }))
         hideKeyboard()
       } else {
-        console.error('Failed to control playback')
+        // Silently handle error
       }
     } catch (error) {
-      console.error('Error controlling playback:', error)
+      // Silently handle error
     } finally {
       setLoading(false)
     }
   }
 
-  const handleStop = async () => {
+  const handleStop = async (): Promise<void> => {
     if (!canPerformAction('allowStop')) {
-      alert('Stop is restricted in party mode')
+      showToast('Stop is restricted in party mode', 'error', 3000)
       return
     }
 
@@ -222,18 +204,18 @@ function Player({ setShowQueue, showQueue }: PlayerProps) {
         setPlayerStatus(prev => ({ ...prev, isPlaying: false, currentTrack: null }))
         hideKeyboard()
       } else {
-        console.error('Failed to stop playback')
+        // Silently handle error
       }
     } catch (error) {
-      console.error('Error stopping playback:', error)
+      // Silently handle error
     } finally {
       setLoading(false)
     }
   }
 
-  const handleSkip = async () => {
+  const handleSkip = async (): Promise<void> => {
     if (!canPerformAction('allowNext')) {
-      alert('Skip is restricted in party mode')
+      showToast('Skip is restricted in party mode', 'error', 3000)
       return
     }
 
@@ -246,21 +228,20 @@ function Player({ setShowQueue, showQueue }: PlayerProps) {
       })
       
       if (response.ok) {
-        console.log('Skipped to next track')
         hideKeyboard()
       } else {
-        console.error('Failed to skip track')
+        // Silently handle error
       }
     } catch (error) {
-      console.error('Error skipping track:', error)
+      // Silently handle error
     } finally {
       setLoading(false)
     }
   }
 
-  const handleClearQueue = async () => {
+  const handleClearQueue = async (): Promise<void> => {
     if (!canPerformAction('allowRemoveFromQueue')) {
-      alert('Queue management is restricted in party mode')
+      showToast('Queue management is restricted in party mode', 'error', 3000)
       return
     }
 
@@ -272,7 +253,7 @@ function Player({ setShowQueue, showQueue }: PlayerProps) {
       })
       
       if (response.ok) {
-        const data = await response.json()
+        const data = await response.json() as QueueResponse
         setPlayerStatus(prev => ({
           ...prev,
           isPlaying: data.isPlaying,
@@ -281,19 +262,18 @@ function Player({ setShowQueue, showQueue }: PlayerProps) {
           volume: data.volume ?? prev.volume,
           isMuted: data.isMuted ?? prev.isMuted
         }))
-        console.log('Queue cleared')
         hideKeyboard()
       } else {
-        console.error('Failed to clear queue')
+        // Silently handle error
       }
     } catch (error) {
-      console.error('Error clearing queue:', error)
+      // Silently handle error
     } finally {
       setLoading(false)
     }
   }
 
-  const handleVolumeChange = async (newVolume: number) => {
+  const handleVolumeChange = async (newVolume: number): Promise<void> => {
     try {
       const response = await fetch('/api/control', {
         method: 'POST',
@@ -302,22 +282,18 @@ function Player({ setShowQueue, showQueue }: PlayerProps) {
       })
       
       if (response.ok) {
-        setPlayerStatus(prev => {
-          console.log('Volume change - updating player status:', { 
-            oldVolume: prev.volume, 
-            newVolume, 
-            currentTrack: prev.currentTrack, 
-            queueLength: prev.queue.length 
-          })
-          return { ...prev, volume: newVolume, isMuted: newVolume === 0 }
-        })
+        setPlayerStatus(prev => ({
+          ...prev, 
+          volume: newVolume, 
+          isMuted: newVolume === 0 
+        }))
       }
     } catch (error) {
-      console.error('Error setting volume:', error)
+      // Silently handle error
     }
   }
 
-  const handleMuteToggle = async () => {
+  const handleMuteToggle = async (): Promise<void> => {
     try {
       const response = await fetch('/api/control', {
         method: 'POST',
@@ -326,15 +302,15 @@ function Player({ setShowQueue, showQueue }: PlayerProps) {
       })
       
       if (response.ok) {
-        const data = await response.json()
+        const data = await response.json() as ControlResponse
         setPlayerStatus(prev => ({ 
           ...prev, 
-          isMuted: data.isMuted,
+          isMuted: data.isMuted ?? prev.isMuted,
           volume: data.volume ?? prev.volume
         }))
       }
     } catch (error) {
-      console.error('Error toggling mute:', error)
+      // Silently handle error
     }
   }
 
@@ -349,7 +325,7 @@ function Player({ setShowQueue, showQueue }: PlayerProps) {
       return filename.replace(/\.[^/.]+$/, '')
     } else {
       // Handle track object
-      return playerStatus.currentTrack.title || 'Unknown Track'
+      return playerStatus.currentTrack.title ?? 'Unknown Track'
     }
   }
 
@@ -373,26 +349,24 @@ function Player({ setShowQueue, showQueue }: PlayerProps) {
     if (typeof playerStatus.currentTrack === 'string') {
       return playerStatus.currentTrack
     } else {
-      return playerStatus.currentTrack.album || 'Unknown Album'
+      return playerStatus.currentTrack.album ?? 'Unknown Album'
     }
   }
 
   // Only show the player when there's actually music to control or volume is available
   const shouldShowPlayer = (
-    playerStatus.currentTrack ||
-    playerStatus.queue.length > 0 ||
+    playerStatus.currentTrack ??
+    (playerStatus.queue.length > 0 ||
     playerStatus.isPlaying ||
-    (typeof window !== 'undefined' && (window as any).hasAddedTrackToQueue) ||
-    showQueue ||
-    typeof playerStatus.volume === 'number' // Show if volume is loaded
+    ((typeof window !== 'undefined' && (window as WindowWithPlayer).hasAddedTrackToQueue) ?? (showQueue ?? typeof playerStatus.volume === 'number')))
   )
 
   if (!shouldShowPlayer) {
-    console.log('Player hidden - currentTrack:', playerStatus.currentTrack, 'queue length:', playerStatus.queue.length, 'isPlaying:', playerStatus.isPlaying, 'hasAddedTrackToQueue:', typeof window !== 'undefined' ? (window as any).hasAddedTrackToQueue : 'N/A')
+    // Player hidden - currentTrack, queue length, isPlaying, hasAddedTrackToQueue
     return null
   }
   
-  console.log('Player visible - currentTrack:', playerStatus.currentTrack, 'queue length:', playerStatus.queue.length, 'isPlaying:', playerStatus.isPlaying, 'hasAddedTrackToQueue:', typeof window !== 'undefined' ? (window as any).hasAddedTrackToQueue : 'N/A')
+  // Player visible - currentTrack, queue length, isPlaying, hasAddedTrackToQueue
 
   if (!hasLoaded) return null;
 
@@ -423,7 +397,7 @@ function Player({ setShowQueue, showQueue }: PlayerProps) {
         <div className={styles.mainControls}>
           <button
             className={styles.controlButton}
-            onClick={handlePlayPause}
+            onClick={() => { void handlePlayPause(); }}
             disabled={loading || !canPerformAction('allowPlay')}
             aria-label={playerStatus.isPlaying ? 'Pause' : 'Play'}
             title={!canPerformAction('allowPlay') ? 'Playback restricted in party mode' : undefined}
@@ -432,7 +406,7 @@ function Player({ setShowQueue, showQueue }: PlayerProps) {
           </button>
           <button
             className={styles.controlButton}
-            onClick={handleSkip}
+            onClick={() => { void handleSkip(); }}
             disabled={loading || playerStatus.queue.length <= 1 || !canPerformAction('allowNext')}
             aria-label="Skip to next track"
             title={!canPerformAction('allowNext') ? 'Skip restricted in party mode' : undefined}
@@ -441,7 +415,7 @@ function Player({ setShowQueue, showQueue }: PlayerProps) {
           </button>
           <button
             className={styles.controlButton}
-            onClick={handleStop}
+            onClick={() => { void handleStop(); }}
             disabled={loading || !canPerformAction('allowStop')}
             aria-label="Stop playback"
             title={!canPerformAction('allowStop') ? 'Stop restricted in party mode' : undefined}
@@ -450,10 +424,7 @@ function Player({ setShowQueue, showQueue }: PlayerProps) {
           </button>
           <button
             className={`${styles.controlButton} ${showQueue ? styles.activeButton : ''}`}
-            onClick={() => {
-              console.log('Queue button clicked, toggling showQueue')
-              setShowQueue(!showQueue)
-            }}
+            onClick={() => { setShowQueue(!showQueue); }}
             aria-label={showQueue ? 'Hide queue' : 'Show queue'}
             title={showQueue ? 'Hide queue' : `Show queue (${playerStatus.queue.length} tracks)`}
           >
@@ -461,7 +432,7 @@ function Player({ setShowQueue, showQueue }: PlayerProps) {
           </button>
           <button
             className={`${styles.controlButton} ${styles.clearButton}`}
-            onClick={handleClearQueue}
+            onClick={() => { void handleClearQueue(); }}
             disabled={loading || playerStatus.queue.length === 0 || !canPerformAction('allowRemoveFromQueue')}
             aria-label="Clear queue"
             title={!canPerformAction('allowRemoveFromQueue') ? 'Queue management restricted in party mode' : 'Clear queue'}
@@ -473,7 +444,7 @@ function Player({ setShowQueue, showQueue }: PlayerProps) {
         <div className={styles.volume}>
           {isMobile ? (
             <button
-              onClick={() => setShowVolumeModal(true)}
+              onClick={() => { setShowVolumeModal(true); }}
               className={styles.volumeButton}
               aria-label="Volume settings"
             >
@@ -482,7 +453,7 @@ function Player({ setShowQueue, showQueue }: PlayerProps) {
           ) : (
             <>
               <button
-                onClick={handleMuteToggle}
+                onClick={() => { void handleMuteToggle(); }}
                 className={styles.volumeButton}
                 aria-label={playerStatus.isMuted ? 'Unmute' : 'Mute'}
               >
@@ -495,7 +466,7 @@ function Player({ setShowQueue, showQueue }: PlayerProps) {
                   max="1"
                   step="0.01"
                   value={playerStatus.isMuted ? 0 : playerStatus.volume}
-                  onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
+                  onChange={(e) => { void handleVolumeChange(parseFloat(e.target.value)); }}
                   className={styles.volumeBar}
                   aria-label="Volume"
                 />
@@ -507,11 +478,11 @@ function Player({ setShowQueue, showQueue }: PlayerProps) {
       
       <VolumeModal
         isOpen={showVolumeModal}
-        onClose={() => setShowVolumeModal(false)}
-        volume={playerStatus.volume || 0}
+        onClose={() => { setShowVolumeModal(false); }}
+        volume={playerStatus.volume ?? 0}
         isMuted={playerStatus.isMuted}
-        onVolumeChange={handleVolumeChange}
-        onMuteToggle={handleMuteToggle}
+        onVolumeChange={(volume) => { void handleVolumeChange(volume); }}
+        onMuteToggle={() => { void handleMuteToggle(); }}
       />
     </div>
   )

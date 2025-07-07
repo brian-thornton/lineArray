@@ -1,22 +1,23 @@
-'use client'
+"use client"
 
 import React, { useState, useEffect } from 'react'
 import QRCode from 'qrcode'
 import { Smartphone, Copy, Check } from 'lucide-react'
 import styles from './QRCode.module.css'
+import Image from 'next/image'
 
 interface QRCodeProps {
   className?: string
 }
 
-const QRCodeComponent: React.FC<QRCodeProps> = ({ className }) => {
+export default function QRCodeComponent({ className }: QRCodeProps): JSX.Element {
   const [qrDataUrl, setQrDataUrl] = useState<string>('')
   const [currentUrl, setCurrentUrl] = useState<string>('')
   const [copied, setCopied] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const generateQRCode = async () => {
+    const generateQRCode = async (): Promise<void> => {
       try {
         // Get the current URL from the browser
         const url = window.location.href
@@ -26,17 +27,17 @@ const QRCodeComponent: React.FC<QRCodeProps> = ({ className }) => {
           try {
             // Get local network information from our API
             const response = await fetch('/api/network-info')
-            const data = await response.json()
+            const data = await response.json() as { localIPs: string[]; port: number }
             
             if (data.localIPs && data.localIPs.length > 0) {
               // Use the first local IP found
-              const localIP = data.localIPs[0]
+              const [localIP] = data.localIPs
               const localNetworkUrl = url.replace(/localhost:\d+/, `${localIP}:${data.port}`)
               setCurrentUrl(localNetworkUrl)
               
               // Generate QR code for the local network URL
               const qrCode = await QRCode.toDataURL(localNetworkUrl, {
-                width: 200,
+                width: 160,
                 margin: 2,
                 color: {
                   dark: '#FFD700', // Gold color to match theme
@@ -48,7 +49,7 @@ const QRCodeComponent: React.FC<QRCodeProps> = ({ className }) => {
               // Fallback to current URL if no local IP found
               setCurrentUrl(url)
               const qrCode = await QRCode.toDataURL(url, {
-                width: 200,
+                width: 160,
                 margin: 2,
                 color: {
                   dark: '#FFD700',
@@ -58,10 +59,10 @@ const QRCodeComponent: React.FC<QRCodeProps> = ({ className }) => {
               setQrDataUrl(qrCode)
             }
           } catch (error) {
-            console.log('Could not get local IP, using current URL')
+            // console.log('Could not get local IP, using current URL')
             setCurrentUrl(url)
             const qrCode = await QRCode.toDataURL(url, {
-              width: 200,
+              width: 160,
               margin: 2,
               color: {
                 dark: '#FFD700',
@@ -74,7 +75,7 @@ const QRCodeComponent: React.FC<QRCodeProps> = ({ className }) => {
           // Not on localhost, use current URL
           setCurrentUrl(url)
           const qrCode = await QRCode.toDataURL(url, {
-            width: 200,
+            width: 160,
             margin: 2,
             color: {
               dark: '#FFD700',
@@ -90,10 +91,10 @@ const QRCodeComponent: React.FC<QRCodeProps> = ({ className }) => {
       }
     }
 
-    generateQRCode()
+    void generateQRCode()
   }, [])
 
-  const handleCopyUrl = async () => {
+  const handleCopyUrl = async (): Promise<void> => {
     try {
       await navigator.clipboard.writeText(currentUrl)
       setCopied(true)
@@ -105,9 +106,9 @@ const QRCodeComponent: React.FC<QRCodeProps> = ({ className }) => {
 
   if (isLoading) {
     return (
-      <div className={`${styles.container} ${className || ''}`}>
+      <div className={`${styles.container} ${className ?? ''}`}>
         <div className={styles.loading}>
-          <div className={styles.spinner}></div>
+          <div className={styles.spinner} />
           <p>Generating QR Code...</p>
         </div>
       </div>
@@ -115,7 +116,7 @@ const QRCodeComponent: React.FC<QRCodeProps> = ({ className }) => {
   }
 
   return (
-    <div className={`${styles.container} ${className || ''}`}>
+    <div className={`${styles.container} ${className ?? ''}`}>
       <div className={styles.header}>
         <Smartphone className={styles.icon} />
         <h3 className={styles.title}>Scan to Access</h3>
@@ -125,7 +126,7 @@ const QRCodeComponent: React.FC<QRCodeProps> = ({ className }) => {
       <div className={styles.qrSection}>
         {qrDataUrl && (
           <div className={styles.qrCode}>
-            <img src={qrDataUrl} alt="QR Code" />
+            <Image src={qrDataUrl} alt="QR Code" width={160} height={160} />
           </div>
         )}
         
@@ -133,7 +134,7 @@ const QRCodeComponent: React.FC<QRCodeProps> = ({ className }) => {
           <div className={styles.urlDisplay}>
             <span className={styles.url}>{currentUrl}</span>
             <button 
-              onClick={handleCopyUrl}
+              onClick={() => { void handleCopyUrl() }}
               className={styles.copyButton}
               title="Copy URL"
             >
@@ -153,7 +154,7 @@ const QRCodeComponent: React.FC<QRCodeProps> = ({ className }) => {
       <div className={styles.instructions}>
         <h4>How to use:</h4>
         <ol>
-          <li>Open your phone's camera app</li>
+          <li>Open your phone&apos;s camera app</li>
           <li>Point it at the QR code above</li>
           <li>Tap the notification that appears</li>
           <li>Enjoy the jukebox on your phone!</li>
@@ -164,6 +165,4 @@ const QRCodeComponent: React.FC<QRCodeProps> = ({ className }) => {
       </div>
     </div>
   )
-}
-
-export default QRCodeComponent 
+} 

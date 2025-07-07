@@ -1,7 +1,6 @@
 import React from 'react'
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
-import styles from './layout.module.css'
 import { SearchProvider } from '@/contexts/SearchContext'
 import { SettingsProvider } from '@/contexts/SettingsContext'
 import { ThemeProvider } from '@/contexts/ThemeContext'
@@ -24,7 +23,7 @@ export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
-}) {
+}): JSX.Element {
   return (
     <html lang="en">
       <body>

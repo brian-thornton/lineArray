@@ -2,12 +2,19 @@ import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
 
-function loadSettings() {
+interface Settings {
+  adminPin?: string
+  partyMode: {
+    enabled: boolean
+  }
+}
+
+function loadSettings(): Settings {
   try {
     const settingsPath = path.join(process.cwd(), 'data', 'settings.json')
     if (fs.existsSync(settingsPath)) {
       const data = fs.readFileSync(settingsPath, 'utf-8')
-      return JSON.parse(data)
+      return JSON.parse(data) as Settings
     }
   } catch (error) {
     console.error('Error loading settings:', error)
@@ -15,9 +22,9 @@ function loadSettings() {
   return { partyMode: { enabled: false } }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const { pin } = await request.json()
+    const { pin } = await request.json() as { pin: string }
     
     if (!pin) {
       return NextResponse.json({ error: 'PIN is required' }, { status: 400 })
@@ -31,7 +38,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Default PIN is "1234" if not set in settings
-    const adminPin = settings.adminPin || '1234'
+    const adminPin = settings.adminPin ?? '1234'
     
     if (pin === adminPin) {
       return NextResponse.json({ success: true, message: 'PIN verified successfully' })

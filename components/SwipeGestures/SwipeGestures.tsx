@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useRef, useState } from 'react'
 
 interface SwipeGesturesProps {
   onSwipeLeft: () => void
@@ -9,7 +9,7 @@ interface SwipeGesturesProps {
   disabled?: boolean
 }
 
-function SwipeGestures({ onSwipeLeft, onSwipeRight, children, disabled = false }: SwipeGesturesProps) {
+function SwipeGestures({ onSwipeLeft, onSwipeRight, children, disabled = false }: SwipeGesturesProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null)
   const [touchEnd, setTouchEnd] = useState<{ x: number; y: number } | null>(null)
@@ -17,7 +17,7 @@ function SwipeGestures({ onSwipeLeft, onSwipeRight, children, disabled = false }
   // Minimum swipe distance (in px)
   const minSwipeDistance = 50
 
-  const onTouchStart = (e: React.TouchEvent) => {
+  const onTouchStart = (e: React.TouchEvent): void => {
     if (disabled) return
     setTouchEnd(null)
     setTouchStart({
@@ -26,7 +26,7 @@ function SwipeGestures({ onSwipeLeft, onSwipeRight, children, disabled = false }
     })
   }
 
-  const onTouchMove = (e: React.TouchEvent) => {
+  const onTouchMove = (e: React.TouchEvent): void => {
     if (disabled) return
     setTouchEnd({
       x: e.targetTouches[0].clientX,
@@ -34,7 +34,7 @@ function SwipeGestures({ onSwipeLeft, onSwipeRight, children, disabled = false }
     })
   }
 
-  const onTouchEnd = () => {
+  const onTouchEnd = (): void => {
     if (disabled || !touchStart || !touchEnd) return
 
     const distanceX = touchStart.x - touchEnd.x

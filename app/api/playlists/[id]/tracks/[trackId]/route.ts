@@ -5,12 +5,19 @@ import { Playlist } from '@/types/music'
 
 const playlistsPath = path.join(process.cwd(), 'data', 'playlists.json')
 
-function loadSettings() {
+interface Settings {
+  partyMode: {
+    enabled: boolean
+    allowEditPlaylists?: boolean
+  }
+}
+
+function loadSettings(): Settings {
   try {
     const settingsPath = path.join(process.cwd(), 'data', 'settings.json')
     if (fs.existsSync(settingsPath)) {
       const data = fs.readFileSync(settingsPath, 'utf-8')
-      return JSON.parse(data)
+      return JSON.parse(data) as Settings
     }
   } catch (error) {
     console.error('Error loading settings:', error)
@@ -30,7 +37,7 @@ function checkPartyModePermission(action: string): boolean {
   // Check specific permissions based on action
   switch (action) {
     case 'edit':
-      return partyMode.allowEditPlaylists
+      return partyMode.allowEditPlaylists ?? true
     default:
       return true
   }
@@ -40,7 +47,7 @@ function loadPlaylists(): Playlist[] {
   try {
     if (fs.existsSync(playlistsPath)) {
       const data = fs.readFileSync(playlistsPath, 'utf-8')
-      return JSON.parse(data)
+      return JSON.parse(data) as Playlist[]
     }
   } catch (error) {
     console.error('Error loading playlists:', error)
@@ -58,27 +65,27 @@ function savePlaylists(playlists: Playlist[]): void {
 }
 
 // DELETE /api/playlists/[id]/tracks/[trackId] - Remove track from playlist
-export async function DELETE(
+export function DELETE(
   request: NextRequest,
   { params }: { params: { id: string; trackId: string } }
-) {
+): Promise<NextResponse> {
   try {
     if (!checkPartyModePermission('edit')) {
-      return NextResponse.json({ error: 'Editing playlists is restricted in party mode' }, { status: 403 })
+      return Promise.resolve(NextResponse.json({ error: 'Editing playlists is restricted in party mode' }, { status: 403 }))
     }
 
     const playlists = loadPlaylists()
     const playlistIndex = playlists.findIndex(p => p.id === params.id)
     
     if (playlistIndex === -1) {
-      return NextResponse.json({ error: 'Playlist not found' }, { status: 404 })
+      return Promise.resolve(NextResponse.json({ error: 'Playlist not found' }, { status: 404 }))
     }
 
     const playlist = playlists[playlistIndex]
     const trackIndex = playlist.tracks.findIndex(pt => pt.id === params.trackId)
     
     if (trackIndex === -1) {
-      return NextResponse.json({ error: 'Track not found in playlist' }, { status: 404 })
+      return Promise.resolve(NextResponse.json({ error: 'Track not found in playlist' }, { status: 404 }))
     }
 
     // Remove the track
@@ -94,9 +101,9 @@ export async function DELETE(
     playlist.updatedAt = new Date().toISOString()
 
     savePlaylists(playlists)
-    return NextResponse.json({ message: 'Track removed from playlist successfully' })
+    return Promise.resolve(NextResponse.json({ message: 'Track removed from playlist successfully' }))
   } catch (error) {
     console.error('Error removing track from playlist:', error)
-    return NextResponse.json({ error: 'Failed to remove track from playlist' }, { status: 500 })
+    return Promise.resolve(NextResponse.json({ error: 'Failed to remove track from playlist' }, { status: 500 }))
   }
 } 

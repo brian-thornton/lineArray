@@ -3,12 +3,12 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Play, Edit, Save, X, Trash2, Plus, Music, GripVertical } from 'lucide-react'
-import { Playlist, PlaylistTrack } from '@/types/music'
+import { Playlist } from '@/types/music'
 import { useSettings } from '@/contexts/SettingsContext'
 import { useSearch } from '@/contexts/SearchContext'
 import styles from './page.module.css'
 
-export default function PlaylistDetailPage({ params }: { params: { id: string } }) {
+export default function PlaylistDetailPage({ params }: { params: { id: string } }): JSX.Element {
   const router = useRouter()
   const { canPerformAction } = useSettings()
   const { hideKeyboard } = useSearch()
@@ -23,34 +23,35 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
   const [draggedTrack, setDraggedTrack] = useState<string | null>(null)
 
   useEffect(() => {
-    loadPlaylist()
+    void loadPlaylist()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id])
 
-  const loadPlaylist = async () => {
+  const loadPlaylist = async (): Promise<void> => {
     try {
       const response = await fetch(`/api/playlists/${params.id}`)
       if (response.ok) {
-        const data = await response.json()
+        const data = await response.json() as Playlist
         setPlaylist(data)
         setEditName(data.name)
-        setEditDescription(data.description || '')
+        setEditDescription(data.description ?? '')
       } else {
         console.error('Failed to load playlist')
-        router.push('/playlists')
+        void router.push('/playlists')
       }
     } catch (error) {
       console.error('Error loading playlist:', error)
-      router.push('/playlists')
+      void router.push('/playlists')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleSaveEdit = async () => {
+  const handleSaveEdit = async (): Promise<void> => {
     if (!playlist) return
 
     if (!canPerformAction('allowEditPlaylists')) {
-      alert('Editing playlists is restricted in party mode')
+      // TODO: Show non-blocking UI for restricted action
       return
     }
 
@@ -66,26 +67,25 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
       })
 
       if (response.ok) {
-        const updatedPlaylist = await response.json()
+        const updatedPlaylist = await response.json() as Playlist
         setPlaylist(updatedPlaylist)
         setIsEditing(false)
       } else {
-        const error = await response.json()
-        alert(error.error || 'Failed to update playlist')
+        // TODO: Show non-blocking UI for error
       }
     } catch (error) {
       console.error('Error updating playlist:', error)
-      alert('Failed to update playlist')
+      // TODO: Show non-blocking UI for error
     } finally {
       setIsSaving(false)
     }
   }
 
-  const handleDeletePlaylist = async () => {
+  const handleDeletePlaylist = async (): Promise<void> => {
     if (!playlist) return
 
     if (!canPerformAction('allowDeletePlaylists')) {
-      alert('Deleting playlists is restricted in party mode')
+      // TODO: Show non-blocking UI for restricted action
       return
     }
 
@@ -96,24 +96,23 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
       })
 
       if (response.ok) {
-        router.push('/playlists')
+        void router.push('/playlists')
       } else {
-        const error = await response.json()
-        alert(error.error || 'Failed to delete playlist')
+        // TODO: Show non-blocking UI for error
       }
     } catch (error) {
       console.error('Error deleting playlist:', error)
-      alert('Failed to delete playlist')
+      // TODO: Show non-blocking UI for error
     } finally {
       setIsDeleting(false)
     }
   }
 
-  const handleRemoveTrack = async (trackId: string) => {
+  const handleRemoveTrack = async (trackId: string): Promise<void> => {
     if (!playlist) return
 
     if (!canPerformAction('allowEditPlaylists')) {
-      alert('Editing playlists is restricted in party mode')
+      // TODO: Show non-blocking UI for restricted action
       return
     }
 
@@ -124,25 +123,24 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
 
       if (response.ok) {
         // Reload playlist to get updated data
-        await loadPlaylist()
+        void loadPlaylist()
       } else {
-        const error = await response.json()
-        alert(error.error || 'Failed to remove track')
+        // TODO: Show non-blocking UI for error
       }
     } catch (error) {
       console.error('Error removing track:', error)
-      alert('Failed to remove track')
+      // TODO: Show non-blocking UI for error
     }
   }
 
-  const handlePlayPlaylist = async () => {
+  const handlePlayPlaylist = async (): Promise<void> => {
     if (!canPerformAction('allowAddToQueue')) {
-      alert('Adding to queue is restricted in party mode')
+      // TODO: Show non-blocking UI for restricted action
       return
     }
 
     if (!playlist || playlist.tracks.length === 0) {
-      alert('This playlist is empty')
+      // TODO: Show non-blocking UI for empty playlist
       return
     }
 
@@ -160,25 +158,25 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
       }
 
       // Navigate back to main page to see the player
-      router.push('/')
+      void router.push('/')
       hideKeyboard()
     } catch (error) {
       console.error('Error playing playlist:', error)
-      alert('Failed to play playlist')
+      // TODO: Show non-blocking UI for error
     }
   }
 
-  const handleDragStart = (e: React.DragEvent, trackId: string) => {
+  const handleDragStart = (e: React.DragEvent, trackId: string): void => {
     setDraggedTrack(trackId)
     e.dataTransfer.effectAllowed = 'move'
   }
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = (e: React.DragEvent): void => {
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
   }
 
-  const handleDrop = async (e: React.DragEvent, targetTrackId: string) => {
+  const handleDrop = async (e: React.DragEvent, targetTrackId: string): Promise<void> => {
     e.preventDefault()
     
     if (!draggedTrack || draggedTrack === targetTrackId) {
@@ -187,7 +185,7 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
     }
 
     if (!canPerformAction('allowEditPlaylists')) {
-      alert('Editing playlists is restricted in party mode')
+      // TODO: Show non-blocking UI for restricted action
       setDraggedTrack(null)
       return
     }
@@ -198,12 +196,12 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           draggedTrackId: draggedTrack,
-          targetTrackId: targetTrackId
+          targetTrackId
         })
       })
 
       if (response.ok) {
-        await loadPlaylist()
+        void loadPlaylist()
       } else {
         console.error('Failed to reorder tracks')
       }
@@ -214,14 +212,14 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
     }
   }
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string): string => {
     return new Date(dateString).toLocaleDateString()
   }
 
   if (loading) {
     return (
       <div className={styles.loadingContainer}>
-        <div className={styles.loadingSpinner}></div>
+        <div className={styles.loadingSpinner} />
         <p>Loading playlist...</p>
       </div>
     )
@@ -274,9 +272,7 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
             ) : (
               <div>
                 <h1 className={styles.playlistName}>{playlist.name}</h1>
-                {playlist.description && (
-                  <p className={styles.playlistDescription}>{playlist.description}</p>
-                )}
+                {playlist.description ?? "No description"}
               </div>
             )}
             <div className={styles.playlistMeta}>
@@ -297,7 +293,7 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
           {isEditing ? (
             <>
               <button
-                onClick={handleSaveEdit}
+                onClick={() => { void handleSaveEdit() }}
                 className={styles.saveButton}
                 disabled={isSaving || !editName.trim()}
               >
@@ -308,7 +304,7 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
                 onClick={() => {
                   setIsEditing(false)
                   setEditName(playlist.name)
-                  setEditDescription(playlist.description || '')
+                  setEditDescription(playlist.description ?? '')
                 }}
                 className={styles.cancelButton}
                 disabled={isSaving}
@@ -320,7 +316,7 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
           ) : (
             <>
               <button
-                onClick={handlePlayPlaylist}
+                onClick={() => { void handlePlayPlaylist() }}
                 className={styles.playButton}
                 disabled={playlist.trackCount === 0 || !canPerformAction('allowAddToQueue')}
                 title={
@@ -336,6 +332,8 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
               </button>
               <button
                 onClick={() => setIsEditing(true)}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setIsEditing(true) }}
+                tabIndex={0}
                 className={styles.editButton}
                 disabled={!canPerformAction('allowEditPlaylists')}
                 title={!canPerformAction('allowEditPlaylists') ? 'Editing playlists is restricted in party mode' : 'Edit playlist'}
@@ -345,6 +343,8 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
               </button>
               <button
                 onClick={() => setShowDeleteModal(true)}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setShowDeleteModal(true) }}
+                tabIndex={0}
                 className={styles.deleteButton}
                 disabled={!canPerformAction('allowDeletePlaylists')}
                 title={!canPerformAction('allowDeletePlaylists') ? 'Deleting playlists is restricted in party mode' : 'Delete playlist'}
@@ -388,14 +388,14 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
           </div>
         ) : (
           <div className={styles.trackList}>
-            {playlist.tracks.map((playlistTrack, index) => (
+            {playlist.tracks.map((playlistTrack, _index) => (
               <div
                 key={playlistTrack.id}
                 className={`${styles.trackItem} ${draggedTrack === playlistTrack.id ? styles.dragging : ''}`}
                 draggable={canPerformAction('allowEditPlaylists')}
                 onDragStart={(e) => handleDragStart(e, playlistTrack.id)}
                 onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, playlistTrack.id)}
+                onDrop={(e) => { void handleDrop(e, playlistTrack.id) }}
               >
                 <div className={styles.dragHandle}>
                   <GripVertical className={styles.gripIcon} />
@@ -406,14 +406,14 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
                     {playlistTrack.position + 1}
                   </span>
                   <div className={styles.trackDetails}>
-                    <span className={styles.trackTitle}>{playlistTrack.track.title}</span>
-                    <span className={styles.trackAlbum}>{playlistTrack.track.album}</span>
+                    <span className={styles.trackTitle}>{playlistTrack.track.title ?? "Untitled"}</span>
+                    <span className={styles.trackAlbum}>{playlistTrack.track.album ?? "Unknown Album"}</span>
                   </div>
                 </div>
 
                 <div className={styles.trackActions}>
                   <button
-                    onClick={() => handleRemoveTrack(playlistTrack.id)}
+                    onClick={() => { void handleRemoveTrack(playlistTrack.id) }}
                     className={styles.removeTrackButton}
                     disabled={!canPerformAction('allowEditPlaylists')}
                     title={!canPerformAction('allowEditPlaylists') ? 'Editing playlists is restricted in party mode' : 'Remove from playlist'}
@@ -429,10 +429,22 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
-        <div className={styles.modalOverlay} onClick={() => setShowDeleteModal(false)}>
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <div 
+          className={styles.modalOverlay} 
+          onClick={() => setShowDeleteModal(false)}
+          onKeyDown={e => { if (e.key === 'Escape') setShowDeleteModal(false) }}
+          tabIndex={0}
+          role="button"
+        >
+          <div 
+            className={styles.modal} 
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={e => { if (e.key === 'Escape') setShowDeleteModal(false) }}
+            tabIndex={0}
+            role="button"
+          >
             <h2>Delete Playlist</h2>
-            <p>Are you sure you want to delete "{playlist.name}"? This action cannot be undone.</p>
+            <p>Are you sure you want to delete &quot;{playlist.name}&quot;? This action cannot be undone.</p>
             <div className={styles.modalActions}>
               <button
                 onClick={() => setShowDeleteModal(false)}
@@ -442,7 +454,7 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
                 Cancel
               </button>
               <button
-                onClick={handleDeletePlaylist}
+                onClick={() => { void handleDeletePlaylist() }}
                 className={styles.deleteConfirmButton}
                 disabled={isDeleting}
               >

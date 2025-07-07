@@ -3,17 +3,16 @@ import AlbumCard from '../AlbumCard'
 import Pagination from '../Pagination'
 import SwipeGestures from '../SwipeGestures'
 import { Album, Track } from '@/types/music'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import styles from './AlbumGrid.module.css'
 
 interface AlbumGridProps {
   albums: Album[]
   onPlayTrack: (track: Track) => void
   isLoading: boolean
-  itemsPerPage?: number
 }
 
-function AlbumGrid({ albums, onPlayTrack, isLoading, itemsPerPage = 12 }: AlbumGridProps) {
-  const [selectedAlbum, setSelectedAlbum] = useState<Album | null>(null)
+function AlbumGrid({ albums, onPlayTrack, isLoading }: AlbumGridProps): JSX.Element {
   const [currentPage, setCurrentPage] = useState(1)
   const [gridConfig, setGridConfig] = useState({
     columnsPerRow: 4,
@@ -22,21 +21,21 @@ function AlbumGrid({ albums, onPlayTrack, isLoading, itemsPerPage = 12 }: AlbumG
 
   // Calculate optimal grid layout based on viewport size
   useEffect(() => {
-    const calculateGridLayout = () => {
+    const calculateGridLayout = (): void => {
       if (typeof window === 'undefined') return
 
       const viewportWidth = window.innerWidth
       
-      // Responsive layout based on screen size
-      let columnsPerRow = 7 // Default for desktop
+      // Responsive layout based on screen size - more columns for compact layout
+      let columnsPerRow = 8 // Default for desktop - increased from 7
       if (viewportWidth <= 1024) { // Desktop
-        columnsPerRow = 3
+        columnsPerRow = 6 // Increased from 3
       }
       if (viewportWidth <= 768) { // Tablet
-        columnsPerRow = 2
+        columnsPerRow = 4 // Increased from 2
       }
       if (viewportWidth <= 480) { // Mobile
-        columnsPerRow = 2
+        columnsPerRow = 3 // Increased from 2
       }
       
       const rowsPerPage = 3 // Always 3 rows
@@ -50,7 +49,7 @@ function AlbumGrid({ albums, onPlayTrack, isLoading, itemsPerPage = 12 }: AlbumG
 
     calculateGridLayout()
     
-    const handleResize = () => {
+    const handleResize = (): void => {
       calculateGridLayout()
     }
     
@@ -69,40 +68,45 @@ function AlbumGrid({ albums, onPlayTrack, isLoading, itemsPerPage = 12 }: AlbumG
     setCurrentPage(1)
   }, [albums.length])
 
-  const handlePageChange = (page: number) => {
+  const handlePageChange = (page: number): void => {
     setCurrentPage(page)
     // Scroll to top of grid
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const handleSwipeLeft = () => {
+  const handleSwipeLeft = (): void => {
     if (currentPage < totalPages) {
       handlePageChange(currentPage + 1)
     }
   }
 
-  const handleSwipeRight = () => {
+  const handleSwipeRight = (): void => {
     if (currentPage > 1) {
       handlePageChange(currentPage - 1)
     }
   }
 
+  const handlePreviousPage = (): void => {
+    if (currentPage > 1) {
+      handlePageChange(currentPage - 1)
+    }
+  }
+
+  const handleNextPage = (): void => {
+    if (currentPage < totalPages) {
+      handlePageChange(currentPage + 1)
+    }
+  }
+
   // Generate dynamic CSS for grid columns
   const gridStyle = useMemo(() => ({
-    display: 'grid',
     gridTemplateColumns: `repeat(${gridConfig.columnsPerRow}, 1fr)`,
-    gap: 'var(--spacing-lg)',
-    width: '100%',
-    flex: 1,
-    paddingBottom: 'var(--spacing-md)',
-    justifyItems: 'center',
-    alignItems: 'start'
   }), [gridConfig.columnsPerRow])
 
   if (isLoading) {
     return (
       <div className={styles.loadingContainer}>
-        <div className={styles.loadingSpinner}></div>
+        <div className={styles.loadingSpinner} />
         <p className={styles.loadingText}>Scanning your music library...</p>
       </div>
     )
@@ -127,7 +131,32 @@ function AlbumGrid({ albums, onPlayTrack, isLoading, itemsPerPage = 12 }: AlbumG
       disabled={totalPages <= 1}
     >
       <div className={styles.container}>
+        {/* Left Navigation Arrow */}
+        {totalPages > 1 && currentPage > 1 && (
+          <button
+            className={`${styles.navArrow} ${styles.navArrowLeft}`}
+            onClick={handlePreviousPage}
+            aria-label="Previous page"
+            title="Previous page"
+          >
+            <ChevronLeft size={24} />
+          </button>
+        )}
+
+        {/* Right Navigation Arrow */}
+        {totalPages > 1 && currentPage < totalPages && (
+          <button
+            className={`${styles.navArrow} ${styles.navArrowRight}`}
+            onClick={handleNextPage}
+            aria-label="Next page"
+            title="Next page"
+          >
+            <ChevronRight size={24} />
+          </button>
+        )}
+
         <div 
+          className={styles.gridContainer}
           style={gridStyle}
         >
           {currentAlbums.map((album) => (
@@ -135,8 +164,7 @@ function AlbumGrid({ albums, onPlayTrack, isLoading, itemsPerPage = 12 }: AlbumG
               key={album.id}
               album={album}
               onPlayTrack={onPlayTrack}
-              isSelected={selectedAlbum?.id === album.id}
-              onSelect={() => setSelectedAlbum(selectedAlbum?.id === album.id ? null : album)}
+              isSelected={false}
             />
           ))}
         </div>

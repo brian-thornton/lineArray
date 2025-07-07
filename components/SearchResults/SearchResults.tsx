@@ -22,7 +22,7 @@ interface SearchResultsProps {
   isLoading: boolean
 }
 
-export default function SearchResults({ results, onTrackClick, isLoading }: SearchResultsProps) {
+export default function SearchResults({ results, onTrackClick, isLoading }: SearchResultsProps): JSX.Element {
   const { canPerformAction } = useSettings()
   const [showPlaylistModal, setShowPlaylistModal] = useState(false)
   const [selectedTrack, setSelectedTrack] = useState<string | null>(null)
@@ -31,7 +31,7 @@ export default function SearchResults({ results, onTrackClick, isLoading }: Sear
     return (
       <div className={styles.container}>
         <div className={styles.loading}>
-          <div className={styles.spinner}></div>
+          <div className={styles.spinner} />
           <p>Searching...</p>
         </div>
       </div>
@@ -48,34 +48,34 @@ export default function SearchResults({ results, onTrackClick, isLoading }: Sear
     )
   }
 
-  const handleTrackClick = (e: React.MouseEvent, path: string) => {
+  const handleTrackClick = (e: React.MouseEvent, path: string): void => {
     e.preventDefault()
     if (!canPerformAction('allowAddToQueue')) {
-      alert('Adding to queue is restricted in party mode')
+      console.error('Adding to queue is restricted in party mode')
       return
     }
     onTrackClick(path)
   }
 
-  const handleAddToPlaylist = (e: React.MouseEvent, trackPath: string) => {
+  const handleAddToPlaylist = (e: React.MouseEvent, trackPath: string): void => {
     e.preventDefault()
     e.stopPropagation()
     if (!canPerformAction('allowCreatePlaylists')) {
-      alert('Creating playlists is restricted in party mode')
+      console.error('Creating playlists is restricted in party mode')
       return
     }
     setSelectedTrack(trackPath)
     setShowPlaylistModal(true)
   }
 
-  const handleAddTrackToPlaylist = async (playlistId: string, trackPaths: string[]) => {
+  const handleAddTrackToPlaylist = async (playlistId: string, trackPaths: string[]): Promise<void> => {
     try {
       // Add track to the playlist
       for (const trackPath of trackPaths) {
         const response = await fetch(`/api/playlists/${playlistId}/tracks`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ trackPath: trackPath }),
+          body: JSON.stringify({ trackPath }),
         })
         
         if (!response.ok) {
@@ -102,27 +102,31 @@ export default function SearchResults({ results, onTrackClick, isLoading }: Sear
               </Link>
             ) : (
               <div className={styles.trackResultContainer}>
-                <button
-                  onClick={(e) => handleTrackClick(e, result.path!)}
-                  className={styles.trackResult}
-                  disabled={!canPerformAction('allowAddToQueue')}
-                  title={!canPerformAction('allowAddToQueue') ? 'Adding to queue is restricted in party mode' : 'Play track'}
-                >
-                  <div className={styles.resultIcon}>🎵</div>
-                  <div className={styles.resultContent}>
-                    <div className={styles.resultTitle}>{result.title}</div>
-                    <div className={styles.resultAlbum}>{result.album}</div>
-                    <div className={styles.resultType}>Track</div>
-                  </div>
-                </button>
-                <button
-                  onClick={(e) => handleAddToPlaylist(e, result.path!)}
-                  className={styles.addToPlaylistButton}
-                  disabled={!canPerformAction('allowCreatePlaylists')}
-                  title={!canPerformAction('allowCreatePlaylists') ? 'Creating playlists is restricted in party mode' : 'Add to Playlist'}
-                >
-                  <Plus className={styles.plusIcon} />
-                </button>
+                {result.path && (
+                  <>
+                    <button
+                      onClick={(e) => handleTrackClick(e, result.path as string)}
+                      className={styles.trackResult}
+                      disabled={!canPerformAction('allowAddToQueue')}
+                      title={!canPerformAction('allowAddToQueue') ? 'Adding to queue is restricted in party mode' : 'Play track'}
+                    >
+                      <div className={styles.resultIcon}>🎵</div>
+                      <div className={styles.resultContent}>
+                        <div className={styles.resultTitle}>{result.title}</div>
+                        <div className={styles.resultAlbum}>{result.album}</div>
+                        <div className={styles.resultType}>Track</div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={(e) => handleAddToPlaylist(e, result.path as string)}
+                      className={styles.addToPlaylistButton}
+                      disabled={!canPerformAction('allowCreatePlaylists')}
+                      title={!canPerformAction('allowCreatePlaylists') ? 'Creating playlists is restricted in party mode' : 'Add to Playlist'}
+                    >
+                      <Plus className={styles.plusIcon} />
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -133,7 +137,7 @@ export default function SearchResults({ results, onTrackClick, isLoading }: Sear
         isOpen={showPlaylistModal}
         onClose={() => setShowPlaylistModal(false)}
         selectedTracks={selectedTrack ? [selectedTrack] : []}
-        onAddToPlaylist={handleAddTrackToPlaylist}
+        onAddToPlaylist={(playlistId, trackPaths) => { void handleAddTrackToPlaylist(playlistId, trackPaths) }}
       />
     </div>
   )

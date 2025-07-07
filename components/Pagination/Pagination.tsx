@@ -1,6 +1,6 @@
-'use client'
+"use client"
 
-import React from 'react'
+import { Fragment } from 'react'
 import styles from './Pagination.module.css'
 
 interface PaginationProps {
@@ -11,13 +11,13 @@ interface PaginationProps {
   itemsPerPage: number
 }
 
-function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPerPage }: PaginationProps) {
+function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPerPage }: PaginationProps): JSX.Element | null {
   if (totalPages <= 1) return null
 
   const startItem = (currentPage - 1) * itemsPerPage + 1
   const endItem = Math.min(currentPage * itemsPerPage, totalItems)
 
-  const getVisiblePages = () => {
+  const getVisiblePages = (): (number | string)[] => {
     const pages = []
     const maxVisible = 5 // Show max 5 page numbers
     
@@ -57,19 +57,19 @@ function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPe
     return pages
   }
 
-  const handlePageClick = (page: number | string) => {
+  const handlePageClick = (page: number | string): void => {
     if (typeof page === 'number') {
       onPageChange(page)
     }
   }
 
-  const handlePrevious = () => {
+  const handlePrevious = (): void => {
     if (currentPage > 1) {
       onPageChange(currentPage - 1)
     }
   }
 
-  const handleNext = () => {
+  const handleNext = (): void => {
     if (currentPage < totalPages) {
       onPageChange(currentPage + 1)
     }
@@ -100,7 +100,8 @@ function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPe
 
         <div className={styles.pageNumbers}>
           {visiblePages.map((page, index) => (
-            <React.Fragment key={index}>
+            // eslint-disable-next-line react/no-array-index-key -- pagination items are static and non-reorderable
+            <Fragment key={index}>
               {page === '...' ? (
                 <span className={styles.ellipsis} aria-hidden="true">...</span>
               ) : (
@@ -115,7 +116,7 @@ function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPe
                   {page}
                 </button>
               )}
-            </React.Fragment>
+            </Fragment>
           ))}
         </div>
 

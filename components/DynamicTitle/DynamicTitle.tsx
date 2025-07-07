@@ -1,9 +1,9 @@
-'use client'
+"use client"
 
-import React, { useEffect } from 'react'
+import { useEffect } from 'react'
 import { useSettings } from '@/contexts/SettingsContext'
 
-export default function DynamicTitle() {
+export default function DynamicTitle(): null {
   const { settings } = useSettings()
 
   useEffect(() => {

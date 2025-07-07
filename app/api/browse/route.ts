@@ -8,11 +8,11 @@ interface FileItem {
   isDirectory: boolean
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const { path: browsePath } = await request.json()
+    const { path: browsePath } = await request.json() as { path: string }
     
-    let targetPath = browsePath || '/'
+    const targetPath = browsePath ?? '/'
     
     // If no path provided, return system root directories
     if (!browsePath) {
@@ -99,7 +99,7 @@ async function getSystemRoots(): Promise<FileItem[]> {
     }
 
     // Add user's home directory
-    const homeDir = process.env.HOME || process.env.USERPROFILE
+    const homeDir = process.env.HOME ?? process.env.USERPROFILE
     if (homeDir && await fs.pathExists(homeDir)) {
       roots.push({
         name: 'Home',

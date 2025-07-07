@@ -1,18 +1,43 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
 
-export async function GET() {
+interface Theme {
+  id: string
+  name: string
+  description: string
+  colors: {
+    primary: string
+    secondary: string
+    accent: string
+    background: string
+    surface: string
+    text: string
+    textSecondary: string
+    textTertiary: string
+    border: string
+    shadow: string
+    success: string
+    error: string
+    warning: string
+  }
+}
+
+interface ThemesData {
+  themes: Theme[]
+}
+
+export function GET(): Promise<NextResponse> {
   try {
     const themesPath = path.join(process.cwd(), 'data', 'themes.json')
     
     if (fs.existsSync(themesPath)) {
       const data = fs.readFileSync(themesPath, 'utf-8')
-      const themes = JSON.parse(data)
-      return NextResponse.json(themes)
+      const themes = JSON.parse(data) as ThemesData
+      return Promise.resolve(NextResponse.json(themes))
     } else {
       // Return default theme if themes.json doesn't exist
-      const defaultThemes = {
+      const defaultThemes: ThemesData = {
         themes: [
           {
             id: 'jukebox-classic',
@@ -36,13 +61,13 @@ export async function GET() {
           }
         ]
       }
-      return NextResponse.json(defaultThemes)
+      return Promise.resolve(NextResponse.json(defaultThemes))
     }
   } catch (error) {
     console.error('Error loading themes:', error)
-    return NextResponse.json(
+    return Promise.resolve(NextResponse.json(
       { error: 'Failed to load themes' },
       { status: 500 }
-    )
+    ))
   }
 } 

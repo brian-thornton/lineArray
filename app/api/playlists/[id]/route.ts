@@ -1,20 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
-import { Playlist, UpdatePlaylistRequest, AddTrackToPlaylistRequest, ReorderPlaylistRequest } from '@/types/music'
+import { Playlist, UpdatePlaylistRequest } from '@/types/music'
+import logger from '@/utils/serverLogger'
 
 const playlistsPath = path.join(process.cwd(), 'data', 'playlists.json')
-const musicLibraryPath = path.join(process.cwd(), 'data', 'music-library.json')
 
-function loadSettings() {
+interface Settings {
+  partyMode: {
+    enabled: boolean
+    allowEditPlaylists?: boolean
+    allowDeletePlaylists?: boolean
+  }
+}
+
+function loadSettings(): Settings {
   try {
     const settingsPath = path.join(process.cwd(), 'data', 'settings.json')
     if (fs.existsSync(settingsPath)) {
       const data = fs.readFileSync(settingsPath, 'utf-8')
-      return JSON.parse(data)
+      return JSON.parse(data) as Settings
     }
   } catch (error) {
-    console.error('Error loading settings:', error)
+    logger.error('Error loading settings', 'Settings', error)
   }
   return { partyMode: { enabled: false } }
 }
@@ -31,9 +39,9 @@ function checkPartyModePermission(action: string): boolean {
   // Check specific permissions based on action
   switch (action) {
     case 'edit':
-      return partyMode.allowEditPlaylists
+      return partyMode.allowEditPlaylists ?? true
     case 'delete':
-      return partyMode.allowDeletePlaylists
+      return partyMode.allowDeletePlaylists ?? true
     default:
       return true
   }
@@ -43,10 +51,10 @@ function loadPlaylists(): Playlist[] {
   try {
     if (fs.existsSync(playlistsPath)) {
       const data = fs.readFileSync(playlistsPath, 'utf-8')
-      return JSON.parse(data)
+      return JSON.parse(data) as Playlist[]
     }
   } catch (error) {
-    console.error('Error loading playlists:', error)
+    logger.error('Error loading playlists', 'Playlists', error)
   }
   return []
 }
@@ -55,52 +63,28 @@ function savePlaylists(playlists: Playlist[]): void {
   try {
     fs.writeFileSync(playlistsPath, JSON.stringify(playlists, null, 2))
   } catch (error) {
-    console.error('Error saving playlists:', error)
+    logger.error('Error saving playlists', 'Playlists', error)
     throw error
   }
 }
 
-function loadMusicLibrary() {
-  try {
-    if (fs.existsSync(musicLibraryPath)) {
-      const data = fs.readFileSync(musicLibraryPath, 'utf-8')
-      return JSON.parse(data)
-    }
-  } catch (error) {
-    console.error('Error loading music library:', error)
-  }
-  return { albums: [] }
-}
-
-function findTrackByPath(trackPath: string) {
-  const library = loadMusicLibrary()
-  for (const album of library.albums) {
-    for (const track of album.tracks) {
-      if (track.path === trackPath) {
-        return track
-      }
-    }
-  }
-  return null
-}
-
 // GET /api/playlists/[id] - Get a specific playlist
-export async function GET(
+export function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
-) {
+): Promise<NextResponse> {
   try {
     const playlists = loadPlaylists()
     const playlist = playlists.find(p => p.id === params.id)
     
     if (!playlist) {
-      return NextResponse.json({ error: 'Playlist not found' }, { status: 404 })
+      return Promise.resolve(NextResponse.json({ error: 'Playlist not found' }, { status: 404 }))
     }
 
-    return NextResponse.json(playlist)
+    return Promise.resolve(NextResponse.json(playlist))
   } catch (error) {
-    console.error('Error getting playlist:', error)
-    return NextResponse.json({ error: 'Failed to get playlist' }, { status: 500 })
+    logger.error('Error getting playlist', 'PlaylistsAPI', error)
+    return Promise.resolve(NextResponse.json({ error: 'Failed to get playlist' }, { status: 500 }))
   }
 }
 
@@ -108,13 +92,13 @@ export async function GET(
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
-) {
+): Promise<NextResponse> {
   try {
     if (!checkPartyModePermission('edit')) {
       return NextResponse.json({ error: 'Editing playlists is restricted in party mode' }, { status: 403 })
     }
 
-    const body: UpdatePlaylistRequest = await request.json()
+    const body = await request.json() as unknown as UpdatePlaylistRequest
     const { name, description } = body
 
     const playlists = loadPlaylists()
@@ -139,42 +123,42 @@ export async function PUT(
     // Update playlist
     playlists[playlistIndex] = {
       ...playlist,
-      name: name?.trim() || playlist.name,
-      description: description?.trim() || playlist.description,
+      name: name?.trim() ?? playlist.name,
+      description: description?.trim() ?? playlist.description,
       updatedAt: new Date().toISOString()
     }
 
     savePlaylists(playlists)
     return NextResponse.json(playlists[playlistIndex])
   } catch (error) {
-    console.error('Error updating playlist:', error)
+    logger.error('Error updating playlist', 'PlaylistsAPI', error)
     return NextResponse.json({ error: 'Failed to update playlist' }, { status: 500 })
   }
 }
 
 // DELETE /api/playlists/[id] - Delete a playlist
-export async function DELETE(
+export function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
-) {
+): Promise<NextResponse> {
   try {
     if (!checkPartyModePermission('delete')) {
-      return NextResponse.json({ error: 'Deleting playlists is restricted in party mode' }, { status: 403 })
+      return Promise.resolve(NextResponse.json({ error: 'Deleting playlists is restricted in party mode' }, { status: 403 }))
     }
 
     const playlists = loadPlaylists()
     const playlistIndex = playlists.findIndex(p => p.id === params.id)
     
     if (playlistIndex === -1) {
-      return NextResponse.json({ error: 'Playlist not found' }, { status: 404 })
+      return Promise.resolve(NextResponse.json({ error: 'Playlist not found' }, { status: 404 }))
     }
 
     playlists.splice(playlistIndex, 1)
     savePlaylists(playlists)
 
-    return NextResponse.json({ message: 'Playlist deleted successfully' })
+    return Promise.resolve(NextResponse.json({ message: 'Playlist deleted successfully' }))
   } catch (error) {
-    console.error('Error deleting playlist:', error)
-    return NextResponse.json({ error: 'Failed to delete playlist' }, { status: 500 })
+    logger.error('Error deleting playlist', 'PlaylistsAPI', error)
+    return Promise.resolve(NextResponse.json({ error: 'Failed to delete playlist' }, { status: 500 }))
   }
 } 

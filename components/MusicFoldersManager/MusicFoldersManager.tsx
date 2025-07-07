@@ -1,6 +1,6 @@
-'use client'
+"use client"
 
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Folder, X, Plus, FolderOpen } from 'lucide-react'
 import FileBrowser from '../FileBrowser'
 import styles from './MusicFoldersManager.module.css'
@@ -17,7 +17,7 @@ export default function MusicFoldersManager({
   isScanning, 
   currentPaths, 
   scanResults 
-}: MusicFoldersManagerProps) {
+}: MusicFoldersManagerProps): JSX.Element {
   const [folders, setFolders] = useState<string[]>(currentPaths)
   const [newFolder, setNewFolder] = useState('')
   const [showFileBrowser, setShowFileBrowser] = useState(false)
@@ -26,7 +26,7 @@ export default function MusicFoldersManager({
     setFolders(currentPaths)
   }, [currentPaths])
 
-  const handleAddFolder = () => {
+  const handleAddFolder = (): void => {
     if (newFolder.trim() && !folders.includes(newFolder.trim())) {
       const updatedFolders = [...folders, newFolder.trim()]
       setFolders(updatedFolders)
@@ -34,28 +34,28 @@ export default function MusicFoldersManager({
     }
   }
 
-  const handleRemoveFolder = (index: number) => {
+  const handleRemoveFolder = (index: number): void => {
     const updatedFolders = folders.filter((_, i) => i !== index)
     setFolders(updatedFolders)
   }
 
-  const handleScanAll = () => {
+  const handleScanAll = (): void => {
     if (folders.length > 0) {
       onScan(folders)
     }
   }
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = (e: React.KeyboardEvent): void => {
     if (e.key === 'Enter') {
       handleAddFolder()
     }
   }
 
-  const handleBrowseClick = () => {
+  const handleBrowseClick = (): void => {
     setShowFileBrowser(true)
   }
 
-  const handleFileBrowserSelect = (path: string) => {
+  const handleFileBrowserSelect = (path: string): void => {
     if (!folders.includes(path)) {
       const updatedFolders = [...folders, path]
       setFolders(updatedFolders)
@@ -63,7 +63,7 @@ export default function MusicFoldersManager({
     setShowFileBrowser(false)
   }
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string): string => {
     return new Date(dateString).toLocaleDateString()
   }
 
@@ -122,10 +122,10 @@ export default function MusicFoldersManager({
             <p className={styles.emptySubtext}>Add folders to start scanning your music library</p>
           </div>
         ) : (
-          folders.map((folder, index) => {
+          folders.map((folder) => {
             const result = scanResults[folder]
             return (
-              <div key={index} className={styles.folderItem}>
+              <div key={folder} className={styles.folderItem}>
                 <div className={styles.folderInfo}>
                   <Folder size={20} className={styles.folderIcon} />
                   <div className={styles.folderDetails}>
@@ -142,7 +142,7 @@ export default function MusicFoldersManager({
                   </div>
                 </div>
                 <button
-                  onClick={() => handleRemoveFolder(index)}
+                  onClick={() => handleRemoveFolder(folders.indexOf(folder))}
                   disabled={isScanning}
                   className={styles.removeButton}
                   aria-label="Remove folder"

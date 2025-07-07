@@ -10,13 +10,13 @@ interface ScanProgressProps {
   currentAlbum?: string
 }
 
-const ScanProgress: React.FC<ScanProgressProps> = ({
+export default function ScanProgress({
   isVisible,
   currentFile,
   scannedFiles,
   totalFiles,
   currentAlbum
-}) => {
+}: ScanProgressProps): JSX.Element | null {
   if (!isVisible) return null
 
   const progress = totalFiles ? (scannedFiles / totalFiles) * 100 : 0
@@ -37,7 +37,7 @@ const ScanProgress: React.FC<ScanProgressProps> = ({
             <div 
               className={styles.progressFill} 
               style={{ width: `${progress}%` }}
-            ></div>
+             />
           </div>
           
           <div className={styles.stats}>
@@ -77,6 +77,4 @@ const ScanProgress: React.FC<ScanProgressProps> = ({
       </div>
     </div>
   )
-}
-
-export default ScanProgress 
+} 

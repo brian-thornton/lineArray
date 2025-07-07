@@ -1,36 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
+import { Album } from '@/types/music'
 
-export async function GET(
+export function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
-) {
+): Promise<NextResponse> {
   try {
     const albumId = params.id
     const dataPath = path.join(process.cwd(), 'data', 'music-library.json')
     
     if (!fs.existsSync(dataPath)) {
-      return NextResponse.json({ error: 'Album not found' }, { status: 404 })
+      return Promise.resolve(NextResponse.json({ error: 'Album not found' }, { status: 404 }))
     }
 
     const data = fs.readFileSync(dataPath, 'utf8')
-    const libraryData = JSON.parse(data)
-    const albums = libraryData.albums || []
+    const libraryData = JSON.parse(data) as { albums: Album[] }
+    const albums = libraryData.albums ?? []
 
-    const album = albums.find((a: any) => a.id === albumId)
+    const album = albums.find((a: Album) => a.id === albumId)
     
     if (!album) {
-      return NextResponse.json({ error: 'Album not found' }, { status: 404 })
+      return Promise.resolve(NextResponse.json({ error: 'Album not found' }, { status: 404 }))
     }
 
-    return NextResponse.json(album)
+    return Promise.resolve(NextResponse.json(album))
 
   } catch (error) {
     console.error('Error loading album:', error)
-    return NextResponse.json(
+    return Promise.resolve(NextResponse.json(
       { error: 'Failed to load album' },
       { status: 500 }
-    )
+    ))
   }
 } 

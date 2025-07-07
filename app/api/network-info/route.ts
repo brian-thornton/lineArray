@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { networkInterfaces } from 'os'
 
-export async function GET(request: NextRequest) {
+export function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const nets = networkInterfaces()
     const localIPs: string[] = []
@@ -20,26 +20,26 @@ export async function GET(request: NextRequest) {
     }
     
     // Get the port from the request
-    const host = request.headers.get('host') || 'localhost:3000'
+    const host = request.headers.get('host') ?? 'localhost:3000'
     const port = host.includes(':') ? host.split(':')[1] : '3000'
     
     // Get the protocol
-    const protocol = request.headers.get('x-forwarded-proto') || 'http'
+    const protocol = request.headers.get('x-forwarded-proto') ?? 'http'
     
-    return NextResponse.json({
+    return Promise.resolve(NextResponse.json({
       localIPs,
       port,
       protocol,
       host
-    })
+    }))
   } catch (error) {
     console.error('Error getting network info:', error)
-    return NextResponse.json({ 
+    return Promise.resolve(NextResponse.json({ 
       error: 'Failed to get network information',
       localIPs: [],
       port: '3000',
       protocol: 'http',
       host: 'localhost:3000'
-    }, { status: 500 })
+    }, { status: 500 }))
   }
 } 

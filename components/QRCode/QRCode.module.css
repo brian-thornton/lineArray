@@ -3,26 +3,26 @@
   border-radius: var(--radius-lg);
   border: 1px solid rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
-  padding: var(--spacing-xl);
+  padding: var(--spacing-lg);
   text-align: center;
-  max-width: 400px;
+  max-width: 500px;
   margin: 0 auto;
 }
 
 .header {
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
 }
 
 .icon {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   color: var(--jukebox-gold);
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: var(--spacing-xs);
 }
 
 .title {
   font-family: var(--font-display);
-  font-size: 1.5rem;
+  font-size: 1.3rem;
   color: var(--jukebox-white);
   margin: 0 0 var(--spacing-xs) 0;
   font-weight: 700;
@@ -30,17 +30,38 @@
 
 .subtitle {
   color: var(--jukebox-gray);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   margin: 0;
   line-height: 1.4;
 }
 
-.qrSection {
+.content {
+  display: flex;
+  gap: var(--spacing-xl);
+  align-items: flex-start;
   margin-bottom: var(--spacing-lg);
 }
 
-.qrCode {
+.leftSection {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.rightSection {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.qrSection {
   margin-bottom: var(--spacing-md);
+}
+
+.qrCode {
+  margin-bottom: var(--spacing-sm);
   display: flex;
   justify-content: center;
 }
@@ -49,11 +70,11 @@
   border-radius: var(--radius-md);
   border: 2px solid rgba(255, 215, 0, 0.3);
   background: white;
-  padding: var(--spacing-sm);
+  padding: var(--spacing-xs);
 }
 
 .urlSection {
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
 }
 
 .urlDisplay {
@@ -107,23 +128,23 @@
   text-align: left;
   background: rgba(255, 215, 0, 0.05);
   border-radius: var(--radius-md);
-  padding: var(--spacing-md);
+  padding: var(--spacing-sm);
   border: 1px solid rgba(255, 215, 0, 0.1);
 }
 
 .instructions h4 {
   color: var(--jukebox-gold);
-  margin: 0 0 var(--spacing-sm) 0;
-  font-size: 1rem;
+  margin: 0 0 var(--spacing-xs) 0;
+  font-size: 0.95rem;
   font-weight: 600;
 }
 
 .instructions ol {
   color: var(--jukebox-gray);
-  font-size: 0.9rem;
-  margin: 0 0 var(--spacing-sm) 0;
-  padding-left: var(--spacing-lg);
-  line-height: 1.5;
+  font-size: 0.85rem;
+  margin: 0 0 var(--spacing-xs) 0;
+  padding-left: var(--spacing-md);
+  line-height: 1.4;
 }
 
 .instructions li {
@@ -132,9 +153,9 @@
 
 .note {
   color: var(--jukebox-gray);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   margin: 0;
-  line-height: 1.4;
+  line-height: 1.3;
   font-style: italic;
 }
 
@@ -172,6 +193,7 @@
   .container {
     padding: var(--spacing-lg);
     margin: 0 var(--spacing-sm);
+    max-width: 100%;
   }
   
   .title {

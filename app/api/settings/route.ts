@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
+import logger from '@/utils/serverLogger'
 
 interface Settings {
   scanPath: string
@@ -28,15 +29,15 @@ function loadSettings(): Settings {
   try {
     if (fs.existsSync(settingsPath)) {
       const data = fs.readFileSync(settingsPath, 'utf-8')
-      const existingSettings = JSON.parse(data)
-      console.log('Loaded existing settings from file:', existingSettings)
+      const existingSettings = JSON.parse(data) as Partial<Settings>
+      logger.info('Loaded existing settings from file', 'SettingsAPI', existingSettings)
       
       // Merge with defaults, ensuring partyMode is properly handled
-      const settings = {
-        scanPath: existingSettings.scanPath || '/Users/brianthornton/Desktop/Music/Dave Matthews',
-        jukeboxName: existingSettings.jukeboxName || 'Jukebox 2.0',
+      const settings: Settings = {
+        scanPath: existingSettings.scanPath ?? '',
+        jukeboxName: existingSettings.jukeboxName ?? 'Jukebox 2.0',
         adminPin: existingSettings.adminPin,
-        theme: existingSettings.theme || 'jukebox-classic',
+        theme: existingSettings.theme ?? 'jukebox-classic',
         partyMode: {
           enabled: false,
           allowPlay: true,
@@ -53,16 +54,16 @@ function loadSettings(): Settings {
         }
       }
       
-      console.log('Merged settings:', settings)
+      logger.info('Merged settings', 'SettingsAPI', settings)
       return settings
     }
   } catch (error) {
-    console.error('Error loading settings:', error)
+    logger.error('Error loading settings', 'SettingsAPI', error)
   }
   
   // Default settings
-  const defaultSettings = {
-    scanPath: '/Users/brianthornton/Desktop/Music/Dave Matthews',
+  const defaultSettings: Settings = {
+    scanPath: '',
     jukeboxName: 'Jukebox 2.0',
     theme: 'jukebox-classic',
     partyMode: {
@@ -80,75 +81,120 @@ function loadSettings(): Settings {
     }
   }
   
-  console.log('Using default settings:', defaultSettings)
+  logger.info('Using default settings', 'SettingsAPI', defaultSettings)
   return defaultSettings
 }
 
 function saveSettings(settings: Settings): void {
   try {
-    console.log('saveSettings called with:', settings)
-    console.log('Settings path:', settingsPath)
+    logger.info('saveSettings called with', 'SettingsAPI', settings)
+    logger.info('Settings path', 'SettingsAPI', settingsPath)
     
     // Ensure the data directory exists
     const dataDir = path.dirname(settingsPath)
-    console.log('Data directory:', dataDir)
+    logger.info('Data directory', 'SettingsAPI', dataDir)
     
     if (!fs.existsSync(dataDir)) {
-      console.log('Creating data directory...')
+      logger.info('Creating data directory', 'SettingsAPI')
       fs.mkdirSync(dataDir, { recursive: true })
     }
     
     const settingsJson = JSON.stringify(settings, null, 2)
-    console.log('Writing settings JSON:', settingsJson)
+    logger.info('Writing settings JSON', 'SettingsAPI', settingsJson)
     
     fs.writeFileSync(settingsPath, settingsJson)
-    console.log('Settings file written successfully')
+    logger.info('Settings file written successfully', 'SettingsAPI')
     
     // Verify the file was written
     if (fs.existsSync(settingsPath)) {
       const writtenData = fs.readFileSync(settingsPath, 'utf-8')
-      console.log('Verified written data:', writtenData)
+      logger.info('Verified written data', 'SettingsAPI', writtenData)
     } else {
-      console.error('Settings file does not exist after writing!')
+      logger.error('Settings file does not exist after writing', 'SettingsAPI')
     }
   } catch (error) {
-    console.error('Error saving settings:', error)
+    logger.error('Error saving settings', 'SettingsAPI', error)
     throw error
   }
 }
 
-export async function GET() {
+export function GET(): Promise<NextResponse> {
   try {
-    const settings = loadSettings()
-    console.log('GET settings:', settings)
-    return NextResponse.json(settings)
+    const settingsPath = path.join(process.cwd(), 'data', 'settings.json')
+    
+    if (!fs.existsSync(settingsPath)) {
+      // Return default settings if no settings file exists
+      return Promise.resolve(NextResponse.json({
+        scanPath: '',
+        jukeboxName: 'Jukebox 2.0',
+        adminPin: '1234',
+        theme: 'jukebox-classic',
+        partyMode: {
+          enabled: false,
+          allowPlay: true,
+          allowStop: true,
+          allowNext: true,
+          allowPrevious: true,
+          allowCreatePlaylists: true,
+          allowEditPlaylists: true,
+          allowDeletePlaylists: true,
+          allowAddToQueue: true,
+          allowRemoveFromQueue: true,
+          allowSkipInQueue: true
+        }
+      }))
+    }
+
+    const data = fs.readFileSync(settingsPath, 'utf8')
+    const existingSettings = JSON.parse(data) as Partial<Settings>
+    
+    return Promise.resolve(NextResponse.json({
+      scanPath: existingSettings.scanPath ?? '',
+      jukeboxName: existingSettings.jukeboxName ?? 'Jukebox 2.0',
+      adminPin: existingSettings.adminPin ?? '1234',
+      theme: existingSettings.theme ?? 'jukebox-classic',
+      partyMode: {
+        enabled: existingSettings.partyMode?.enabled ?? false,
+        allowPlay: existingSettings.partyMode?.allowPlay ?? true,
+        allowStop: existingSettings.partyMode?.allowStop ?? true,
+        allowNext: existingSettings.partyMode?.allowNext ?? true,
+        allowPrevious: existingSettings.partyMode?.allowPrevious ?? true,
+        allowCreatePlaylists: existingSettings.partyMode?.allowCreatePlaylists ?? true,
+        allowEditPlaylists: existingSettings.partyMode?.allowEditPlaylists ?? true,
+        allowDeletePlaylists: existingSettings.partyMode?.allowDeletePlaylists ?? true,
+        allowAddToQueue: existingSettings.partyMode?.allowAddToQueue ?? true,
+        allowRemoveFromQueue: existingSettings.partyMode?.allowRemoveFromQueue ?? true,
+        allowSkipInQueue: existingSettings.partyMode?.allowSkipInQueue ?? true
+      }
+    }))
+
   } catch (error) {
-    console.error('Settings GET error:', error)
-    return NextResponse.json(
+    logger.error('Error loading settings', 'SettingsAPI', error)
+    return Promise.resolve(NextResponse.json(
       { error: 'Failed to load settings' },
       { status: 500 }
-    )
+    ))
   }
 }
 
-export async function PUT(request: NextRequest) {
+export async function PUT(request: NextRequest): Promise<NextResponse> {
   try {
-    const body = await request.json()
-    console.log('PUT settings request body:', body)
+    const body = await request.json() as Partial<Settings>
+    logger.info('PUT settings request body', 'SettingsAPI', body)
     const currentSettings = loadSettings()
-    console.log('Current settings:', currentSettings)
+    logger.info('Current settings', 'SettingsAPI', currentSettings)
     
     const updatedSettings: Settings = {
       ...currentSettings,
       ...body
     }
-    console.log('Updated settings to save:', updatedSettings)
+    logger.info('Updated settings to save', 'SettingsAPI', updatedSettings)
     
     saveSettings(updatedSettings)
     
     return NextResponse.json(updatedSettings)
   } catch (error) {
-    console.error('Settings PUT error:', error)
+    logger.error('Settings PUT error', 'SettingsAPI', error)
     return NextResponse.json(
       { error: 'Failed to update settings' },
       { status: 500 }

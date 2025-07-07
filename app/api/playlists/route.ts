@@ -1,20 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
-import { Playlist, CreatePlaylistRequest, UpdatePlaylistRequest } from '@/types/music'
+import { Playlist, CreatePlaylistRequest } from '@/types/music'
+import logger from '@/utils/serverLogger'
 
 const playlistsPath = path.join(process.cwd(), 'data', 'playlists.json')
-const musicLibraryPath = path.join(process.cwd(), 'data', 'music-library.json')
 
-function loadSettings() {
+interface Settings {
+  partyMode: {
+    enabled: boolean
+    allowCreatePlaylists?: boolean
+    allowEditPlaylists?: boolean
+    allowDeletePlaylists?: boolean
+  }
+}
+
+function loadSettings(): Settings {
   try {
     const settingsPath = path.join(process.cwd(), 'data', 'settings.json')
     if (fs.existsSync(settingsPath)) {
       const data = fs.readFileSync(settingsPath, 'utf-8')
-      return JSON.parse(data)
+      return JSON.parse(data) as Settings
     }
   } catch (error) {
-    console.error('Error loading settings:', error)
+    logger.error('Error loading settings', 'Settings', error)
   }
   return { partyMode: { enabled: false } }
 }
@@ -31,11 +40,11 @@ function checkPartyModePermission(action: string): boolean {
   // Check specific permissions based on action
   switch (action) {
     case 'create':
-      return partyMode.allowCreatePlaylists
+      return partyMode.allowCreatePlaylists ?? true
     case 'edit':
-      return partyMode.allowEditPlaylists
+      return partyMode.allowEditPlaylists ?? true
     case 'delete':
-      return partyMode.allowDeletePlaylists
+      return partyMode.allowDeletePlaylists ?? true
     default:
       return true
   }
@@ -45,10 +54,10 @@ function loadPlaylists(): Playlist[] {
   try {
     if (fs.existsSync(playlistsPath)) {
       const data = fs.readFileSync(playlistsPath, 'utf-8')
-      return JSON.parse(data)
+      return JSON.parse(data) as Playlist[]
     }
   } catch (error) {
-    console.error('Error loading playlists:', error)
+    logger.error('Error loading playlists', 'Playlists', error)
   }
   return []
 }
@@ -57,54 +66,30 @@ function savePlaylists(playlists: Playlist[]): void {
   try {
     fs.writeFileSync(playlistsPath, JSON.stringify(playlists, null, 2))
   } catch (error) {
-    console.error('Error saving playlists:', error)
+    logger.error('Error saving playlists', 'Playlists', error)
     throw error
   }
 }
 
-function loadMusicLibrary() {
-  try {
-    if (fs.existsSync(musicLibraryPath)) {
-      const data = fs.readFileSync(musicLibraryPath, 'utf-8')
-      return JSON.parse(data)
-    }
-  } catch (error) {
-    console.error('Error loading music library:', error)
-  }
-  return { albums: [] }
-}
-
-function findTrackByPath(trackPath: string) {
-  const library = loadMusicLibrary()
-  for (const album of library.albums) {
-    for (const track of album.tracks) {
-      if (track.path === trackPath) {
-        return track
-      }
-    }
-  }
-  return null
-}
-
 // GET /api/playlists - Get all playlists
-export async function GET() {
+export function GET(): Promise<NextResponse> {
   try {
     const playlists = loadPlaylists()
-    return NextResponse.json(playlists)
+    return Promise.resolve(NextResponse.json(playlists))
   } catch (error) {
-    console.error('Error getting playlists:', error)
-    return NextResponse.json({ error: 'Failed to get playlists' }, { status: 500 })
+    logger.error('Error getting playlists', 'PlaylistsAPI', error)
+    return Promise.resolve(NextResponse.json({ error: 'Failed to get playlists' }, { status: 500 }))
   }
 }
 
 // POST /api/playlists - Create a new playlist
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     if (!checkPartyModePermission('create')) {
       return NextResponse.json({ error: 'Creating playlists is restricted in party mode' }, { status: 403 })
     }
 
-    const body: CreatePlaylistRequest = await request.json()
+    const body = await request.json() as unknown as CreatePlaylistRequest
     const { name, description } = body
 
     if (!name || name.trim() === '') {
@@ -122,7 +107,7 @@ export async function POST(request: NextRequest) {
     const newPlaylist: Playlist = {
       id: `playlist_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       name: name.trim(),
-      description: description?.trim() || '',
+      description: description?.trim() ?? '',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       trackCount: 0,
@@ -134,7 +119,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(newPlaylist, { status: 201 })
   } catch (error) {
-    console.error('Error creating playlist:', error)
+    logger.error('Error creating playlist', 'PlaylistsAPI', error)
     return NextResponse.json({ error: 'Failed to create playlist' }, { status: 500 })
   }
 } 

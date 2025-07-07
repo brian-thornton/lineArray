@@ -1,20 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
-import { Playlist, AddTrackToPlaylistRequest, ReorderPlaylistRequest } from '@/types/music'
+import { Playlist, AddTrackToPlaylistRequest, ReorderPlaylistRequest, Album, Track } from '@/types/music'
+import logger from '@/utils/serverLogger'
 
 const playlistsPath = path.join(process.cwd(), 'data', 'playlists.json')
 const musicLibraryPath = path.join(process.cwd(), 'data', 'music-library.json')
 
-function loadSettings() {
+interface Settings {
+  partyMode: {
+    enabled: boolean
+    allowEditPlaylists?: boolean
+  }
+}
+
+function loadSettings(): Settings {
   try {
     const settingsPath = path.join(process.cwd(), 'data', 'settings.json')
     if (fs.existsSync(settingsPath)) {
       const data = fs.readFileSync(settingsPath, 'utf-8')
-      return JSON.parse(data)
+      return JSON.parse(data) as Settings
     }
   } catch (error) {
-    console.error('Error loading settings:', error)
+    logger.error('Error loading settings', 'Settings', error)
   }
   return { partyMode: { enabled: false } }
 }
@@ -31,7 +39,7 @@ function checkPartyModePermission(action: string): boolean {
   // Check specific permissions based on action
   switch (action) {
     case 'edit':
-      return partyMode.allowEditPlaylists
+      return partyMode.allowEditPlaylists ?? true
     default:
       return true
   }
@@ -41,10 +49,10 @@ function loadPlaylists(): Playlist[] {
   try {
     if (fs.existsSync(playlistsPath)) {
       const data = fs.readFileSync(playlistsPath, 'utf-8')
-      return JSON.parse(data)
+      return JSON.parse(data) as Playlist[]
     }
   } catch (error) {
-    console.error('Error loading playlists:', error)
+    logger.error('Error loading playlists', 'Playlists', error)
   }
   return []
 }
@@ -53,24 +61,24 @@ function savePlaylists(playlists: Playlist[]): void {
   try {
     fs.writeFileSync(playlistsPath, JSON.stringify(playlists, null, 2))
   } catch (error) {
-    console.error('Error saving playlists:', error)
+    logger.error('Error saving playlists', 'Playlists', error)
     throw error
   }
 }
 
-function loadMusicLibrary() {
+function loadMusicLibrary(): { albums: Album[] } {
   try {
     if (fs.existsSync(musicLibraryPath)) {
       const data = fs.readFileSync(musicLibraryPath, 'utf-8')
-      return JSON.parse(data)
+      return JSON.parse(data) as { albums: Album[] }
     }
   } catch (error) {
-    console.error('Error loading music library:', error)
+    logger.error('Error loading music library', 'MusicLibrary', error)
   }
   return { albums: [] }
 }
 
-function findTrackByPath(trackPath: string) {
+function findTrackByPath(trackPath: string): Track | null {
   const library = loadMusicLibrary()
   for (const album of library.albums) {
     for (const track of album.tracks) {
@@ -86,13 +94,13 @@ function findTrackByPath(trackPath: string) {
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
-) {
+): Promise<NextResponse> {
   try {
     if (!checkPartyModePermission('edit')) {
       return NextResponse.json({ error: 'Editing playlists is restricted in party mode' }, { status: 403 })
     }
 
-    const body: AddTrackToPlaylistRequest = await request.json()
+    const body = await request.json() as unknown as AddTrackToPlaylistRequest
     const { trackPath, position } = body
 
     if (!trackPath) {
@@ -120,7 +128,7 @@ export async function POST(
     }
 
     // Determine position
-    const insertPosition = position !== undefined ? position : playlist.tracks.length
+    const insertPosition = position ?? playlist.tracks.length
 
     // Create playlist track
     const playlistTrack = {
@@ -129,7 +137,7 @@ export async function POST(
       playlistId: playlist.id,
       position: insertPosition,
       addedAt: new Date().toISOString(),
-      track: track
+      track
     }
 
     // Insert track at specified position
@@ -147,7 +155,7 @@ export async function POST(
     savePlaylists(playlists)
     return NextResponse.json(playlistTrack, { status: 201 })
   } catch (error) {
-    console.error('Error adding track to playlist:', error)
+    logger.error('Error adding track to playlist', 'PlaylistTracksAPI', error)
     return NextResponse.json({ error: 'Failed to add track to playlist' }, { status: 500 })
   }
 }
@@ -156,13 +164,13 @@ export async function POST(
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
-) {
+): Promise<NextResponse> {
   try {
     if (!checkPartyModePermission('edit')) {
       return NextResponse.json({ error: 'Editing playlists is restricted in party mode' }, { status: 403 })
     }
 
-    const body: ReorderPlaylistRequest = await request.json()
+    const body = await request.json() as unknown as ReorderPlaylistRequest
     const { trackIds } = body
 
     if (!trackIds || !Array.isArray(trackIds)) {
@@ -188,7 +196,10 @@ export async function PUT(
 
     // Reorder tracks based on the provided order
     const reorderedTracks = trackIds.map((trackId, index) => {
-      const playlistTrack = playlist.tracks.find(pt => pt.id === trackId)!
+      const playlistTrack = playlist.tracks.find(pt => pt.id === trackId)
+      if (!playlistTrack) {
+        throw new Error(`Track with ID ${trackId} not found in playlist`)
+      }
       return {
         ...playlistTrack,
         position: index
@@ -210,7 +221,7 @@ export async function PUT(
     savePlaylists(playlists)
     return NextResponse.json(playlist)
   } catch (error) {
-    console.error('Error reordering playlist tracks:', error)
+    logger.error('Error reordering playlist tracks', 'PlaylistTracksAPI', error)
     return NextResponse.json({ error: 'Failed to reorder playlist tracks' }, { status: 500 })
   }
 } 

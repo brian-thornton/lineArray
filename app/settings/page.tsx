@@ -5,12 +5,12 @@ import MusicFoldersManager from '@/components/MusicFoldersManager'
 import ScanProgress from '@/components/ScanProgress'
 import PinPad from '@/components/PinPad'
 import PlayCounts from '@/components/PlayCounts'
-import QRCode from '@/components/QRCode'
+import LogsViewer from '@/components/LogsViewer'
 import { useSettings } from '@/contexts/SettingsContext'
 import { useTheme } from '@/contexts/ThemeContext'
 import styles from './page.module.css'
 
-export default function SettingsPage() {
+export default function SettingsPage(): JSX.Element {
   const { settings, updateSettings } = useSettings()
   const { themes, setTheme } = useTheme()
   const [jukeboxName, setJukeboxName] = useState(settings.jukeboxName)
@@ -37,11 +37,10 @@ export default function SettingsPage() {
   const [scanResults, setScanResults] = useState<{ [path: string]: { albums: number; files: number; lastScanned: string } }>({})
 
   useEffect(() => {
-    console.log('Settings changed - jukeboxName:', settings.jukeboxName, 'partyMode:', settings.partyMode, 'theme:', settings.theme)
     setJukeboxName(settings.jukeboxName)
     setPartyMode(settings.partyMode)
     setSelectedTheme(settings.theme)
-    loadCurrentPaths()
+    void loadCurrentPaths()
   }, [settings.jukeboxName, settings.partyMode, settings.theme])
 
   useEffect(() => {
@@ -53,20 +52,20 @@ export default function SettingsPage() {
     }
   }, [settings.partyMode.enabled, isAuthenticated])
 
-  const loadCurrentPaths = async () => {
+  const loadCurrentPaths = async (): Promise<void> => {
     try {
       const response = await fetch('/api/albums')
       if (response.ok) {
-        const data = await response.json()
-        setCurrentPaths(data.scanPaths || [])
-        setScanResults(data.scanResults || {})
+        const data = await response.json() as { scanPaths?: string[]; scanResults?: { [path: string]: { albums: number; files: number; lastScanned: string } } }
+        setCurrentPaths(data.scanPaths ?? [])
+        setScanResults(data.scanResults ?? {})
       }
     } catch (error) {
       console.error('Error loading current paths:', error)
     }
   }
 
-  const handlePinSubmit = async () => {
+  const handlePinSubmit = async (): Promise<void> => {
     if (pin.length < 4) return
     
     setPinError('')
@@ -83,8 +82,8 @@ export default function SettingsPage() {
         setShowPinModal(false)
         setPin('')
       } else {
-        const data = await response.json()
-        setPinError(data.error || 'Invalid PIN')
+        const data = await response.json() as { error?: string }
+        setPinError(data.error ?? 'Invalid PIN')
         setPin('')
       }
     } catch (error) {
@@ -94,19 +93,19 @@ export default function SettingsPage() {
     }
   }
 
-  const handlePinCancel = () => {
+  const handlePinCancel = (): void => {
     // Redirect back to home page if user cancels PIN entry
     window.history.back()
   }
 
-  const handleSaveSettings = async () => {
+  const handleSaveSettings = async (): Promise<void> => {
     setIsSaving(true)
     setSaveMessage('')
     
     try {
       await updateSettings({
-        jukeboxName: jukeboxName.trim() || 'Jukebox 2.0',
-        partyMode: partyMode
+        jukeboxName: jukeboxName.trim() ?? 'Jukebox 2.0',
+        partyMode
       })
       setSaveMessage('Settings saved successfully!')
       setTimeout(() => setSaveMessage(''), 3000)
@@ -119,16 +118,14 @@ export default function SettingsPage() {
     }
   }
 
-  const handleSavePartyMode = async () => {
+  const handleSavePartyMode = async (): Promise<void> => {
     setIsSaving(true)
     setPartyModeMessage('')
     
     try {
-      console.log('Saving party mode settings:', partyMode)
       await updateSettings({
-        partyMode: partyMode
+        partyMode
       })
-      console.log('Party mode settings saved successfully')
       setPartyModeMessage('Party mode settings saved successfully!')
       setTimeout(() => setPartyModeMessage(''), 3000)
     } catch (error) {
@@ -140,19 +137,17 @@ export default function SettingsPage() {
     }
   }
 
-  const handlePartyModeToggle = (key: keyof typeof partyMode) => {
-    console.log('Toggling party mode key:', key, 'current value:', partyMode[key])
+  const handlePartyModeToggle = (key: keyof typeof partyMode): void => {
     setPartyMode(prev => {
       const newPartyMode = {
         ...prev,
         [key]: !prev[key]
       }
-      console.log('New party mode state:', newPartyMode)
       return newPartyMode
     })
   }
 
-  const handleScan = async (directories: string[]) => {
+  const handleScan = async (directories: string[]): Promise<void> => {
     setIsScanning(true)
     setCurrentPaths(directories)
     setScanProgress({
@@ -171,38 +166,38 @@ export default function SettingsPage() {
       })
       
       if (response.ok) {
-        const result = await response.json()
-        setScanResults(result.scanResults || {})
+        const result = await response.json() as { scanResults?: { [path: string]: { albums: number; files: number; lastScanned: string } }; totalFiles?: number; totalAlbums?: number }
+        setScanResults(result.scanResults ?? {})
         setScanProgress(prev => ({
           ...prev,
           currentFile: 'Scan completed!',
-          scannedFiles: result.totalFiles || 0,
-          totalFiles: result.totalFiles || 0,
-          currentAlbum: `Found ${result.totalAlbums || 0} albums across ${directories.length} folders`
+          scannedFiles: result.totalFiles ?? 0,
+          totalFiles: result.totalFiles ?? 0,
+          currentAlbum: `Found ${result.totalAlbums ?? 0} albums across ${directories.length} folders`
         }))
         setTimeout(() => {
           setScanProgress(prev => ({ ...prev, isVisible: false }))
         }, 2000)
       } else {
-        const error = await response.json()
-        alert(`Scan failed: ${error.error}`)
+        const error = await response.json() as { error?: string }
+        console.error(`Scan failed: ${error.error}`)
         setScanProgress(prev => ({ ...prev, isVisible: false }))
       }
     } catch (error) {
-      alert('Scan failed. Please try again.')
+      console.error('Scan failed. Please try again.')
       setScanProgress(prev => ({ ...prev, isVisible: false }))
     } finally {
       setIsScanning(false)
     }
   }
 
-  const handleSavePin = async () => {
+  const handleSavePin = async (): Promise<void> => {
     setIsSaving(true)
     setPinMessage('')
     
     try {
       await updateSettings({
-        adminPin: settings.adminPin || '1234'
+        adminPin: settings.adminPin ?? '1234'
       })
       setPinMessage('PIN saved successfully!')
       setTimeout(() => setPinMessage(''), 3000)
@@ -215,7 +210,7 @@ export default function SettingsPage() {
     }
   }
 
-  const handleSaveTheme = async () => {
+  const handleSaveTheme = async (): Promise<void> => {
     setIsSaving(true)
     setThemeMessage('')
     
@@ -268,7 +263,7 @@ export default function SettingsPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={handlePinSubmit}
+                  onClick={() => { void handlePinSubmit(); }}
                   className={styles.pinSubmitButton}
                   disabled={pin.length < 4}
                 >
@@ -302,7 +297,7 @@ export default function SettingsPage() {
             maxLength={50}
           />
           <button
-            onClick={handleSaveSettings}
+            onClick={() => { void handleSaveSettings(); }}
             disabled={isSaving}
             className={styles.saveButton}
           >
@@ -319,7 +314,7 @@ export default function SettingsPage() {
       <div className={styles.section}>
         <h2 className={styles.sectionTitle}>Admin PIN</h2>
         <p className={styles.description}>
-          Set an admin PIN to protect settings access when party mode is enabled. Default PIN is "1234".
+          Set an admin PIN to protect settings access when party mode is enabled. Default PIN is &quot;1234&quot;.
         </p>
         <div className={styles.setting}>
           <label htmlFor="adminPin" className={styles.label}>
@@ -328,15 +323,15 @@ export default function SettingsPage() {
           <input
             id="adminPin"
             type="password"
-            value={settings.adminPin || ''}
-            onChange={(e) => updateSettings({ adminPin: e.target.value })}
+            value={settings.adminPin ?? ''}
+            onChange={(e) => { void updateSettings({ adminPin: e.target.value }); }}
             className={styles.input}
             placeholder="Enter admin PIN (min 4 digits)"
             maxLength={10}
             pattern="[0-9]*"
           />
           <button
-            onClick={handleSavePin}
+            onClick={() => { void handleSavePin(); }}
             disabled={isSaving}
             className={styles.saveButton}
           >
@@ -372,7 +367,7 @@ export default function SettingsPage() {
             ))}
           </select>
           <button
-            onClick={handleSaveTheme}
+            onClick={() => { void handleSaveTheme(); }}
             disabled={isSaving}
             className={styles.saveButton}
           >
@@ -549,7 +544,7 @@ export default function SettingsPage() {
           </div>
         </div>
         <button
-          onClick={handleSavePartyMode}
+          onClick={() => { void handleSavePartyMode(); }}
           disabled={isSaving}
           className={styles.saveButton}
         >
@@ -563,17 +558,9 @@ export default function SettingsPage() {
       </div>
 
       <div className={styles.section}>
-        <h2 className={styles.sectionTitle}>Mobile Access</h2>
-        <p className={styles.description}>
-          Scan the QR code below with your phone to access the jukebox from your mobile device.
-        </p>
-        <QRCode />
-      </div>
-
-      <div className={styles.section}>
         <h2 className={styles.sectionTitle}>Music Library Scan</h2>
         <MusicFoldersManager 
-          onScan={handleScan}
+          onScan={(directories) => { void handleScan(directories); }}
           isScanning={isScanning}
           currentPaths={currentPaths}
           scanResults={scanResults}
@@ -583,6 +570,11 @@ export default function SettingsPage() {
       <div className={styles.section}>
         <h2 className={styles.sectionTitle}>Play Statistics</h2>
         <PlayCounts />
+      </div>
+
+      <div className={styles.section}>
+        <h2 className={styles.sectionTitle}>System Logs</h2>
+        <LogsViewer />
       </div>
       
       <ScanProgress

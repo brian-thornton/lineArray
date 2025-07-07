@@ -1,6 +1,6 @@
-'use client'
+"use client"
 
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { X, Plus, Music } from 'lucide-react'
 import { Playlist } from '../../types/music'
 import { useSettings } from '@/contexts/SettingsContext'
@@ -18,7 +18,7 @@ export default function PlaylistModal({
   onClose, 
   selectedTracks, 
   onAddToPlaylist 
-}: PlaylistModalProps) {
+}: PlaylistModalProps): JSX.Element | null {
   const { canPerformAction } = useSettings()
   const [playlists, setPlaylists] = useState<Playlist[]>([])
   const [loading, setLoading] = useState(false)
@@ -28,16 +28,16 @@ export default function PlaylistModal({
 
   useEffect(() => {
     if (isOpen) {
-      loadPlaylists()
+      void loadPlaylists()
     }
   }, [isOpen])
 
-  const loadPlaylists = async () => {
+  const loadPlaylists = async (): Promise<void> => {
     setLoading(true)
     try {
       const response = await fetch('/api/playlists')
       if (response.ok) {
-        const data = await response.json()
+        const data = await response.json() as Playlist[]
         setPlaylists(Array.isArray(data) ? data : [])
       } else {
         console.error('Failed to load playlists')
@@ -51,11 +51,11 @@ export default function PlaylistModal({
     }
   }
 
-  const handleCreatePlaylist = async () => {
+  const handleCreatePlaylist = async (): Promise<void> => {
     if (!newPlaylistName.trim()) return
 
     if (!canPerformAction('allowCreatePlaylists')) {
-      alert('Creating playlists is restricted in party mode')
+      console.error('Creating playlists is restricted in party mode')
       return
     }
 
@@ -68,7 +68,7 @@ export default function PlaylistModal({
       })
 
       if (response.ok) {
-        const newPlaylist = await response.json()
+        const newPlaylist = await response.json() as Playlist
         setPlaylists(prev => [...prev, newPlaylist])
         setNewPlaylistName('')
         setShowCreateForm(false)
@@ -77,20 +77,19 @@ export default function PlaylistModal({
         onAddToPlaylist(newPlaylist.id, selectedTracks)
         onClose()
       } else {
-        const errorData = await response.json()
-        alert(errorData.error || 'Failed to create playlist')
+        const errorData = await response.json() as { error: string }
+        console.error(errorData.error || 'Failed to create playlist')
       }
     } catch (error) {
       console.error('Error creating playlist:', error)
-      alert('Failed to create playlist. Please try again.')
     } finally {
       setCreating(false)
     }
   }
 
-  const handleAddToExistingPlaylist = async (playlistId: string) => {
+  const handleAddToExistingPlaylist = (playlistId: string): void => {
     if (!canPerformAction('allowEditPlaylists')) {
-      alert('Editing playlists is restricted in party mode')
+      console.error('Editing playlists is restricted in party mode')
       return
     }
 
@@ -99,15 +98,28 @@ export default function PlaylistModal({
       onClose()
     } catch (error) {
       console.error('Error adding to playlist:', error)
-      alert('Failed to add tracks to playlist. Please try again.')
     }
   }
 
   if (!isOpen) return null
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+    <div 
+      className={styles.overlay} 
+      onClick={onClose}
+      onKeyDown={e => { if (e.key === 'Escape') onClose() }}
+      tabIndex={0}
+      role="button"
+      aria-label="Close modal"
+    >
+      <div 
+        className={styles.modal} 
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={e => { if (e.key === 'Escape') onClose() }}
+        tabIndex={0}
+        role="button"
+        aria-label="Modal content"
+      >
         <div className={styles.header}>
           <h3>Add to Playlist</h3>
           <button onClick={onClose} className={styles.closeButton}>
@@ -122,7 +134,7 @@ export default function PlaylistModal({
 
           {loading ? (
             <div className={styles.loading}>
-              <div className={styles.spinner}></div>
+              <div className={styles.spinner} />
               <p>Loading playlists...</p>
             </div>
           ) : (
@@ -136,7 +148,7 @@ export default function PlaylistModal({
                     {playlists.map((playlist) => (
                       <button
                         key={playlist.id}
-                        onClick={() => handleAddToExistingPlaylist(playlist.id)}
+                        onClick={() => { void handleAddToExistingPlaylist(playlist.id) }}
                         className={styles.playlistItem}
                         disabled={!canPerformAction('allowEditPlaylists')}
                         title={!canPerformAction('allowEditPlaylists') ? 'Editing playlists is restricted in party mode' : `Add to ${playlist.name}`}
@@ -177,11 +189,10 @@ export default function PlaylistModal({
                       value={newPlaylistName}
                       onChange={(e) => setNewPlaylistName(e.target.value)}
                       className={styles.nameInput}
-                      autoFocus
                     />
                     <div className={styles.formActions}>
                       <button
-                        onClick={handleCreatePlaylist}
+                        onClick={() => { void handleCreatePlaylist() }}
                         disabled={!newPlaylistName.trim() || creating}
                         className={styles.saveButton}
                       >

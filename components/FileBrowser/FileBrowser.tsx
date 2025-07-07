@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Folder, FolderOpen, ChevronRight, Home, Monitor, FileText, Music } from 'lucide-react'
+import { Folder, Home, Monitor, FileText, Music } from 'lucide-react'
 import styles from './FileBrowser.module.css'
 
 interface FileBrowserProps {
@@ -16,7 +16,7 @@ interface FileItem {
   children?: FileItem[]
 }
 
-function FileBrowser({ onSelectPath, isOpen, onClose }: FileBrowserProps) {
+function FileBrowser({ onSelectPath, isOpen, onClose }: FileBrowserProps): JSX.Element | null {
   const [currentPath, setCurrentPath] = useState('')
   const [items, setItems] = useState<FileItem[]>([])
   const [loading, setLoading] = useState(false)
@@ -24,19 +24,19 @@ function FileBrowser({ onSelectPath, isOpen, onClose }: FileBrowserProps) {
 
   // Common system directories
   const systemDirectories = [
-    { name: 'Home', path: process.env.HOME || '/Users', icon: Home },
-    { name: 'Desktop', path: `${process.env.HOME || '/Users'}/Desktop`, icon: Monitor },
-    { name: 'Documents', path: `${process.env.HOME || '/Users'}/Documents`, icon: FileText },
-    { name: 'Music', path: `${process.env.HOME || '/Users'}/Music`, icon: Music },
+    { name: 'Home', path: process.env.HOME ?? '/Users', icon: Home },
+    { name: 'Desktop', path: `${process.env.HOME ?? '/Users'}/Desktop`, icon: Monitor },
+    { name: 'Documents', path: `${process.env.HOME ?? '/Users'}/Documents`, icon: FileText },
+    { name: 'Music', path: `${process.env.HOME ?? '/Users'}/Music`, icon: Music },
   ]
 
   useEffect(() => {
     if (isOpen) {
-      loadSystemDirectories()
+      void loadSystemDirectories()
     }
   }, [isOpen])
 
-  const loadSystemDirectories = async () => {
+  const loadSystemDirectories = async (): Promise<void> => {
     setLoading(true)
     setError('')
     
@@ -50,7 +50,7 @@ function FileBrowser({ onSelectPath, isOpen, onClose }: FileBrowserProps) {
       })
       
       if (response.ok) {
-        const data = await response.json()
+        const data = await response.json() as { items: FileItem[] }
         setItems(data.items || [])
         setCurrentPath('')
       } else {
@@ -63,7 +63,7 @@ function FileBrowser({ onSelectPath, isOpen, onClose }: FileBrowserProps) {
     }
   }
 
-  const loadDirectory = async (path: string) => {
+  const loadDirectory = async (path: string): Promise<void> => {
     setLoading(true)
     setError('')
     
@@ -77,7 +77,7 @@ function FileBrowser({ onSelectPath, isOpen, onClose }: FileBrowserProps) {
       })
       
       if (response.ok) {
-        const data = await response.json()
+        const data = await response.json() as { items: FileItem[] }
         setItems(data.items || [])
         setCurrentPath(path)
       } else {
@@ -90,22 +90,22 @@ function FileBrowser({ onSelectPath, isOpen, onClose }: FileBrowserProps) {
     }
   }
 
-  const handleItemClick = async (item: FileItem) => {
+  const handleItemClick = async (item: FileItem): Promise<void> => {
     if (item.isDirectory) {
       await loadDirectory(item.path)
     }
   }
 
-  const handleSelectDirectory = (path: string) => {
+  const handleSelectDirectory = (path: string): void => {
     onSelectPath(path)
     onClose()
   }
 
-  const handleSystemDirectoryClick = async (systemDir: { name: string; path: string; icon: any }) => {
+  const handleSystemDirectoryClick = async (systemDir: { name: string; path: string; icon: React.ComponentType<{ className?: string }> }): Promise<void> => {
     await loadDirectory(systemDir.path)
   }
 
-  const handleBackClick = async () => {
+  const handleBackClick = async (): Promise<void> => {
     if (currentPath) {
       const parentPath = currentPath.split('/').slice(0, -1).join('/') || '/'
       await loadDirectory(parentPath)
@@ -115,8 +115,22 @@ function FileBrowser({ onSelectPath, isOpen, onClose }: FileBrowserProps) {
   if (!isOpen) return null
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+    <div
+      className={styles.overlay}
+      onClick={onClose}
+      onKeyDown={e => { if (e.key === 'Escape') onClose() }}
+      tabIndex={0}
+      role="button"
+      aria-label="Close file browser modal"
+    >
+      <div
+        className={styles.modal}
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={e => { if (e.key === 'Escape') onClose() }}
+        tabIndex={0}
+        role="button"
+        aria-label="File browser modal content"
+      >
         <div className={styles.header}>
           <h2 className={styles.title}>Browse Music Directory</h2>
           <button className={styles.closeButton} onClick={onClose}>
@@ -134,7 +148,7 @@ function FileBrowser({ onSelectPath, isOpen, onClose }: FileBrowserProps) {
                   <button
                     key={dir.path}
                     className={styles.systemButton}
-                    onClick={() => handleSystemDirectoryClick(dir)}
+                    onClick={() => { void handleSystemDirectoryClick(dir) }}
                   >
                     <Icon className={styles.systemIcon} />
                     <span>{dir.name}</span>
@@ -148,7 +162,7 @@ function FileBrowser({ onSelectPath, isOpen, onClose }: FileBrowserProps) {
             <div className={styles.pathBar}>
               <button
                 className={styles.backButton}
-                onClick={handleBackClick}
+                onClick={() => { void handleBackClick() }}
                 disabled={!currentPath}
               >
                 ← Back
@@ -166,7 +180,7 @@ function FileBrowser({ onSelectPath, isOpen, onClose }: FileBrowserProps) {
 
             {loading ? (
               <div className={styles.loading}>
-                <div className={styles.spinner}></div>
+                <div className={styles.spinner} />
                 Loading...
               </div>
             ) : (
@@ -175,7 +189,11 @@ function FileBrowser({ onSelectPath, isOpen, onClose }: FileBrowserProps) {
                   <div
                     key={item.path}
                     className={styles.fileItem}
-                    onClick={() => handleItemClick(item)}
+                    onClick={() => { void handleItemClick(item) }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Open ${item.name}`}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') void handleItemClick(item) }}
                   >
                     <div className={styles.fileIcon}>
                       {item.isDirectory ? (

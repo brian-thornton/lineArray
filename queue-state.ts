@@ -1,20 +1,22 @@
-const AudioManager = require('./audio-manager')
-const fs = require('fs')
-const path = require('path')
-const audio = new AudioManager()
+import fs from 'fs'
+import path from 'path'
+import AudioManager from './audio-manager'
+import type { QueueTrack, QueueState, DebugInfo, AudioManagerInterface, QueueStateInterface } from './types/audio'
 
-let queue = []
-let currentTrack = null
+const audio: AudioManagerInterface = new AudioManager()
+
+let queue: QueueTrack[] = []
+let currentTrack: QueueTrack | null = null
 
 // File path for persisting queue state
 const STATE_FILE_PATH = path.join(process.cwd(), 'data', 'queue-state.json')
 
 // Save queue state to file
-function saveState() {
+function saveState(): void {
   try {
-    const state = {
-      queue: queue,
-      currentTrack: currentTrack,
+    const state: QueueState = {
+      queue,
+      currentTrack,
       timestamp: Date.now()
     }
     
@@ -32,11 +34,11 @@ function saveState() {
 }
 
 // Load queue state from file
-function loadState() {
+function loadState(): void {
   try {
     if (fs.existsSync(STATE_FILE_PATH)) {
       const data = fs.readFileSync(STATE_FILE_PATH, 'utf-8')
-      const state = JSON.parse(data)
+      const state: QueueState = JSON.parse(data)
       
       // Only restore if the state is recent (within last 24 hours)
       const isRecent = (Date.now() - state.timestamp) < (24 * 60 * 60 * 1000)
@@ -75,7 +77,7 @@ function loadState() {
 // Load state on module initialization
 loadState()
 
-async function playNextInQueue() {
+async function playNextInQueue(): Promise<boolean> {
   console.log('playNextInQueue: Starting, queue length:', queue.length)
   
   if (queue.length === 0) {
@@ -86,7 +88,7 @@ async function playNextInQueue() {
     return false
   }
   
-  const nextTrack = queue.shift() ?? null
+  const nextTrack = queue.shift() || null
   console.log('playNextInQueue: Next track from queue:', nextTrack)
   
   currentTrack = nextTrack
@@ -104,65 +106,80 @@ async function playNextInQueue() {
   console.log('playNextInQueue: Playing file:', nextTrack.path)
   const success = await audio.playFile(nextTrack.path)
   console.log('playNextInQueue: playFile result:', success)
-  
+
+  // Increment play count for this track
+  try {
+    await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'}/api/playcounts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ trackPath: nextTrack.path })
+    })
+  } catch (err) {
+    console.error('Failed to increment play count:', err)
+  }
+
   return success
 }
 
-function getQueue() {
+function getQueue(): QueueTrack[] {
   return queue
 }
 
-function getCurrentTrack() {
+function getCurrentTrack(): QueueTrack | null {
   return currentTrack
 }
 
 // Get debug information about the current state
-function getDebugInfo() {
+function getDebugInfo(): DebugInfo {
   const audioStatus = audio.getStatus()
   return {
     queueLength: queue.length,
-    currentTrack: currentTrack,
-    audioStatus: audioStatus,
+    currentTrack,
+    audioStatus,
     hasStateFile: fs.existsSync(STATE_FILE_PATH),
     stateFileSize: fs.existsSync(STATE_FILE_PATH) ? fs.statSync(STATE_FILE_PATH).size : 0
   }
 }
 
 // Check and restore audio state if needed (called periodically)
-async function checkAudioState() {
+async function checkAudioState(): Promise<void> {
   const audioStatus = audio.getStatus()
   
   // Only restart if we have a current track but no audio process AND we were playing before kill
   if (currentTrack && !audioStatus.isPlaying && !audioStatus.hasProcess && audioStatus.wasPlayingBeforeKill) {
     console.log('checkAudioState: Detected missing audio process that was playing, attempting restart')
     audio.resetState()
-    audio.currentFile = currentTrack.path
+    audio.setCurrentFile(currentTrack.path)
     await audio.checkAndRestart()
   }
 }
 
-function addToQueue(path) {
+function addToQueue(filePath: string): void {
   // Generate a unique ID for the track
   const trackId = `track_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-  const track = {
+  const track: QueueTrack = {
     id: trackId,
-    path: path,
-    title: path.split('/').pop().replace(/\.[^/.]+$/, ''),
+    path: filePath,
+    title: filePath.split('/').pop()?.replace(/\.[^/.]+$/, '') || 'Unknown',
     artist: 'Unknown',
     album: 'Unknown',
     duration: '0:00'
   }
   queue.push(track)
   saveState() // Save state when adding to queue
+  
+  // If no track is currently playing, start playing this track
+  if (!currentTrack) {
+    console.log('addToQueue: No current track, starting playback')
+    void playNextInQueue()
+  }
 }
 
-function getIsPlaying() {
+function getIsPlaying(): boolean {
   // Check if audio is actually playing and we have a current track
   const audioStatus = audio.getStatus()
   const hasCurrentTrack = currentTrack !== null
   const isActuallyPlaying = audioStatus.isPlaying && hasCurrentTrack
-  
-  console.log('getIsPlaying: audioStatus.isPlaying:', audioStatus.isPlaying, 'currentTrack:', currentTrack, 'isActuallyPlaying:', isActuallyPlaying, 'audioStatus:', audioStatus)
   
   // Only attempt restart if we have a current track but no audio process AND we're not in a normal navigation scenario
   // We'll be more conservative about restarts to avoid interrupting playback during navigation
@@ -175,7 +192,9 @@ function getIsPlaying() {
       console.log('Audio process was killed but we have a current track, attempting to restart...')
       // Reset audio state and attempt restart
       audio.resetState()
-      audio.currentFile = currentTrack.path // Set the current file so restart works
+      if (currentTrack) {
+        audio.setCurrentFile(currentTrack.path) // Set the current file so restart works
+      }
       // Schedule restart attempt
       setTimeout(async () => {
         if (currentTrack && !audio.getStatus().isPlaying) {
@@ -205,44 +224,39 @@ function getIsPlaying() {
   // This prevents the player from disappearing during recompiles
   const shouldShowPlayer = hasCurrentTrack || isActuallyPlaying
   
-  // If we have a current track but no audio process, log it for debugging
-  if (hasCurrentTrack && !audioStatus.hasProcess) {
-    console.log('getIsPlaying: Preserving player state - has track but no audio process')
-  }
-  
   return shouldShowPlayer
 }
 
-async function clearCurrentTrack() {
+async function clearCurrentTrack(): Promise<void> {
   currentTrack = null
   await audio.stop()
   saveState() // Save state when clearing current track
 }
 
-async function clearQueue() {
+async function clearQueue(): Promise<void> {
   queue = []
   await audio.stop()
   currentTrack = null
   saveState() // Save state when clearing queue
 }
 
-function removeFromQueue(index) {
+function removeFromQueue(index: number): void {
   if (index >= 0 && index < queue.length) {
     queue.splice(index, 1)
     saveState() // Save state when removing from queue
   }
 }
 
-function reorderQueue(fromIndex, toIndex) {
+function reorderQueue(fromIndex: number, toIndex: number): void {
   if (fromIndex >= 0 && fromIndex < queue.length && 
       toIndex >= 0 && toIndex < queue.length) {
-    const [movedTrack] = queue.splice(fromIndex, 1)
+    const movedTrack = queue.splice(fromIndex, 1)[0]
     queue.splice(toIndex, 0, movedTrack)
     saveState() // Save state when reordering queue
   }
 }
 
-module.exports = {
+const queueState: QueueStateInterface = {
   getQueue,
   getCurrentTrack,
   addToQueue,
@@ -257,4 +271,6 @@ module.exports = {
   loadState,
   getDebugInfo,
   audio
-} 
+}
+
+export default queueState 

@@ -1,22 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
-const { addToQueue, getQueue, getCurrentTrack, getIsPlaying, playNextInQueue, clearQueue, audio } = require('../../../queue-state')
+import queueState from '../../../queue-state'
+import logger from '@/utils/serverLogger'
 
-function noStore(res: NextResponse) {
+function noStore(res: NextResponse): NextResponse {
   res.headers.set('Cache-Control', 'no-store')
   return res
 }
 
-function loadSettings() {
+interface Settings {
+  partyMode: {
+    enabled: boolean
+    allowAddToQueue?: boolean
+    allowRemoveFromQueue?: boolean
+  }
+}
+
+function loadSettings(): Settings {
   try {
     const settingsPath = path.join(process.cwd(), 'data', 'settings.json')
     if (fs.existsSync(settingsPath)) {
       const data = fs.readFileSync(settingsPath, 'utf-8')
-      return JSON.parse(data)
+      return JSON.parse(data) as Settings
     }
   } catch (error) {
-    console.error('Error loading settings:', error)
+    logger.error('Error loading settings', 'Settings', error)
   }
   return { partyMode: { enabled: false } }
 }
@@ -33,34 +42,42 @@ function checkPartyModePermission(action: string): boolean {
   // Check specific permissions based on action
   switch (action) {
     case 'add':
-      return partyMode.allowAddToQueue
+      return partyMode.allowAddToQueue ?? true
     case 'remove':
-      return partyMode.allowRemoveFromQueue
+      return partyMode.allowRemoveFromQueue ?? true
     case 'clear':
-      return partyMode.allowRemoveFromQueue
+      return partyMode.allowRemoveFromQueue ?? true
     default:
       return true
   }
 }
 
-function getDetailedStatus() {
-  const queue = getQueue()
-  const currentTrack = getCurrentTrack()
-  const isPlaying = getIsPlaying()
-  const audioStatus = audio.getStatus()
+function getDetailedStatus(): {
+  queue: unknown[]
+  currentTrack: unknown
+  isPlaying: boolean
+  volume: number
+  isMuted: boolean
+  audioStatus: unknown
+  progress: unknown
+} {
+  const queue = queueState.getQueue()
+  const currentTrack = queueState.getCurrentTrack()
+  const isPlaying = queueState.getIsPlaying()
+  const audioStatus = queueState.audio.getStatus()
   
   // Get playback progress
-  const progress = audio.getPlaybackProgress()
-  const isFinished = audio.isTrackFinished()
+  const progress = queueState.audio.getPlaybackProgress()
+  const isFinished = queueState.audio.isTrackFinished()
   
   // Enhanced current track info
   let enhancedCurrentTrack = null
   if (currentTrack) {
     enhancedCurrentTrack = {
       ...currentTrack,
-      progress: progress,
-      isFinished: isFinished,
-      estimatedDuration: audio.estimatedDuration || 0
+      progress,
+      isFinished,
+      estimatedDuration: (queueState.audio as { estimatedDuration?: number }).estimatedDuration ?? 0
     }
   }
   
@@ -68,93 +85,62 @@ function getDetailedStatus() {
     queue,
     currentTrack: enhancedCurrentTrack,
     isPlaying,
-    volume: audio.getVolume(),
-    isMuted: typeof audio.isMuted === 'function' ? audio.isMuted() : (audio.isMuted || false),
+    volume: queueState.audio.getVolume(),
+    isMuted: queueState.audio.isMuted(),
     audioStatus,
     progress
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     if (!checkPartyModePermission('add')) {
       return NextResponse.json({ error: 'Adding to queue is restricted in party mode' }, { status: 403 })
     }
 
-    const { path } = await request.json()
+    const { path } = await request.json() as { path: string }
     
     if (!path) {
       return NextResponse.json({ error: 'Path is required' }, { status: 400 })
     }
 
-    console.log('Queue API: Adding track to queue:', path)
-    addToQueue(path)
-    
-    // Debug: Check queue and current track status
-    const queue = getQueue()
-    const currentTrack = getCurrentTrack()
-    const isPlaying = getIsPlaying()
-    console.log('Queue API: After adding track - Queue length:', queue.length, 'Current track:', currentTrack, 'Is playing:', isPlaying)
-    
-    // If nothing is currently playing, start playback
-    if (!getIsPlaying()) {
-      console.log('Queue API: Starting playback with playNextInQueue')
-      const playSuccess = await playNextInQueue()
-      console.log('Queue API: playNextInQueue result:', playSuccess)
-      
-      // Add a small delay to ensure audio has started
-      await new Promise(resolve => setTimeout(resolve, 200))
-      console.log('Queue API: After delay - isPlaying:', getIsPlaying(), 'currentTrack:', getCurrentTrack())
-      
-      // Track play count when starting playback
-      try {
-        await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/playcounts`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ trackPath: path })
-        })
-      } catch (error) {
-        console.error('Error tracking play count:', error)
-      }
-    }
+    queueState.addToQueue(path)
     
     const finalStatus = getDetailedStatus()
-    console.log('Queue API: Final status:', finalStatus)
 
     return NextResponse.json({
       success: true,
       ...finalStatus
     })
   } catch (error) {
-    console.error('Queue API Error:', error)
+    logger.error('Queue API Error', 'QueueAPI', error)
     return NextResponse.json({ error: 'Failed to add to queue' }, { status: 500 })
   }
 }
 
-export async function DELETE() {
+export async function DELETE(): Promise<NextResponse> {
   try {
     if (!checkPartyModePermission('clear')) {
       return NextResponse.json({ error: 'Clearing queue is restricted in party mode' }, { status: 403 })
     }
 
-    console.log('Queue API: Clearing queue')
-    await clearQueue()
+    await queueState.clearQueue()
     
     return NextResponse.json({
       success: true,
       ...getDetailedStatus()
     })
   } catch (error) {
-    console.error('Queue API Error:', error)
+    logger.error('Queue API Error', 'QueueAPI', error)
     return NextResponse.json({ error: 'Failed to clear queue' }, { status: 500 })
   }
 }
 
-export async function GET() {
+export function GET(): Promise<NextResponse> {
   try {
-    return noStore(NextResponse.json(getDetailedStatus()))
+    return Promise.resolve(noStore(NextResponse.json(getDetailedStatus())))
   } catch (error) {
-    console.error('Queue GET API error:', error)
-    return noStore(NextResponse.json({ error: 'Internal server error' }, { status: 500 }))
+    logger.error('Queue GET API error', 'QueueAPI', error)
+    return Promise.resolve(noStore(NextResponse.json({ error: 'Internal server error' }, { status: 500 })))
   }
 } 

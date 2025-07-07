@@ -1,17 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
-const { getIsPlaying, playNextInQueue, clearCurrentTrack, checkAudioState, loadState, audio } = require('../../../queue-state')
+import queueState from '../../../queue-state'
+import logger from '@/utils/serverLogger'
 
-function loadSettings() {
+interface Settings {
+  partyMode: {
+    enabled: boolean
+    allowPlay?: boolean
+    allowStop?: boolean
+    allowNext?: boolean
+  }
+}
+
+interface ResponseData {
+  volume?: number
+  isMuted?: boolean
+}
+
+function loadSettings(): Settings {
   try {
     const settingsPath = path.join(process.cwd(), 'data', 'settings.json')
     if (fs.existsSync(settingsPath)) {
       const data = fs.readFileSync(settingsPath, 'utf-8')
-      return JSON.parse(data)
+      return JSON.parse(data) as Settings
     }
   } catch (error) {
-    console.error('Error loading settings:', error)
+    logger.error('Error loading settings', 'Settings', error)
   }
   return { partyMode: { enabled: false } }
 }
@@ -30,11 +45,11 @@ function checkPartyModePermission(action: string): boolean {
     case 'pause':
     case 'resume':
     case 'playTrack':
-      return partyMode.allowPlay
+      return partyMode.allowPlay ?? true
     case 'stop':
-      return partyMode.allowStop
+      return partyMode.allowStop ?? true
     case 'skip':
-      return partyMode.allowNext
+      return partyMode.allowNext ?? true
     case 'setVolume':
     case 'toggleMute':
       return true // Volume control is always allowed
@@ -43,9 +58,9 @@ function checkPartyModePermission(action: string): boolean {
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const { action, volume, trackId } = await request.json()
+    const { action, volume, trackId } = await request.json() as { action: string; volume?: number; trackId?: string }
     if (!action) {
       return NextResponse.json({ error: 'No action provided' }, { status: 400 })
     }
@@ -54,28 +69,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `${action} is restricted in party mode` }, { status: 403 })
     }
 
-    console.log(`Control API: ${action}`)
+    // console.log(`Control API: ${action}`)
 
     let success = false
-    let error = null
-    let responseData: any = {}
+    let error: string | null = null
+    const responseData: ResponseData = {}
 
     switch (action) {
       case 'pause':
-        success = await audio.pause()
+        success = await queueState.audio.pause()
         break
       case 'resume':
-        success = await audio.resume()
+        success = await queueState.audio.resume()
+        // If resume did not actually start playback, try to play next in queue
+        if (!queueState.audio.getStatus().isPlaying) {
+          success = await queueState.playNextInQueue()
+        }
         break
       case 'stop':
-        success = await audio.stop()
+        success = await queueState.audio.stop()
         if (success) {
-          await clearCurrentTrack()
+          void queueState.clearCurrentTrack()
         }
         break
       case 'skip':
         // Play next track in queue
-        success = await playNextInQueue()
+        success = await queueState.playNextInQueue()
         break
       case 'playTrack':
         if (!trackId) {
@@ -90,23 +109,23 @@ export async function POST(request: NextRequest) {
           error = 'Invalid volume value'
           break
         }
-        success = audio.setVolume(volume)
+        success = queueState.audio.setVolume(volume)
         responseData.volume = volume
         responseData.isMuted = volume === 0
         break
       case 'toggleMute':
-        success = audio.toggleMute()
-        responseData.isMuted = audio.isMuted()
-        responseData.volume = audio.getVolume()
+        success = queueState.audio.toggleMute()
+        responseData.isMuted = queueState.audio.isMuted()
+        responseData.volume = queueState.audio.getVolume()
         break
       case 'checkAudioState':
         // This is a maintenance action to check and restore audio state
-        await checkAudioState()
+        void queueState.checkAudioState()
         success = true
         break
       case 'loadState':
         // This is a new action to manually restore queue state from the saved file
-        await loadState()
+        void queueState.loadState()
         success = true
         break
       default:
@@ -119,32 +138,32 @@ export async function POST(request: NextRequest) {
     }
 
     if (!success) {
-      const status = audio.getStatus()
+      const status = queueState.audio.getStatus()
       return NextResponse.json({ 
         error: `Failed to ${action}`,
-        status: status
+        status
       }, { status: 500 })
     }
 
-    const status = audio.getStatus()
-    const currentSong = audio.getCurrentSong()
-    const progress = audio.getPlaybackProgress()
+    const status = queueState.audio.getStatus()
+    const currentSong = queueState.audio.getCurrentSong()
+    const progress = queueState.audio.getPlaybackProgress()
     
     return NextResponse.json({ 
       success: true,
       action,
-      status: status,
-      currentSong: currentSong,
-      isPlaying: getIsPlaying(),
-      progress: progress,
+      status,
+      currentSong,
+      isPlaying: queueState.getIsPlaying(),
+      progress,
       ...responseData
     })
   } catch (error) {
-    console.error('Control API error:', error)
-    const status = audio.getStatus()
+    logger.error('Control API error', 'ControlAPI', error)
+    const status = queueState.audio.getStatus()
     return NextResponse.json({ 
       error: 'Internal server error',
-      status: status
+      status
     }, { status: 500 })
   }
 } 

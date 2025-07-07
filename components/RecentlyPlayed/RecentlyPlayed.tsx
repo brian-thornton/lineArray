@@ -1,10 +1,15 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Play, Clock, Music } from 'lucide-react'
 import { useSettings } from '@/contexts/SettingsContext'
 import { useSearch } from '@/contexts/SearchContext'
 import styles from './RecentlyPlayed.module.css'
+
+interface WindowWithPlayer extends Window {
+  hasAddedTrackToQueue?: boolean
+  checkPlayerStatusImmediately?: () => Promise<void>
+}
 
 interface RecentlyPlayedTrack {
   id: string
@@ -21,27 +26,23 @@ interface RecentlyPlayedProps {
   showTitle?: boolean
 }
 
-export default function RecentlyPlayed({ limit = 10, showTitle = true }: RecentlyPlayedProps) {
+export default function RecentlyPlayed({ limit = 10, showTitle = true }: RecentlyPlayedProps): JSX.Element {
   const { canPerformAction } = useSettings()
   const { hideKeyboard } = useSearch()
   const [recentTracks, setRecentTracks] = useState<RecentlyPlayedTrack[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    loadRecentlyPlayed()
-  }, [])
-
-  const loadRecentlyPlayed = async () => {
+  const loadRecentlyPlayed = useCallback(async (): Promise<void> => {
     try {
       const response = await fetch('/api/playcounts')
       
       if (response.ok) {
-        const data = await response.json()
+        const data = await response.json() as { tracks: RecentlyPlayedTrack[] }
         
         if (data.tracks && data.tracks.length > 0) {
           // Sort by last played time (most recent first) and take the top tracks
           const sorted = data.tracks
-            .sort((a: any, b: any) => new Date(b.lastPlayed).getTime() - new Date(a.lastPlayed).getTime())
+            .sort((a: RecentlyPlayedTrack, b: RecentlyPlayedTrack) => new Date(b.lastPlayed).getTime() - new Date(a.lastPlayed).getTime())
             .slice(0, limit)
           setRecentTracks(sorted)
         } else {
@@ -57,11 +58,15 @@ export default function RecentlyPlayed({ limit = 10, showTitle = true }: Recentl
     } finally {
       setLoading(false)
     }
-  }
+  }, [limit])
 
-  const handlePlayTrack = async (path: string) => {
+  useEffect(() => {
+    void loadRecentlyPlayed()
+  }, [loadRecentlyPlayed])
+
+  const handlePlayTrack = async (path: string): Promise<void> => {
     if (!canPerformAction('allowAddToQueue')) {
-      alert('Adding to queue is restricted in party mode')
+      console.error('Adding to queue is restricted in party mode')
       return
     }
 
@@ -77,13 +82,13 @@ export default function RecentlyPlayed({ limit = 10, showTitle = true }: Recentl
         
         // Set flag to show player controls
         if (typeof window !== 'undefined') {
-          (window as any).hasAddedTrackToQueue = true
+          (window as WindowWithPlayer).hasAddedTrackToQueue = true
         }
         
         // Immediately check player status to show controls faster
-        if (typeof window !== 'undefined' && (window as any).checkPlayerStatusImmediately) {
+        if (typeof window !== 'undefined' && (window as WindowWithPlayer).checkPlayerStatusImmediately) {
           setTimeout(() => {
-            (window as any).checkPlayerStatusImmediately()
+            void (window as WindowWithPlayer).checkPlayerStatusImmediately?.()
           }, 100)
         }
       } else {
@@ -120,7 +125,7 @@ export default function RecentlyPlayed({ limit = 10, showTitle = true }: Recentl
       <div className={styles.container}>
         {showTitle && <h3 className={styles.title}>Recently Played</h3>}
         <div className={styles.loading}>
-          <div className={styles.spinner}></div>
+          <div className={styles.spinner} />
           <p>Loading...</p>
         </div>
       </div>
@@ -171,7 +176,7 @@ export default function RecentlyPlayed({ limit = 10, showTitle = true }: Recentl
 
             <div className={styles.trackActions}>
               <button
-                onClick={() => handlePlayTrack(track.path)}
+                onClick={() => { void handlePlayTrack(track.path) }}
                 className={styles.playButton}
                 disabled={!canPerformAction('allowAddToQueue')}
                 title={!canPerformAction('allowAddToQueue') ? 'Adding to queue is restricted in party mode' : 'Play track'}

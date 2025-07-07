@@ -1,6 +1,6 @@
-'use client'
+"use client"
 
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { BarChart3, Music, TrendingUp, Calendar } from 'lucide-react'
 import styles from './PlayCounts.module.css'
 
@@ -12,33 +12,36 @@ interface PlayCountData {
   album: string
 }
 
-interface PlayCountsResponse {
-  playCounts: PlayCountData[]
+interface PlayCountsApiResponse {
+  tracks: PlayCountData[]
   lastUpdated: string | null
   totalTracks: number
+  totalPlays: number
 }
 
-export default function PlayCounts() {
+export default function PlayCounts(): JSX.Element {
   const [playCounts, setPlayCounts] = useState<PlayCountData[]>([])
   const [lastUpdated, setLastUpdated] = useState<string | null>(null)
   const [totalTracks, setTotalTracks] = useState(0)
+  const [totalPlays, setTotalPlays] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    loadPlayCounts()
+    void loadPlayCounts()
   }, [])
 
-  const loadPlayCounts = async () => {
+  const loadPlayCounts = async (): Promise<void> => {
     try {
       setLoading(true)
       const response = await fetch('/api/playcounts')
       
       if (response.ok) {
-        const data: PlayCountsResponse = await response.json()
-        setPlayCounts(data.playCounts)
+        const data = await response.json() as PlayCountsApiResponse
+        setPlayCounts(data.tracks)
         setLastUpdated(data.lastUpdated)
         setTotalTracks(data.totalTracks)
+        setTotalPlays(data.totalPlays);
       } else {
         setError('Failed to load play counts')
       }
@@ -50,26 +53,25 @@ export default function PlayCounts() {
     }
   }
 
-  const formatDate = (dateString: string | null) => {
+  const formatDate = (dateString: string | null): string => {
     if (!dateString) return 'Never'
     return new Date(dateString).toLocaleString()
   }
 
-  const getTotalPlays = () => {
-    if (!Array.isArray(playCounts)) return 0;
-    return playCounts.reduce((total, track) => total + track.count, 0)
+  const getTotalPlays = (): number => {
+    return totalPlays;
   }
 
-  const getAveragePlays = () => {
-    if (!Array.isArray(playCounts) || playCounts.length === 0) return 0;
-    return Math.round(getTotalPlays() / playCounts.length)
+  const getAveragePlays = (): number => {
+    if (totalTracks === 0) return 0;
+    return totalPlays > 0 ? Math.round(totalPlays / totalTracks) : 0;
   }
 
   if (loading) {
     return (
       <div className={styles.container}>
         <div className={styles.loading}>
-          <div className={styles.spinner}></div>
+          <div className={styles.spinner} />
           <p>Loading play statistics...</p>
         </div>
       </div>
@@ -81,7 +83,7 @@ export default function PlayCounts() {
       <div className={styles.container}>
         <div className={styles.error}>
           <p>{error}</p>
-          <button onClick={loadPlayCounts} className={styles.retryButton}>
+          <button onClick={() => { void loadPlayCounts() }} className={styles.retryButton}>
             Retry
           </button>
         </div>
@@ -96,7 +98,7 @@ export default function PlayCounts() {
           <BarChart3 className={styles.titleIcon} />
           Play Statistics
         </h2>
-        <button onClick={loadPlayCounts} className={styles.refreshButton}>
+        <button onClick={() => { void loadPlayCounts() }} className={styles.refreshButton}>
           Refresh
         </button>
       </div>

@@ -1,17 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
-const { getQueue, reorderQueue } = require('../../../../queue-state')
+import queueState from '../../../../queue-state'
+import logger from '@/utils/serverLogger'
 
-function loadSettings() {
+interface Settings {
+  partyMode: {
+    enabled: boolean
+    allowRemoveFromQueue?: boolean
+  }
+}
+
+function loadSettings(): Settings {
   try {
     const settingsPath = path.join(process.cwd(), 'data', 'settings.json')
     if (fs.existsSync(settingsPath)) {
       const data = fs.readFileSync(settingsPath, 'utf-8')
-      return JSON.parse(data)
+      return JSON.parse(data) as Settings
     }
   } catch (error) {
-    console.error('Error loading settings:', error)
+    logger.error('Error loading settings', 'Settings', error)
   }
   return { partyMode: { enabled: false } }
 }
@@ -28,35 +36,28 @@ function checkPartyModePermission(action: string): boolean {
   // Check specific permissions based on action
   switch (action) {
     case 'reorder':
-      return partyMode.allowRemoveFromQueue // Using same permission as queue management
+      return partyMode.allowRemoveFromQueue ?? true // Using same permission as queue management
     default:
       return true
   }
 }
 
-export async function PUT(request: NextRequest) {
+export async function PUT(request: NextRequest): Promise<NextResponse> {
   try {
     if (!checkPartyModePermission('reorder')) {
       return NextResponse.json({ error: 'Queue management is restricted in party mode' }, { status: 403 })
     }
 
-    const { draggedTrackId, targetTrackId } = await request.json()
-    
-    console.log('Queue reorder request:', { draggedTrackId, targetTrackId })
+    const { draggedTrackId, targetTrackId } = await request.json() as { draggedTrackId: string; targetTrackId: string }
     
     if (!draggedTrackId || !targetTrackId) {
       return NextResponse.json({ error: 'Both draggedTrackId and targetTrackId are required' }, { status: 400 })
     }
 
-    console.log('Queue API: Reordering tracks:', { draggedTrackId, targetTrackId })
+    const queue = queueState.getQueue()
     
-    const queue = getQueue()
-    console.log('Current queue:', queue.map((t: any) => ({ id: t.id, title: t.title })))
-    
-    const draggedIndex = queue.findIndex((track: any) => track.id === draggedTrackId)
-    const targetIndex = queue.findIndex((track: any) => track.id === targetTrackId)
-    
-    console.log('Found indices:', { draggedIndex, targetIndex })
+    const draggedIndex = queue.findIndex((track: { id: string }) => track.id === draggedTrackId)
+    const targetIndex = queue.findIndex((track: { id: string }) => track.id === targetTrackId)
     
     if (draggedIndex === -1 || targetIndex === -1) {
       return NextResponse.json({ error: 'One or both tracks not found in queue' }, { status: 404 })
@@ -67,10 +68,9 @@ export async function PUT(request: NextRequest) {
     }
     
     // Reorder the queue
-    reorderQueue(draggedIndex, targetIndex)
+    queueState.reorderQueue(draggedIndex, targetIndex)
     
-    const newQueue = getQueue()
-    console.log('Queue after reorder:', newQueue.map((t: any) => ({ id: t.id, title: t.title })))
+    const newQueue = queueState.getQueue()
     
     return NextResponse.json({
       success: true,
@@ -78,7 +78,7 @@ export async function PUT(request: NextRequest) {
       message: 'Queue reordered successfully'
     })
   } catch (error) {
-    console.error('Queue Reorder API Error:', error)
+    logger.error('Queue Reorder API Error', 'QueueAPI', error)
     return NextResponse.json({ error: 'Failed to reorder queue' }, { status: 500 })
   }
 } 

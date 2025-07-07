@@ -20,20 +20,34 @@ function VolumeModal({
   isMuted, 
   onVolumeChange, 
   onMuteToggle 
-}: VolumeModalProps) {
+}: VolumeModalProps): JSX.Element | null {
   if (!isOpen) return null
 
-  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     onVolumeChange(parseFloat(e.target.value))
   }
 
-  const handleMuteToggle = () => {
+  const handleMuteToggle = (): void => {
     onMuteToggle()
   }
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+    <div
+      className={styles.overlay}
+      onClick={onClose}
+      onKeyDown={e => { if (e.key === 'Escape') onClose() }}
+      tabIndex={0}
+      role="button"
+      aria-label="Close volume modal"
+    >
+      <div
+        className={styles.modal}
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={e => { if (e.key === 'Escape') onClose() }}
+        tabIndex={0}
+        role="button"
+        aria-label="Volume modal content"
+      >
         <div className={styles.header}>
           <h3 className={styles.title}>Volume Control</h3>
           <button onClick={onClose} className={styles.closeButton} aria-label="Close">

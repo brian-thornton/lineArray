@@ -9,12 +9,12 @@ interface ScanButtonProps {
   currentPath: string
 }
 
-const ScanButton: React.FC<ScanButtonProps> = ({ onScan, isScanning, currentPath }) => {
+export default function ScanButton({ onScan, isScanning, currentPath }: ScanButtonProps): JSX.Element {
   const [showPathInput, setShowPathInput] = useState(false)
   const [showFileBrowser, setShowFileBrowser] = useState(false)
   const [inputPath, setInputPath] = useState('')
 
-  const handleScanClick = () => {
+  const handleScanClick = (): void => {
     if (showPathInput && inputPath.trim()) {
       onScan(inputPath.trim())
       setShowPathInput(false)
@@ -24,16 +24,16 @@ const ScanButton: React.FC<ScanButtonProps> = ({ onScan, isScanning, currentPath
     }
   }
 
-  const handleCancel = () => {
+  const handleCancel = (): void => {
     setShowPathInput(false)
     setInputPath('')
   }
 
-  const handleBrowseClick = () => {
+  const handleBrowseClick = (): void => {
     setShowFileBrowser(true)
   }
 
-  const handleFileBrowserSelect = (path: string) => {
+  const handleFileBrowserSelect = (path: string): void => {
     setInputPath(path)
     setShowPathInput(true)
   }
@@ -118,6 +118,4 @@ const ScanButton: React.FC<ScanButtonProps> = ({ onScan, isScanning, currentPath
       />
     </div>
   )
-}
-
-export default ScanButton 
+} 

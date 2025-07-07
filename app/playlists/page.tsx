@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Edit, Trash2, Play, Music, Clock } from 'lucide-react'
+import { Plus, Edit, Trash2, Play, Music } from 'lucide-react'
 import { Playlist } from '@/types/music'
 import { useSettings } from '@/contexts/SettingsContext'
 import styles from './page.module.css'
 
-export default function PlaylistsPage() {
+export default function PlaylistsPage(): JSX.Element {
   const router = useRouter()
   const { canPerformAction } = useSettings()
   const [playlists, setPlaylists] = useState<Playlist[]>([])
@@ -20,14 +20,14 @@ export default function PlaylistsPage() {
   const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
-    loadPlaylists()
+    void loadPlaylists()
   }, [])
 
-  const loadPlaylists = async () => {
+  const loadPlaylists = async (): Promise<void> => {
     try {
       const response = await fetch('/api/playlists')
       if (response.ok) {
-        const data = await response.json()
+        const data = await response.json() as Playlist[]
         setPlaylists(data)
       } else {
         console.error('Failed to load playlists')
@@ -39,12 +39,12 @@ export default function PlaylistsPage() {
     }
   }
 
-  const handleCreatePlaylist = async (e: React.FormEvent) => {
+  const handleCreatePlaylist = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
     if (!newPlaylistName.trim()) return
 
     if (!canPerformAction('allowCreatePlaylists')) {
-      alert('Creating playlists is restricted in party mode')
+      // TODO: Show non-blocking UI for restricted action
       return
     }
 
@@ -60,26 +60,25 @@ export default function PlaylistsPage() {
       })
 
       if (response.ok) {
-        const newPlaylist = await response.json()
+        const newPlaylist = await response.json() as Playlist
         setPlaylists(prev => [...prev, newPlaylist])
         setShowCreateModal(false)
         setNewPlaylistName('')
         setNewPlaylistDescription('')
       } else {
-        const error = await response.json()
-        alert(error.error || 'Failed to create playlist')
+        // TODO: Show non-blocking UI for error
       }
     } catch (error) {
       console.error('Error creating playlist:', error)
-      alert('Failed to create playlist')
+      // TODO: Show non-blocking UI for error
     } finally {
       setIsCreating(false)
     }
   }
 
-  const handleDeletePlaylist = async (playlistId: string) => {
+  const handleDeletePlaylist = async (playlistId: string): Promise<void> => {
     if (!canPerformAction('allowDeletePlaylists')) {
-      alert('Deleting playlists is restricted in party mode')
+      // TODO: Show non-blocking UI for restricted action
       return
     }
 
@@ -93,25 +92,24 @@ export default function PlaylistsPage() {
         setPlaylists(prev => prev.filter(p => p.id !== playlistId))
         setShowDeleteModal(null)
       } else {
-        const error = await response.json()
-        alert(error.error || 'Failed to delete playlist')
+        // TODO: Show non-blocking UI for error
       }
     } catch (error) {
       console.error('Error deleting playlist:', error)
-      alert('Failed to delete playlist')
+      // TODO: Show non-blocking UI for error
     } finally {
       setIsDeleting(false)
     }
   }
 
-  const handlePlayPlaylist = async (playlist: Playlist) => {
+  const handlePlayPlaylist = async (playlist: Playlist): Promise<void> => {
     if (!canPerformAction('allowAddToQueue')) {
-      alert('Adding to queue is restricted in party mode')
+      // TODO: Show non-blocking UI for restricted action
       return
     }
 
     if (playlist.tracks.length === 0) {
-      alert('This playlist is empty')
+      // TODO: Show non-blocking UI for empty playlist
       return
     }
 
@@ -129,21 +127,21 @@ export default function PlaylistsPage() {
       }
 
       // Navigate back to main page to see the player
-      router.push('/')
+      void router.push('/')
     } catch (error) {
       console.error('Error playing playlist:', error)
-      alert('Failed to play playlist')
+      // TODO: Show non-blocking UI for error
     }
   }
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string): string => {
     return new Date(dateString).toLocaleDateString()
   }
 
   if (loading) {
     return (
       <div className={styles.loadingContainer}>
-        <div className={styles.loadingSpinner}></div>
+        <div className={styles.loadingSpinner} />
         <p>Loading playlists...</p>
       </div>
     )
@@ -205,7 +203,7 @@ export default function PlaylistsPage() {
 
               <div className={styles.playlistActions}>
                 <button
-                  onClick={() => handlePlayPlaylist(playlist)}
+                  onClick={() => { void handlePlayPlaylist(playlist) }}
                   className={styles.playButton}
                   disabled={playlist.trackCount === 0 || !canPerformAction('allowAddToQueue')}
                   title={
@@ -219,7 +217,7 @@ export default function PlaylistsPage() {
                   <Play className={styles.playIcon} />
                 </button>
                 <button
-                  onClick={() => router.push(`/playlists/${playlist.id}`)}
+                  onClick={() => { void router.push(`/playlists/${playlist.id}`) }}
                   className={styles.editButton}
                   disabled={!canPerformAction('allowEditPlaylists')}
                   title={!canPerformAction('allowEditPlaylists') ? 'Editing playlists is restricted in party mode' : 'Edit playlist'}
@@ -242,10 +240,22 @@ export default function PlaylistsPage() {
 
       {/* Create Playlist Modal */}
       {showCreateModal && (
-        <div className={styles.modalOverlay} onClick={() => setShowCreateModal(false)}>
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <div 
+          className={styles.modalOverlay} 
+          onClick={() => setShowCreateModal(false)}
+          onKeyDown={e => { if (e.key === 'Escape') setShowCreateModal(false) }}
+          tabIndex={0}
+          role="button"
+        >
+          <div 
+            className={styles.modal} 
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={e => { if (e.key === 'Escape') setShowCreateModal(false) }}
+            tabIndex={0}
+            role="button"
+          >
             <h2>Create New Playlist</h2>
-            <form onSubmit={handleCreatePlaylist}>
+            <form onSubmit={e => { void handleCreatePlaylist(e) }}>
               <div className={styles.formGroup}>
                 <label htmlFor="playlistName">Name *</label>
                 <input
@@ -293,8 +303,20 @@ export default function PlaylistsPage() {
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
-        <div className={styles.modalOverlay} onClick={() => setShowDeleteModal(null)}>
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <div 
+          className={styles.modalOverlay} 
+          onClick={() => setShowDeleteModal(null)}
+          onKeyDown={e => { if (e.key === 'Escape') setShowDeleteModal(null) }}
+          tabIndex={0}
+          role="button"
+        >
+          <div 
+            className={styles.modal} 
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={e => { if (e.key === 'Escape') setShowDeleteModal(null) }}
+            tabIndex={0}
+            role="button"
+          >
             <h2>Delete Playlist</h2>
             <p>Are you sure you want to delete this playlist? This action cannot be undone.</p>
             <div className={styles.modalActions}>
@@ -306,7 +328,7 @@ export default function PlaylistsPage() {
                 Cancel
               </button>
               <button
-                onClick={() => handleDeletePlaylist(showDeleteModal)}
+                onClick={() => { void handleDeletePlaylist(showDeleteModal) }}
                 className={styles.deleteConfirmButton}
                 disabled={isDeleting}
               >

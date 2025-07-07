@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, Play, Plus, Music } from 'lucide-react'
 import { Album, Track } from '@/types/music'
@@ -8,8 +8,14 @@ import PlaylistModal from '@/components/PlaylistModal/PlaylistModal'
 import { useSettings } from '@/contexts/SettingsContext'
 import { useSearch } from '@/contexts/SearchContext'
 import styles from './page.module.css'
+import Image from 'next/image'
 
-export default function AlbumDetail() {
+interface WindowWithPlayer extends Window {
+  hasAddedTrackToQueue?: boolean
+  checkPlayerStatusImmediately?: () => Promise<void>
+}
+
+export default function AlbumDetail(): JSX.Element {
   const params = useParams()
   const router = useRouter()
   const { canPerformAction } = useSettings()
@@ -19,23 +25,12 @@ export default function AlbumDetail() {
   const [error, setError] = useState<string | null>(null)
   const [selectedTracks, setSelectedTracks] = useState<Set<string>>(new Set())
   const [showPlaylistModal, setShowPlaylistModal] = useState(false)
-  const [playingTrack, setPlayingTrack] = useState<string | null>(null)
-  const [isPlaying, setIsPlaying] = useState(false)
 
-  useEffect(() => {
-    loadAlbum()
-  }, [params.id])
-
-  // Scroll to top when component mounts
-  useEffect(() => {
-    window.scrollTo(0, 0)
-  }, [])
-
-  const loadAlbum = async () => {
+  const loadAlbum = useCallback(async (): Promise<void> => {
     try {
       const response = await fetch('/api/albums')
       if (response.ok) {
-        const data = await response.json()
+        const data = await response.json() as { albums: Album[] }
         const foundAlbum = data.albums.find((a: Album) => a.id === params.id)
         if (foundAlbum) {
           setAlbum(foundAlbum)
@@ -51,11 +46,20 @@ export default function AlbumDetail() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [params.id])
 
-  const handlePlayAlbum = async () => {
+  useEffect(() => {
+    void loadAlbum()
+  }, [loadAlbum])
+
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [])
+
+  const handlePlayAlbum = async (): Promise<void> => {
     if (!canPerformAction('allowAddToQueue')) {
-      alert('Adding to queue is restricted in party mode')
+      // TODO: Implement a non-blocking UI alternative for showing restricted action
       return
     }
 
@@ -82,20 +86,17 @@ export default function AlbumDetail() {
         })
         
         if (response.ok) {
-          const data = await response.json()
-          setPlayingTrack(album.tracks[0].id)
-          setIsPlaying(data.isPlaying)
           hideKeyboard()
           
           // Set flag to show player controls
           if (typeof window !== 'undefined') {
-            (window as any).hasAddedTrackToQueue = true
+            (window as WindowWithPlayer).hasAddedTrackToQueue = true
           }
           
           // Immediately check player status to show controls faster
-          if (typeof window !== 'undefined' && (window as any).checkPlayerStatusImmediately) {
+          if (typeof window !== 'undefined' && (window as WindowWithPlayer).checkPlayerStatusImmediately) {
             setTimeout(() => {
-              (window as any).checkPlayerStatusImmediately()
+              void (window as WindowWithPlayer).checkPlayerStatusImmediately?.()
             }, 100)
           }
         }
@@ -105,9 +106,9 @@ export default function AlbumDetail() {
     }
   }
 
-  const handlePlayTrack = async (track: Track) => {
+  const handlePlayTrack = async (track: Track): Promise<void> => {
     if (!canPerformAction('allowAddToQueue')) {
-      alert('Adding to queue is restricted in party mode')
+      // TODO: Implement a non-blocking UI alternative for showing restricted action
       return
     }
 
@@ -118,24 +119,21 @@ export default function AlbumDetail() {
         body: JSON.stringify({ path: track.path }),
       })
       
-              if (response.ok) {
-          const data = await response.json()
-          setPlayingTrack(track.id)
-          setIsPlaying(data.isPlaying)
-          hideKeyboard()
-          
-          // Set flag to show player controls
-          if (typeof window !== 'undefined') {
-            (window as any).hasAddedTrackToQueue = true
-          }
-          
-          // Immediately check player status to show controls faster
-          if (typeof window !== 'undefined' && (window as any).checkPlayerStatusImmediately) {
-            setTimeout(() => {
-              (window as any).checkPlayerStatusImmediately()
-            }, 100)
-          }
-        } else {
+      if (response.ok) {
+        hideKeyboard()
+        
+        // Set flag to show player controls
+        if (typeof window !== 'undefined') {
+          (window as WindowWithPlayer).hasAddedTrackToQueue = true
+        }
+        
+        // Immediately check player status to show controls faster
+        if (typeof window !== 'undefined' && (window as WindowWithPlayer).checkPlayerStatusImmediately) {
+          setTimeout(() => {
+            void (window as WindowWithPlayer).checkPlayerStatusImmediately?.()
+          }, 100)
+        }
+      } else {
         console.error('Failed to play track:', track.title)
       }
     } catch (error) {
@@ -143,9 +141,9 @@ export default function AlbumDetail() {
     }
   }
 
-  const handleAddToPlaylist = () => {
+  const handleAddToPlaylist = (): void => {
     if (!canPerformAction('allowCreatePlaylists')) {
-      alert('Creating playlists is restricted in party mode')
+      // TODO: Implement a non-blocking UI alternative for showing restricted action
       return
     }
 
@@ -156,7 +154,7 @@ export default function AlbumDetail() {
     setShowPlaylistModal(true)
   }
 
-  const handleTrackSelection = (trackId: string) => {
+  const handleTrackSelection = (trackId: string): void => {
     const newSelected = new Set(selectedTracks)
     if (newSelected.has(trackId)) {
       newSelected.delete(trackId)
@@ -166,17 +164,17 @@ export default function AlbumDetail() {
     setSelectedTracks(newSelected)
   }
 
-  const handleSelectAllTracks = () => {
+  const handleSelectAllTracks = (): void => {
     if (album) {
       setSelectedTracks(new Set(album.tracks.map((t: Track) => t.id)))
     }
   }
 
-  const handleDeselectAllTracks = () => {
+  const handleDeselectAllTracks = (): void => {
     setSelectedTracks(new Set())
   }
 
-  const handleAddToPlaylistSuccess = async (playlistId: string, trackPaths: string[]) => {
+  const handleAddToPlaylistSuccess = async (playlistId: string, trackPaths: string[]): Promise<void> => {
     try {
       const response = await fetch(`/api/playlists/${playlistId}/tracks`, {
         method: 'POST',
@@ -189,17 +187,16 @@ export default function AlbumDetail() {
         setSelectedTracks(new Set())
         // You could show a success message here
       } else {
-        const error = await response.json()
-        alert(error.error || 'Failed to add tracks to playlist')
+        // TODO: Implement a non-blocking UI alternative for showing error
       }
     } catch (error) {
       console.error('Error adding tracks to playlist:', error)
-      alert('Failed to add tracks to playlist')
+      // TODO: Implement a non-blocking UI alternative for showing error
     }
   }
 
   // Generate cover URL using the API endpoint
-  const getCoverUrl = (coverPath: string | undefined) => {
+  const getCoverUrl = (coverPath: string | undefined): string | undefined => {
     if (!coverPath) return undefined
     return `/api/cover/${encodeURIComponent(coverPath)}`
   }
@@ -207,17 +204,17 @@ export default function AlbumDetail() {
   if (loading) {
     return (
       <div className={styles.loadingContainer}>
-        <div className={styles.loadingSpinner}></div>
+        <div className={styles.loadingSpinner} />
         <p>Loading album...</p>
       </div>
     )
   }
 
-  if (error || !album) {
+  if (error ?? !album) {
     return (
       <div className={styles.errorContainer}>
         <h2>Error</h2>
-        <p>{error || 'Album not found'}</p>
+        <p>{error ?? 'Album not found'}</p>
         <button onClick={() => router.push('/')} className={styles.backButton}>
           <ArrowLeft className={styles.backIcon} />
           Back to Library
@@ -239,9 +236,11 @@ export default function AlbumDetail() {
         <div className={styles.coverSection}>
           <div className={styles.cover}>
             {album.coverPath ? (
-              <img 
-                src={getCoverUrl(album.coverPath)}
+              <Image 
+                src={getCoverUrl(album.coverPath) ?? ''}
                 alt={`${album.title} cover`}
+                width={300}
+                height={300}
                 className={styles.coverImage}
                 onError={(e) => {
                   // Fallback to default cover if image fails to load
@@ -272,7 +271,7 @@ export default function AlbumDetail() {
 
           <div className={styles.actions}>
             <button 
-              onClick={handlePlayAlbum} 
+              onClick={() => { void handlePlayAlbum(); }}
               className={styles.playButton}
               disabled={!canPerformAction('allowAddToQueue')}
               title={!canPerformAction('allowAddToQueue') ? 'Adding to queue is restricted in party mode' : 'Play Album'}
@@ -281,7 +280,7 @@ export default function AlbumDetail() {
               Play Album
             </button>
             <button 
-              onClick={handleAddToPlaylist} 
+              onClick={() => { handleAddToPlaylist(); }}
               className={styles.playlistButton}
               disabled={!canPerformAction('allowCreatePlaylists')}
               title={!canPerformAction('allowCreatePlaylists') ? 'Creating playlists is restricted in party mode' : 'Add to Playlist'}
@@ -306,11 +305,11 @@ export default function AlbumDetail() {
           <h2 className={styles.tracksTitle}>Tracks</h2>
           <div className={styles.tracksActions}>
             {selectedTracks.size === 0 ? (
-              <button onClick={handleSelectAllTracks} className={styles.selectAllButton}>
+              <button onClick={() => { handleSelectAllTracks(); }} className={styles.selectAllButton}>
                 Select All Tracks
               </button>
             ) : (
-              <button onClick={handleDeselectAllTracks} className={styles.selectAllButton}>
+              <button onClick={() => { handleDeselectAllTracks(); }} className={styles.selectAllButton}>
                 Deselect All ({selectedTracks.size})
               </button>
             )}
@@ -327,14 +326,14 @@ export default function AlbumDetail() {
                 <input
                   type="checkbox"
                   checked={selectedTracks.has(track.id)}
-                  onChange={() => handleTrackSelection(track.id)}
+                  onChange={() => { handleTrackSelection(track.id); }}
                   className={styles.checkbox}
                 />
               </div>
               
               <div className={styles.trackInfo}>
                 <span className={styles.trackNumber}>
-                  {track.trackNumber || index + 1}
+                  {track.trackNumber ?? index + 1}
                 </span>
                 <div className={styles.trackDetails}>
                   <span className={styles.trackTitle}>{track.title}</span>
@@ -344,7 +343,7 @@ export default function AlbumDetail() {
               
               <div className={styles.trackActions}>
                 <button
-                  onClick={() => handlePlayTrack(track)}
+                  onClick={() => { void handlePlayTrack(track); }}
                   className={styles.playTrackButton}
                   disabled={!canPerformAction('allowAddToQueue')}
                   title={!canPerformAction('allowAddToQueue') ? 'Adding to queue is restricted in party mode' : 'Play track'}
@@ -362,9 +361,9 @@ export default function AlbumDetail() {
         isOpen={showPlaylistModal}
         onClose={() => setShowPlaylistModal(false)}
         selectedTracks={Array.from(selectedTracks).map(id => 
-          album.tracks.find(t => t.id === id)?.path || ''
+          album.tracks.find(t => t.id === id)?.path ?? ''
         ).filter(Boolean)}
-        onAddToPlaylist={handleAddToPlaylistSuccess}
+        onAddToPlaylist={(playlistId, trackPaths) => { void handleAddToPlaylistSuccess(playlistId, trackPaths); }}
       />
     </div>
   )

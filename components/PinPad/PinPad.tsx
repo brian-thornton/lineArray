@@ -1,6 +1,5 @@
-'use client'
+"use client"
 
-import React from 'react'
 import styles from './PinPad.module.css'
 
 interface PinPadProps {
@@ -10,20 +9,20 @@ interface PinPadProps {
   disabled?: boolean
 }
 
-export default function PinPad({ pin, onPinChange, maxLength = 6, disabled = false }: PinPadProps) {
-  const handleNumberClick = (number: string) => {
+export default function PinPad({ pin, onPinChange, maxLength = 6, disabled = false }: PinPadProps): JSX.Element {
+  const handleNumberClick = (number: string): void => {
     if (disabled) return
     if (pin.length < maxLength) {
       onPinChange(pin + number)
     }
   }
 
-  const handleDelete = () => {
+  const handleDelete = (): void => {
     if (disabled) return
     onPinChange(pin.slice(0, -1))
   }
 
-  const handleClear = () => {
+  const handleClear = (): void => {
     if (disabled) return
     onPinChange('')
   }
@@ -40,6 +39,7 @@ export default function PinPad({ pin, onPinChange, maxLength = 6, disabled = fal
       {/* PIN Display */}
       <div className={styles.pinDisplay}>
         {Array.from({ length: maxLength }, (_, i) => (
+          // eslint-disable-next-line react/no-array-index-key -- static PIN dots
           <div key={i} className={`${styles.pinDot} ${i < pin.length ? styles.filled : ''}`}>
             {i < pin.length ? '•' : ''}
           </div>
@@ -49,15 +49,18 @@ export default function PinPad({ pin, onPinChange, maxLength = 6, disabled = fal
       {/* Number Pad */}
       <div className={styles.numberPad}>
         {numbers.map((row, rowIndex) => (
-          <div key={rowIndex} className={styles.row}>
+          // eslint-disable-next-line react/no-array-index-key -- static number pad rows
+          <div key={`row-${rowIndex}`} className={styles.row}>
             {row.map((number, colIndex) => {
               if (number === '') {
-                return <div key={colIndex} className={styles.emptySpace} />
+                // eslint-disable-next-line react/no-array-index-key -- static number pad columns
+                return <div key={`col-${colIndex}`} className={styles.emptySpace} />
               }
               
               return (
                 <button
-                  key={colIndex}
+                  // eslint-disable-next-line react/no-array-index-key -- static number pad columns
+                  key={`col-${colIndex}`}
                   className={`${styles.numberButton} ${number === '0' ? styles.zeroButton : ''}`}
                   onClick={() => handleNumberClick(number)}
                   disabled={disabled}

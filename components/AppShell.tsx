@@ -7,7 +7,7 @@ import DynamicTitle from '@/components/DynamicTitle'
 import AppHeader from '@/components/AppHeader'
 import styles from '@/app/layout.module.css'
 
-export default function AppShell({ children }: { children: React.ReactNode }) {
+export default function AppShell({ children }: { children: React.ReactNode }): JSX.Element {
   const [showQueue, setShowQueue] = useState(false)
   return (
     <>

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
+import { Album, Track } from '@/types/music'
+import logger from '@/utils/serverLogger'
 
 const playCountsPath = path.join(process.cwd(), 'data', 'playCounts.json')
 
@@ -9,26 +11,38 @@ interface PlayCounts {
   lastUpdated: string | null
 }
 
+interface TrackInfo {
+  title: string
+  artist: string
+  album: string
+}
+
 // Migrate old format to new format
-const migratePlayCounts = (playCounts: any): PlayCounts => {
-  if (!playCounts.playCounts) {
-    return playCounts
+const migratePlayCounts = (playCounts: unknown): PlayCounts => {
+  if (!playCounts || typeof playCounts !== 'object' || !('playCounts' in playCounts)) {
+    return {
+      playCounts: {},
+      lastUpdated: new Date().toISOString()
+    }
   }
   
+  const typedPlayCounts = playCounts as { playCounts: unknown; lastUpdated?: string }
+  
   // Check if already in new format
-  const firstEntry = Object.values(playCounts.playCounts)[0]
+  const [firstEntry] = Object.values(typedPlayCounts.playCounts as Record<string, unknown>);
   if (typeof firstEntry === 'object' && firstEntry !== null && 'count' in firstEntry) {
-    return playCounts
+    return typedPlayCounts as PlayCounts
   }
   
   // Migrate from old format (just numbers) to new format
   const migrated: PlayCounts = {
     playCounts: {},
-    lastUpdated: playCounts.lastUpdated || new Date().toISOString()
+    lastUpdated: typedPlayCounts.lastUpdated ?? new Date().toISOString()
   }
   
   const now = new Date().toISOString()
-  Object.entries(playCounts.playCounts).forEach(([trackPath, count]) => {
+  const entries = Object.entries(typedPlayCounts.playCounts as Record<string, unknown>)
+  entries.forEach(([trackPath, count]) => {
     migrated.playCounts[trackPath] = {
       count: count as number,
       lastPlayed: now, // Use current time as last played for migrated data
@@ -46,12 +60,12 @@ const loadPlayCounts = (): PlayCounts => {
   try {
     if (fs.existsSync(playCountsPath)) {
       const data = fs.readFileSync(playCountsPath, 'utf-8')
-      const parsed = JSON.parse(data)
+      const parsed = JSON.parse(data) as unknown
       return migratePlayCounts(parsed)
     }
-  } catch (error) {
-    console.error('Error loading play counts:', error)
-  }
+      } catch (error) {
+      logger.error('Error loading play counts', 'PlayCounts', error)
+    }
   
   return {
     playCounts: {},
@@ -60,16 +74,16 @@ const loadPlayCounts = (): PlayCounts => {
 }
 
 // Save play counts to file
-const savePlayCounts = (playCounts: PlayCounts) => {
+const savePlayCounts = (playCounts: PlayCounts): void => {
   try {
     fs.writeFileSync(playCountsPath, JSON.stringify(playCounts, null, 2))
   } catch (error) {
-    console.error('Error saving play counts:', error)
+    logger.error('Error saving play counts', 'PlayCounts', error)
   }
 }
 
 // Increment play count for a track
-const incrementPlayCount = (trackPath: string) => {
+const incrementPlayCount = (trackPath: string): void => {
   const playCounts = loadPlayCounts()
   const now = new Date().toISOString()
   
@@ -95,22 +109,22 @@ const incrementPlayCount = (trackPath: string) => {
   savePlayCounts(playCounts)
 }
 
-export async function GET() {
+export async function GET(): Promise<NextResponse> {
   try {
     const playCounts = loadPlayCounts()
     
     // Get all albums to map track paths to track info
-    const albumsResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/albums`)
-    let trackInfo: { [trackPath: string]: { title: string; artist: string; album: string } } = {}
+    const albumsResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'}/api/albums`)
+    const trackInfo: { [trackPath: string]: TrackInfo } = {}
     
     if (albumsResponse.ok) {
-      const albumsData = await albumsResponse.json()
-      albumsData.albums.forEach((album: any) => {
-        album.tracks.forEach((track: any) => {
+      const albumsData = await albumsResponse.json() as { albums: Album[] }
+      albumsData.albums.forEach((album: Album) => {
+        album.tracks.forEach((track: Track) => {
           // Store with both the exact path and normalized path for better matching
           trackInfo[track.path] = {
             title: track.title,
-            artist: track.artist || album.artist || 'Unknown Artist',
+            artist: track.artist ?? album.artist ?? 'Unknown Artist',
             album: album.title
           }
           
@@ -119,7 +133,7 @@ export async function GET() {
           if (filename) {
             trackInfo[filename] = {
               title: track.title,
-              artist: track.artist || album.artist || 'Unknown Artist',
+              artist: track.artist ?? album.artist ?? 'Unknown Artist',
               album: album.title
             }
           }
@@ -132,8 +146,8 @@ export async function GET() {
       .map(([trackPath, trackData]) => {
         // Try to find track info by exact path first, then by filename
         const filename = trackPath.split('/').pop()
-        const info = trackInfo[trackPath] || (filename ? trackInfo[filename] : null) || {
-          title: filename?.replace(/\.[^/.]+$/, '') || 'Unknown Track',
+        const info = trackInfo[trackPath] ?? (filename ? trackInfo[filename] : null) ?? {
+          title: filename?.replace(/\.[^/.]+$/, '') ?? 'Unknown Track',
           artist: 'Unknown Artist',
           album: 'Unknown Album'
         }
@@ -151,14 +165,20 @@ export async function GET() {
       })
       .sort((a, b) => new Date(b.lastPlayed).getTime() - new Date(a.lastPlayed).getTime()) // Sort by most recent first
       .slice(0, 100) // Top 100 most recent
+
+    // Calculate total plays from ALL tracks, not just the limited array
+    const totalPlays = Object.values(playCounts.playCounts).reduce((sum, trackData) => {
+      return sum + (trackData.count || 0);
+    }, 0);
     
     return NextResponse.json({
       tracks: playCountsArray, // Return as 'tracks' to match component expectation
       lastUpdated: playCounts.lastUpdated,
-      totalTracks: Object.keys(playCounts.playCounts).length
+      totalTracks: Object.keys(playCounts.playCounts).length,
+      totalPlays
     })
   } catch (error) {
-    console.error('Error getting play counts:', error)
+    logger.error('Error getting play counts', 'PlayCountsAPI', error)
     return NextResponse.json(
       { error: 'Failed to get play counts' },
       { status: 500 }
@@ -166,9 +186,9 @@ export async function GET() {
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const { trackPath } = await request.json()
+    const { trackPath } = await request.json() as { trackPath: string }
     
     if (!trackPath) {
       return NextResponse.json(
@@ -181,7 +201,7 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error incrementing play count:', error)
+    logger.error('Error incrementing play count', 'PlayCountsAPI', error)
     return NextResponse.json(
       { error: 'Failed to increment play count' },
       { status: 500 }

@@ -13,9 +13,9 @@ interface SettingsContextType {
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined)
 
-export function SettingsProvider({ children }: { children: ReactNode }) {
+export function SettingsProvider({ children }: { children: ReactNode }): JSX.Element {
   const [settings, setSettings] = useState<Settings>({
-    scanPath: '/Users/brianthornton/Desktop/Music/Dave Matthews',
+    scanPath: '',
     jukeboxName: 'Jukebox 2.0',
     adminPin: '1234',
     theme: 'jukebox-classic',
@@ -34,12 +34,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }
   })
 
-  const loadSettings = async () => {
+  const loadSettings = async (): Promise<void> => {
     try {
       const response = await fetch('/api/settings')
       if (response.ok) {
-        const data = await response.json()
-        console.log('Loaded settings:', data)
+        const data = await response.json() as Settings
+        // console.log('Loaded settings:', data)
         setSettings(data)
       }
     } catch (error) {
@@ -49,8 +49,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   const updateSettings = async (newSettings: Partial<Settings>) => {
     try {
-      console.log('Updating settings with:', newSettings)
-      console.log('Current settings before update:', settings)
+      // console.log('Updating settings with:', newSettings)
+      // console.log('Current settings before update:', settings)
       
       // Create a properly merged settings object
       const mergedSettings = {
@@ -65,7 +65,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         })
       }
       
-      console.log('Merged settings to send:', mergedSettings)
+      // console.log('Merged settings to send:', mergedSettings)
       
       const response = await fetch('/api/settings', {
         method: 'PUT',
@@ -74,8 +74,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       })
       
       if (response.ok) {
-        const updatedSettings = await response.json()
-        console.log('Settings updated successfully:', updatedSettings)
+        const updatedSettings = await response.json() as Settings
+        // console.log('Settings updated successfully:', updatedSettings)
         setSettings(updatedSettings)
       } else {
         console.error('Failed to update settings:', response.status, response.statusText)
@@ -89,15 +89,15 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const refreshSettings = async () => {
+  const refreshSettings = async (): Promise<void> => {
     await loadSettings()
   }
 
-  const isPartyModeEnabled = () => {
+  const isPartyModeEnabled = (): boolean => {
     return settings.partyMode.enabled
   }
 
-  const canPerformAction = (action: keyof Settings['partyMode']) => {
+  const canPerformAction = (action: keyof Settings['partyMode']): boolean => {
     // If party mode is disabled, all actions are allowed
     if (!settings.partyMode.enabled) {
       return true
@@ -108,7 +108,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    loadSettings()
+    void loadSettings()
   }, [])
 
   return (
@@ -124,7 +124,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   )
 }
 
-export function useSettings() {
+export function useSettings(): SettingsContextType {
   const context = useContext(SettingsContext)
   if (context === undefined) {
     throw new Error('useSettings must be used within a SettingsProvider')

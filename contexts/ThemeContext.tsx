@@ -34,16 +34,16 @@ const defaultTheme: Theme = {
   }
 }
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
+export function ThemeProvider({ children }: { children: ReactNode }): JSX.Element {
   const [themes, setThemes] = useState<Theme[]>([defaultTheme])
   const [currentTheme, setCurrentTheme] = useState<Theme>(defaultTheme)
 
   // Load themes from the themes.json file
-  const loadThemes = async () => {
+  const loadThemes = async (): Promise<void> => {
     try {
       const response = await fetch('/api/themes')
       if (response.ok) {
-        const data = await response.json()
+        const data = await response.json() as { themes: Theme[] }
         setThemes(data.themes || [defaultTheme])
       }
     } catch (error) {
@@ -52,7 +52,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }
 
   // Apply theme to CSS custom properties
-  const applyTheme = (theme: Theme) => {
+  const applyTheme = (theme: Theme): void => {
     const root = document.documentElement
     
     // Set CSS custom properties for the theme
@@ -93,7 +93,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }
 
   // Set theme by ID
-  const setTheme = (themeId: string) => {
+  const setTheme = (themeId: string): void => {
     const theme = themes.find(t => t.id === themeId)
     if (theme) {
       setCurrentTheme(theme)
@@ -108,7 +108,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let didCancel = false;
     const loadAndApplyTheme = async () => {
-      await loadThemes();
+      await loadThemes().catch(console.error);
       if (didCancel) return;
       const savedTheme = localStorage.getItem('jukebox-theme');
       if (savedTheme && themes.find(t => t.id === savedTheme)) {
@@ -118,13 +118,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         try {
           const res = await fetch('/api/settings');
           if (res.ok) {
-            const data = await res.json();
-            if (data && data.theme && themes.find(t => t.id === data.theme)) {
+            const data = await res.json() as { theme?: string };
+            if (data?.theme && themes.find(t => t.id === data.theme)) {
               setTheme(data.theme);
               return;
             }
           }
-        } catch {}
+        } catch (error) {
+          console.error('Error loading theme from settings:', error)
+        }
         // Fallback to default
         setTheme(defaultTheme.id);
       }
@@ -150,7 +152,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   )
 }
 
-export function useTheme() {
+export function useTheme(): ThemeContextType {
   const context = useContext(ThemeContext)
   if (context === undefined) {
     throw new Error('useTheme must be used within a ThemeProvider')
