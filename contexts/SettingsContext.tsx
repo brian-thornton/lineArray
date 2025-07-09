@@ -19,6 +19,11 @@ export function SettingsProvider({ children }: { children: ReactNode }): JSX.Ele
     jukeboxName: 'Jukebox 2.0',
     adminPin: '1234',
     theme: 'jukebox-classic',
+    showTouchKeyboard: true,
+    showPagination: true,
+    showConcertDetails: true,
+    showMobileQR: true,
+    useMobileAlbumLayout: false,
     partyMode: {
       enabled: false,
       allowPlay: true,

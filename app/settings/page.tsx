@@ -16,11 +16,17 @@ export default function SettingsPage(): JSX.Element {
   const [jukeboxName, setJukeboxName] = useState(settings.jukeboxName)
   const [partyMode, setPartyMode] = useState(settings.partyMode)
   const [selectedTheme, setSelectedTheme] = useState(settings.theme)
+  const [showTouchKeyboard, setShowTouchKeyboard] = useState(settings.showTouchKeyboard)
+  const [showPagination, setShowPagination] = useState(settings.showPagination)
+  const [showConcertDetails, setShowConcertDetails] = useState(settings.showConcertDetails)
+  const [showMobileQR, setShowMobileQR] = useState(settings.showMobileQR)
+  const [useMobileAlbumLayout, setUseMobileAlbumLayout] = useState(settings.useMobileAlbumLayout)
   const [isSaving, setIsSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState('')
   const [partyModeMessage, setPartyModeMessage] = useState('')
   const [pinMessage, setPinMessage] = useState('')
   const [themeMessage, setThemeMessage] = useState('')
+  const [uiFeaturesMessage, setUiFeaturesMessage] = useState('')
   const [showPinModal, setShowPinModal] = useState(false)
   const [pin, setPin] = useState('')
   const [pinError, setPinError] = useState('')
@@ -40,8 +46,13 @@ export default function SettingsPage(): JSX.Element {
     setJukeboxName(settings.jukeboxName)
     setPartyMode(settings.partyMode)
     setSelectedTheme(settings.theme)
+    setShowTouchKeyboard(settings.showTouchKeyboard)
+    setShowPagination(settings.showPagination)
+    setShowConcertDetails(settings.showConcertDetails)
+    setShowMobileQR(settings.showMobileQR)
+    setUseMobileAlbumLayout(settings.useMobileAlbumLayout)
     void loadCurrentPaths()
-  }, [settings.jukeboxName, settings.partyMode, settings.theme])
+  }, [settings.jukeboxName, settings.partyMode, settings.theme, settings.showTouchKeyboard, settings.showPagination, settings.showConcertDetails, settings.showMobileQR, settings.useMobileAlbumLayout])
 
   useEffect(() => {
     // Check if party mode is enabled and user is not authenticated
@@ -230,6 +241,29 @@ export default function SettingsPage(): JSX.Element {
     }
   }
 
+  const handleSaveUiFeatures = async (): Promise<void> => {
+    setIsSaving(true)
+    setUiFeaturesMessage('')
+    
+    try {
+      await updateSettings({
+        showTouchKeyboard,
+        showPagination,
+        showConcertDetails,
+        showMobileQR,
+        useMobileAlbumLayout
+      })
+      setUiFeaturesMessage('UI features saved successfully!')
+      setTimeout(() => setUiFeaturesMessage(''), 3000)
+    } catch (error) {
+      console.error('Error saving UI features:', error)
+      setUiFeaturesMessage('Failed to save UI features')
+      setTimeout(() => setUiFeaturesMessage(''), 3000)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   // If party mode is enabled and user is not authenticated, show PIN modal
   if (settings.partyMode.enabled && !isAuthenticated) {
     return (
@@ -385,6 +419,102 @@ export default function SettingsPage(): JSX.Element {
         {themeMessage && (
           <div className={`${styles.message} ${themeMessage.includes('success') ? styles.success : styles.error}`}>
             {themeMessage}
+          </div>
+        )}
+      </div>
+
+      <div className={styles.section}>
+        <h2 className={styles.sectionTitle}>UI Features</h2>
+        <p className={styles.description}>
+          Enable or disable various UI features for a better user experience.
+        </p>
+        
+        <div className={styles.partyModeGrid}>
+          <div className={styles.partyModeSection}>
+            <h3 className={styles.subsectionTitle}>Input</h3>
+            <div className={styles.toggleSetting}>
+              <label className={styles.toggleLabel}>
+                <input
+                  type="checkbox"
+                  checked={showTouchKeyboard}
+                  onChange={() => setShowTouchKeyboard(!showTouchKeyboard)}
+                  className={styles.toggle}
+                />
+                <span className={styles.toggleText}>Show Touch Keyboard</span>
+              </label>
+            </div>
+          </div>
+
+          <div className={styles.partyModeSection}>
+            <h3 className={styles.subsectionTitle}>Navigation</h3>
+            <div className={styles.toggleSetting}>
+              <label className={styles.toggleLabel}>
+                <input
+                  type="checkbox"
+                  checked={showPagination}
+                  onChange={() => setShowPagination(!showPagination)}
+                  className={styles.toggle}
+                />
+                <span className={styles.toggleText}>Show Pagination</span>
+              </label>
+            </div>
+          </div>
+
+          <div className={styles.partyModeSection}>
+            <h3 className={styles.subsectionTitle}>Information Display</h3>
+            <div className={styles.toggleSetting}>
+              <label className={styles.toggleLabel}>
+                <input
+                  type="checkbox"
+                  checked={showConcertDetails}
+                  onChange={() => setShowConcertDetails(!showConcertDetails)}
+                  className={styles.toggle}
+                />
+                <span className={styles.toggleText}>Show Concert Details</span>
+              </label>
+            </div>
+          </div>
+
+          <div className={styles.partyModeSection}>
+            <h3 className={styles.subsectionTitle}>Mobile Access</h3>
+            <div className={styles.toggleSetting}>
+              <label className={styles.toggleLabel}>
+                <input
+                  type="checkbox"
+                  checked={showMobileQR}
+                  onChange={() => setShowMobileQR(!showMobileQR)}
+                  className={styles.toggle}
+                />
+                <span className={styles.toggleText}>Show Mobile QR Code</span>
+              </label>
+            </div>
+          </div>
+
+          <div className={styles.partyModeSection}>
+            <h3 className={styles.subsectionTitle}>Layout</h3>
+            <div className={styles.toggleSetting}>
+              <label className={styles.toggleLabel}>
+                <input
+                  type="checkbox"
+                  checked={useMobileAlbumLayout}
+                  onChange={() => setUseMobileAlbumLayout(!useMobileAlbumLayout)}
+                  className={styles.toggle}
+                />
+                <span className={styles.toggleText}>Use Mobile Album Layout</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={() => { void handleSaveUiFeatures(); }}
+          disabled={isSaving}
+          className={styles.saveButton}
+        >
+          {isSaving ? 'Saving...' : 'Save UI Features'}
+        </button>
+        {uiFeaturesMessage && (
+          <div className={`${styles.message} ${uiFeaturesMessage.includes('success') ? styles.success : styles.error}`}>
+            {uiFeaturesMessage}
           </div>
         )}
       </div>

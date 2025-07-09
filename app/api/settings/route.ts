@@ -8,6 +8,11 @@ interface Settings {
   jukeboxName: string
   adminPin?: string
   theme: string
+  showTouchKeyboard: boolean
+  showPagination: boolean
+  showConcertDetails: boolean
+  showMobileQR: boolean
+  useMobileAlbumLayout: boolean
   partyMode: {
     enabled: boolean
     allowPlay: boolean
@@ -38,6 +43,11 @@ function loadSettings(): Settings {
         jukeboxName: existingSettings.jukeboxName ?? 'Jukebox 2.0',
         adminPin: existingSettings.adminPin,
         theme: existingSettings.theme ?? 'jukebox-classic',
+        showTouchKeyboard: existingSettings.showTouchKeyboard ?? true,
+        showPagination: existingSettings.showPagination ?? true,
+        showConcertDetails: existingSettings.showConcertDetails ?? true,
+        showMobileQR: existingSettings.showMobileQR ?? true,
+        useMobileAlbumLayout: existingSettings.useMobileAlbumLayout ?? false,
         partyMode: {
           enabled: false,
           allowPlay: true,
@@ -66,6 +76,11 @@ function loadSettings(): Settings {
     scanPath: '',
     jukeboxName: 'Jukebox 2.0',
     theme: 'jukebox-classic',
+    showTouchKeyboard: true,
+    showPagination: true,
+    showConcertDetails: true,
+    showMobileQR: true,
+    useMobileAlbumLayout: false,
     partyMode: {
       enabled: false,
       allowPlay: true,
@@ -129,6 +144,11 @@ export function GET(): Promise<NextResponse> {
         jukeboxName: 'Jukebox 2.0',
         adminPin: '1234',
         theme: 'jukebox-classic',
+        showTouchKeyboard: true,
+        showPagination: true,
+        showConcertDetails: true,
+        showMobileQR: true,
+        useMobileAlbumLayout: false,
         partyMode: {
           enabled: false,
           allowPlay: true,
@@ -153,6 +173,11 @@ export function GET(): Promise<NextResponse> {
       jukeboxName: existingSettings.jukeboxName ?? 'Jukebox 2.0',
       adminPin: existingSettings.adminPin ?? '1234',
       theme: existingSettings.theme ?? 'jukebox-classic',
+      showTouchKeyboard: existingSettings.showTouchKeyboard ?? true,
+      showPagination: existingSettings.showPagination ?? true,
+      showConcertDetails: existingSettings.showConcertDetails ?? true,
+      showMobileQR: existingSettings.showMobileQR ?? true,
+      useMobileAlbumLayout: existingSettings.useMobileAlbumLayout ?? false,
       partyMode: {
         enabled: existingSettings.partyMode?.enabled ?? false,
         allowPlay: existingSettings.partyMode?.allowPlay ?? true,

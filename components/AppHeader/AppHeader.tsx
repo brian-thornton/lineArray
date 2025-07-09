@@ -9,11 +9,13 @@ import JukeboxHeader from '@/components/JukeboxHeader'
 import SearchBox from '@/components/SearchBox'
 import QRCode from '@/components/QRCode'
 import { useSearch } from '@/contexts/SearchContext'
+import { useSettings } from '@/contexts/SettingsContext'
 
 export default function AppHeader(): JSX.Element {
   const pathname = usePathname()
   const isAlbumPage = pathname?.startsWith('/album/')
   const { clearSearch, hideKeyboard, searchBoxRef } = useSearch()
+  const { settings } = useSettings()
   const [showQR, setShowQR] = useState(false)
 
   const handleLibraryClick = (): void => {
@@ -38,14 +40,16 @@ export default function AppHeader(): JSX.Element {
     <header className={`${styles.header} ${isAlbumPage ? styles.albumPage : ''}`}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
         <JukeboxHeader />
-        <button
-          type="button"
-          aria-label="Show Mobile Access QR Code"
-          onClick={() => setShowQR(true)}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginLeft: 8 }}
-        >
-          <Smartphone size={28} style={{ color: 'var(--jukebox-gold)' }} />
-        </button>
+        {settings.showMobileQR && (
+          <button
+            type="button"
+            aria-label="Show Mobile Access QR Code"
+            onClick={() => setShowQR(true)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginLeft: 8 }}
+          >
+            <Smartphone size={28} style={{ color: 'var(--jukebox-gold)' }} />
+          </button>
+        )}
       </div>
       <div className={styles.searchSection}>
         <SearchBox ref={searchBoxRef} />

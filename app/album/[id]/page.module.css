@@ -7,6 +7,12 @@
 }
 
 .header {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  background: var(--surface-color);
+  border-bottom: 1px solid var(--border-color);
+  gap: 16px;
   margin-bottom: var(--spacing-xl);
 }
 
@@ -270,14 +276,51 @@
   background: rgba(255, 255, 255, 0.2);
 }
 
+.addToPlaylistButton {
+  background: var(--accent-color);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background-color 0.2s;
+}
+
+.addToPlaylistButton:hover {
+  background: var(--accent-hover);
+}
+
+.addToPlaylistButton:disabled {
+  background: var(--disabled-color);
+  cursor: not-allowed;
+}
+
 .addSelectedButton {
-  background: var(--jukebox-blue);
-  color: var(--jukebox-white);
+  background: var(--accent-color);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background-color 0.2s;
+  margin-left: 8px;
 }
 
 .addSelectedButton:hover {
-  background: var(--jukebox-purple);
-  transform: translateY(-1px);
+  background: var(--accent-hover);
+}
+
+.addSelectedButton:disabled {
+  background: var(--disabled-color);
+  cursor: not-allowed;
 }
 
 .trackList {
@@ -630,4 +673,397 @@
   white-space: pre-wrap;
   overflow-x: auto;
   margin: 0;
+} 
+
+/* Mobile Layout Styles */
+.mobileLayout {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.mobileCoverSection {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 12px;
+  background: var(--surface-color);
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  min-height: 120px;
+}
+
+.mobileCoverSection .cover {
+  flex-shrink: 0;
+  width: 120px;
+  height: 120px;
+}
+
+.mobileCoverSection .coverImage {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.mobileCoverSection .defaultCover {
+  width: 120px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--background-color);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.mobileCoverSection .defaultIcon {
+  width: 40px;
+  height: 40px;
+  color: var(--text-tertiary);
+}
+
+.mobileInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: space-between;
+  min-height: 100px;
+}
+
+.mobileInfo .title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.mobileInfo .year {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.mobileInfo .trackCount {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+  margin: 0;
+}
+
+.mobileInfo .actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.mobileInfo .playButton,
+.mobileInfo .playlistButton {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.mobileInfo .playButton {
+  background: var(--accent-color);
+  color: white;
+}
+
+.mobileInfo .playButton:hover:not(:disabled) {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+.mobileInfo .playlistButton {
+  background: var(--surface-color);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+}
+
+.mobileInfo .playlistButton:hover:not(:disabled) {
+  background: var(--background-color);
+  transform: translateY(-1px);
+}
+
+.mobileInfo .playButton:disabled,
+.mobileInfo .playlistButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.mobileInfo .playIcon,
+.mobileInfo .plusIcon {
+  width: 14px;
+  height: 14px;
+}
+
+/* Make tracks section more compact in mobile layout */
+.mobileLayout + .tracksSection {
+  margin-top: 0;
+}
+
+.mobileLayout + .tracksSection .tracksHeader {
+  padding: 6px 0;
+  margin-bottom: 6px;
+}
+
+.mobileLayout + .tracksSection .tracksTitle {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.mobileLayout + .tracksSection .trackList {
+  gap: 2px;
+}
+
+.mobileLayout + .tracksSection .trackItem {
+  padding: 6px 10px;
+  border-radius: 4px;
+  min-height: 36px;
+}
+
+.mobileLayout + .tracksSection .trackNumber {
+  font-size: 0.75rem;
+  min-width: 20px;
+  font-weight: 500;
+}
+
+.mobileLayout + .tracksSection .trackTitle {
+  font-size: 0.85rem;
+  line-height: 1.2;
+}
+
+.mobileLayout + .tracksSection .playTrackButton {
+  padding: 4px;
+  border-radius: 3px;
+  min-width: 28px;
+  min-height: 28px;
+}
+
+.mobileLayout + .tracksSection .playIcon {
+  width: 12px;
+  height: 12px;
+}
+
+.mobileLayout + .tracksSection .trackCheckbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobileLayout + .tracksSection .checkbox {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+}
+
+/* Responsive adjustments for mobile layout */
+@media (max-width: 768px) {
+  .mobileCoverSection {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 10px;
+    min-height: auto;
+  }
+  
+  .mobileInfo {
+    min-height: auto;
+    align-items: center;
+  }
+  
+  .mobileInfo .actions {
+    justify-content: center;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .mobileCoverSection {
+    padding: 16px;
+    min-height: 140px;
+  }
+  
+  .mobileInfo .title {
+    font-size: 1.4rem;
+  }
+  
+  .mobileInfo .actions {
+    gap: 10px;
+  }
+  
+  .mobileInfo .playButton,
+  .mobileInfo .playlistButton {
+    padding: 8px 14px;
+    font-size: 0.85rem;
+  }
+} 
+
+/* Mobile Header Styles */
+.mobileHeaderInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  margin-left: 16px;
+}
+
+.mobileHeaderCover {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  position: relative;
+}
+
+.mobileHeaderCoverImage {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.mobileHeaderDefaultCover {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--background-color);
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+}
+
+.mobileHeaderDefaultIcon {
+  width: 20px;
+  height: 20px;
+  color: var(--text-tertiary);
+}
+
+.mobileHeaderText {
+  flex: 1;
+  min-width: 0;
+}
+
+.mobileHeaderTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin: 0;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobileHeaderYear {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.2;
+}
+
+
+
+/* Tracks header updates for mobile layout */
+.tracksHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  gap: 16px;
+}
+
+.tracksHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.mobileHeaderActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.mobileHeaderPlayButton,
+.mobileHeaderPlaylistButton {
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.mobileHeaderPlayButton {
+  background: var(--accent-color);
+  color: white;
+}
+
+.mobileHeaderPlayButton:hover:not(:disabled) {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+.mobileHeaderPlaylistButton {
+  background: var(--surface-color);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+}
+
+.mobileHeaderPlaylistButton:hover:not(:disabled) {
+  background: var(--background-color);
+  transform: translateY(-1px);
+}
+
+.mobileHeaderPlayButton:disabled,
+.mobileHeaderPlaylistButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.mobileHeaderPlayIcon,
+.mobileHeaderPlusIcon {
+  width: 12px;
+  height: 12px;
+}
+
+/* Responsive adjustments for mobile header */
+@media (max-width: 768px) {
+  .mobileHeaderInfo {
+    margin-left: 12px;
+    gap: 8px;
+  }
+  
+  .mobileHeaderTitle {
+    font-size: 1rem;
+  }
+  
+  .mobileHeaderActions {
+    gap: 6px;
+  }
+  
+  .mobileHeaderPlayButton,
+  .mobileHeaderPlaylistButton {
+    padding: 5px 8px;
+    font-size: 0.7rem;
+  }
 } 

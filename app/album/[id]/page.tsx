@@ -18,7 +18,7 @@ interface WindowWithPlayer extends Window {
 export default function AlbumDetail(): JSX.Element {
   const params = useParams()
   const router = useRouter()
-  const { canPerformAction } = useSettings()
+  const { canPerformAction, settings } = useSettings()
   const { hideKeyboard } = useSearch()
   const [album, setAlbum] = useState<Album | null>(null)
   const [loading, setLoading] = useState(true)
@@ -174,6 +174,52 @@ export default function AlbumDetail(): JSX.Element {
     setSelectedTracks(new Set())
   }
 
+  const handleAddSelectedToQueue = async (): Promise<void> => {
+    if (!canPerformAction('allowAddToQueue')) {
+      // TODO: Implement a non-blocking UI alternative for showing restricted action
+      return
+    }
+
+    if (selectedTracks.size === 0 || !album) return
+
+    try {
+      // Add all selected tracks to queue
+      for (const trackId of Array.from(selectedTracks)) {
+        const track = album.tracks.find(t => t.id === trackId)
+        if (track) {
+          const response = await fetch('/api/queue', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: track.path }),
+          })
+          
+          if (!response.ok) {
+            console.error(`Failed to add track to queue: ${track.title}`)
+          }
+        }
+      }
+      
+      hideKeyboard()
+      
+      // Set flag to show player controls
+      if (typeof window !== 'undefined') {
+        (window as WindowWithPlayer).hasAddedTrackToQueue = true
+      }
+      
+      // Immediately check player status to show controls faster
+      if (typeof window !== 'undefined' && (window as WindowWithPlayer).checkPlayerStatusImmediately) {
+        setTimeout(() => {
+          void (window as WindowWithPlayer).checkPlayerStatusImmediately?.()
+        }, 100)
+      }
+      
+      // Clear selection after adding to queue
+      setSelectedTracks(new Set())
+    } catch (error) {
+      console.error('Error adding tracks to queue:', error)
+    }
+  }
+
   const handleAddToPlaylistSuccess = async (playlistId: string, trackPaths: string[]): Promise<void> => {
     try {
       const response = await fetch(`/api/playlists/${playlistId}/tracks`, {
@@ -230,69 +276,96 @@ export default function AlbumDetail(): JSX.Element {
           <ArrowLeft className={styles.backIcon} />
           Back to Library
         </button>
-      </div>
-
-      <div className={styles.albumInfo}>
-        <div className={styles.coverSection}>
-          <div className={styles.cover}>
-            {album.coverPath ? (
-              <Image 
-                src={getCoverUrl(album.coverPath) ?? ''}
-                alt={`${album.title} cover`}
-                width={300}
-                height={300}
-                className={styles.coverImage}
-                onError={(e) => {
-                  // Fallback to default cover if image fails to load
-                  const target = e.target as HTMLImageElement
-                  target.style.display = 'none'
-                  target.nextElementSibling?.classList.remove(styles.hidden)
-                }}
-              />
-            ) : null}
-            <div className={`${styles.defaultCover} ${album.coverPath ? styles.hidden : ''}`}>
-              <Music className={styles.defaultIcon} />
+        {settings.useMobileAlbumLayout && album && (
+          <div className={styles.mobileHeaderInfo}>
+            <div className={styles.mobileHeaderCover}>
+              {album.coverPath ? (
+                <Image 
+                  src={getCoverUrl(album.coverPath) ?? ''}
+                  alt={`${album.title} cover`}
+                  width={40}
+                  height={40}
+                  className={styles.mobileHeaderCoverImage}
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement
+                    target.style.display = 'none'
+                    target.nextElementSibling?.classList.remove(styles.hidden)
+                  }}
+                />
+              ) : null}
+              <div className={`${styles.mobileHeaderDefaultCover} ${album.coverPath ? styles.hidden : ''}`} />
+            </div>
+            <div className={styles.mobileHeaderText}>
+              <h1 className={styles.mobileHeaderTitle}>{album.title}</h1>
+              {album.year && <p className={styles.mobileHeaderYear}>{album.year}</p>}
             </div>
           </div>
-          <span className={styles.trackCount}>
-            {album.tracks.length} tracks
-          </span>
-        </div>
+        )}
+      </div>
 
-        <div className={styles.infoSection}>
-          <h1 className={styles.title}>{album.title}</h1>
-          {album.year && <p className={styles.year}>{album.year}</p>}
-          
-          <div className={styles.meta}>
+            {!settings.useMobileAlbumLayout && (
+        <div className={styles.albumInfo}>
+          <div className={styles.coverSection}>
+            <div className={styles.cover}>
+              {album.coverPath ? (
+                <Image 
+                  src={getCoverUrl(album.coverPath) ?? ''}
+                  alt={`${album.title} cover`}
+                  width={300}
+                  height={300}
+                  className={styles.coverImage}
+                  onError={(e) => {
+                    // Fallback to default cover if image fails to load
+                    const target = e.target as HTMLImageElement
+                    target.style.display = 'none'
+                    target.nextElementSibling?.classList.remove(styles.hidden)
+                  }}
+                />
+              ) : null}
+              <div className={`${styles.defaultCover} ${album.coverPath ? styles.hidden : ''}`}>
+                <Music className={styles.defaultIcon} />
+              </div>
+            </div>
             <span className={styles.trackCount}>
               {album.tracks.length} tracks
             </span>
           </div>
 
-          <div className={styles.actions}>
-            <button 
-              onClick={() => { void handlePlayAlbum(); }}
-              className={styles.playButton}
-              disabled={!canPerformAction('allowAddToQueue')}
-              title={!canPerformAction('allowAddToQueue') ? 'Adding to queue is restricted in party mode' : 'Play Album'}
-            >
-              <Play className={styles.playIcon} />
-              Play Album
-            </button>
-            <button 
-              onClick={() => { handleAddToPlaylist(); }}
-              className={styles.playlistButton}
-              disabled={!canPerformAction('allowCreatePlaylists')}
-              title={!canPerformAction('allowCreatePlaylists') ? 'Creating playlists is restricted in party mode' : 'Add to Playlist'}
-            >
-              <Plus className={styles.plusIcon} />
-              Add to Playlist
-            </button>
+          <div className={styles.infoSection}>
+            <h1 className={styles.title}>{album.title}</h1>
+            {album.year && <p className={styles.year}>{album.year}</p>}
+            
+            <div className={styles.meta}>
+              <span className={styles.trackCount}>
+                {album.tracks.length} tracks
+              </span>
+            </div>
+
+            <div className={styles.actions}>
+              <button 
+                onClick={() => { void handlePlayAlbum(); }}
+                className={styles.playButton}
+                disabled={!canPerformAction('allowAddToQueue')}
+                title={!canPerformAction('allowAddToQueue') ? 'Adding to queue is restricted in party mode' : 'Play Album'}
+              >
+                <Play className={styles.playIcon} />
+                Play Album
+              </button>
+              <button 
+                onClick={() => { handleAddToPlaylist(); }}
+                className={styles.playlistButton}
+                disabled={!canPerformAction('allowCreatePlaylists')}
+                title={!canPerformAction('allowCreatePlaylists') ? 'Creating playlists is restricted in party mode' : 'Add to Playlist'}
+              >
+                <Plus className={styles.plusIcon} />
+                Add to Playlist
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {album.setlistInfo && (
+      {album.setlistInfo && settings.showConcertDetails && (
         <div className={styles.setlistSection}>
           <h3 className={styles.setlistTitle}>Concert Setlist & Notes</h3>
           <div className={styles.setlistFilename}>{album.setlistInfo.filename}</div>
@@ -302,7 +375,31 @@ export default function AlbumDetail(): JSX.Element {
 
       <div className={styles.tracksSection}>
         <div className={styles.tracksHeader}>
-          <h2 className={styles.tracksTitle}>Tracks</h2>
+          <div className={styles.tracksHeaderLeft}>
+            <h2 className={styles.tracksTitle}>Tracks</h2>
+            {settings.useMobileAlbumLayout && (
+              <div className={styles.mobileHeaderActions}>
+                <button 
+                  onClick={() => { void handlePlayAlbum(); }}
+                  className={styles.mobileHeaderPlayButton}
+                  disabled={!canPerformAction('allowAddToQueue')}
+                  title={!canPerformAction('allowAddToQueue') ? 'Adding to queue is restricted in party mode' : 'Play Album'}
+                >
+                  <Play className={styles.mobileHeaderPlayIcon} />
+                  Play Album
+                </button>
+                <button 
+                  onClick={() => { handleAddToPlaylist(); }}
+                  className={styles.mobileHeaderPlaylistButton}
+                  disabled={!canPerformAction('allowCreatePlaylists')}
+                  title={!canPerformAction('allowCreatePlaylists') ? 'Creating playlists is restricted in party mode' : 'Add to Playlist'}
+                >
+                  <Plus className={styles.mobileHeaderPlusIcon} />
+                  Add to Playlist
+                </button>
+              </div>
+            )}
+          </div>
           <div className={styles.tracksActions}>
             {selectedTracks.size === 0 ? (
               <button onClick={() => { handleSelectAllTracks(); }} className={styles.selectAllButton}>
@@ -311,6 +408,17 @@ export default function AlbumDetail(): JSX.Element {
             ) : (
               <button onClick={() => { handleDeselectAllTracks(); }} className={styles.selectAllButton}>
                 Deselect All ({selectedTracks.size})
+              </button>
+            )}
+            {selectedTracks.size > 0 && (
+              <button 
+                onClick={() => { void handleAddSelectedToQueue(); }}
+                className={styles.addSelectedButton}
+                disabled={!canPerformAction('allowAddToQueue')}
+                title={!canPerformAction('allowAddToQueue') ? 'Adding to queue is restricted in party mode' : 'Add Selected to Queue'}
+              >
+                <Play className={styles.playIcon} />
+                Add Selected to Queue
               </button>
             )}
           </div>
@@ -337,7 +445,6 @@ export default function AlbumDetail(): JSX.Element {
                 </span>
                 <div className={styles.trackDetails}>
                   <span className={styles.trackTitle}>{track.title}</span>
-                  <span className={styles.trackDuration}>{track.duration}</span>
                 </div>
               </div>
               

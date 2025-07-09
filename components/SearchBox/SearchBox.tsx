@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef } from 'react'
 import { useSearch } from '@/contexts/SearchContext'
+import { useSettings } from '@/contexts/SettingsContext'
 import styles from './SearchBox.module.css'
 
 export interface SearchBoxRef {
@@ -10,6 +11,7 @@ export interface SearchBoxRef {
 
 const SearchBox = forwardRef<SearchBoxRef>((_props, ref): JSX.Element => {
   const { performSearch, clearSearch } = useSearch()
+  const { settings } = useSettings()
   const [query, setQuery] = useState('')
   const [showKeyboard, setShowKeyboard] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
@@ -63,8 +65,8 @@ const SearchBox = forwardRef<SearchBoxRef>((_props, ref): JSX.Element => {
   }
 
   const handleInputFocus = (): void => {
-    // Only show on-screen keyboard on desktop/tablet, not on mobile
-    if (!isMobile) {
+    // Only show on-screen keyboard on desktop/tablet, not on mobile, and only if enabled in settings
+    if (!isMobile && settings.showTouchKeyboard) {
       setShowKeyboard(true)
     }
   }

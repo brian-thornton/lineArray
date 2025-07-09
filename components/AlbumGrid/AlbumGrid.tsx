@@ -4,6 +4,7 @@ import Pagination from '../Pagination'
 import SwipeGestures from '../SwipeGestures'
 import { Album, Track } from '@/types/music'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useSettings } from '@/contexts/SettingsContext'
 import styles from './AlbumGrid.module.css'
 
 interface AlbumGridProps {
@@ -13,6 +14,7 @@ interface AlbumGridProps {
 }
 
 function AlbumGrid({ albums, onPlayTrack, isLoading }: AlbumGridProps): JSX.Element {
+  const { settings } = useSettings()
   const [currentPage, setCurrentPage] = useState(1)
   const [gridConfig, setGridConfig] = useState({
     columnsPerRow: 4,
@@ -169,13 +171,15 @@ function AlbumGrid({ albums, onPlayTrack, isLoading }: AlbumGridProps): JSX.Elem
           ))}
         </div>
 
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={handlePageChange}
-          totalItems={albums.length}
-          itemsPerPage={gridConfig.itemsPerPage}
-        />
+        {settings.showPagination && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+            totalItems={albums.length}
+            itemsPerPage={gridConfig.itemsPerPage}
+          />
+        )}
       </div>
     </SwipeGestures>
   )
