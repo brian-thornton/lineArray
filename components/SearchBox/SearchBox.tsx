@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
 import { useSearch } from '@/contexts/SearchContext'
 import { useSettings } from '@/contexts/SettingsContext'
 import styles from './SearchBox.module.css'
@@ -10,6 +11,9 @@ export interface SearchBoxRef {
 }
 
 const SearchBox = forwardRef<SearchBoxRef>((_props, ref): JSX.Element => {
+  const router = useRouter()
+  const pathname = usePathname()
+  const isAlbumPage = pathname?.startsWith('/album/')
   const { performSearch, clearSearch } = useSearch()
   const { settings } = useSettings()
   const [query, setQuery] = useState('')
@@ -54,8 +58,7 @@ const SearchBox = forwardRef<SearchBoxRef>((_props, ref): JSX.Element => {
     if (key === 'backspace') {
       setQuery(prev => prev.slice(0, -1))
     } else if (key === 'clear') {
-      setQuery('')
-      clearSearch()
+      handleClearSearch()
     } else if (key === 'done') {
       setShowKeyboard(false)
       inputRef.current?.blur()
@@ -83,6 +86,16 @@ const SearchBox = forwardRef<SearchBoxRef>((_props, ref): JSX.Element => {
       clearSearch()
     }
   }, [query, performSearch, clearSearch])
+
+  const handleClearSearch = (): void => {
+    setQuery('')
+    clearSearch()
+    
+    // Navigate back to library if on album detail page
+    if (isAlbumPage) {
+      router.push('/')
+    }
+  }
 
   const keyboardKeys = [
     ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
@@ -112,10 +125,7 @@ const SearchBox = forwardRef<SearchBoxRef>((_props, ref): JSX.Element => {
         />
         {query && (
           <button
-            onClick={() => {
-              setQuery('')
-              clearSearch()
-            }}
+            onClick={handleClearSearch}
             className={styles.clearButton}
             type="button"
           >

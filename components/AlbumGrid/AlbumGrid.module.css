@@ -4,6 +4,7 @@
   display: flex;
   flex-direction: column;
   position: relative;
+  overflow: hidden;
 }
 
 .slideContainer {
@@ -49,7 +50,8 @@
   padding-bottom: var(--spacing-md);
   justify-items: center;
   align-items: start;
-  min-height: 500px;
+  height: 100%;
+  overflow-y: auto;
 }
 
 .navArrow {
@@ -120,8 +122,6 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-2xl);
-  min-height: 400px;
   height: 100%;
 }
 
@@ -139,6 +139,7 @@
   color: var(--jukebox-gray);
   font-size: 1.1rem;
   text-align: center;
+  margin-left: 0;
 }
 
 .emptyState {
@@ -182,8 +183,7 @@
 
 /* Responsive design */
 @media (max-width: 1024px) {
-  .grid {
-    grid-template-columns: repeat(6, 1fr);
+  .gridContainer {
     gap: var(--spacing-sm);
   }
   
@@ -204,8 +204,7 @@
 }
 
 @media (max-width: 768px) {
-  .grid {
-    grid-template-columns: repeat(4, 1fr);
+  .gridContainer {
     gap: var(--spacing-sm);
   }
   
@@ -233,15 +232,12 @@
 
 @media (max-width: 480px) {
   .container {
-    min-height: 100vh;
-    padding-bottom: var(--spacing-lg);
+    height: 100vh;
+    overflow: hidden;
   }
   
-  .grid {
-    grid-template-columns: repeat(3, 1fr);
+  .gridContainer {
     gap: var(--spacing-xs);
-    flex: 1;
-    min-height: 0;
   }
   
   .loadingContainer,

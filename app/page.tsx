@@ -6,6 +6,7 @@ import AlbumGrid from '@/components/AlbumGrid'
 import SearchResults from '@/components/SearchResults'
 import { useSearch } from '@/contexts/SearchContext'
 import styles from './page.module.css'
+import LibraryLayout from '@/components/LibraryLayout/LibraryLayout'
 
 interface WindowWithPlayer extends Window {
   hasAddedTrackToQueue?: boolean
@@ -15,12 +16,21 @@ interface WindowWithPlayer extends Window {
 export default function Home(): JSX.Element {
   const { searchQuery, searchResults, isSearching, addTrackToQueue, hideKeyboard } = useSearch()
   const [albums, setAlbums] = useState<Album[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    document.body.id = 'library-no-scroll'
+    return () => {
+      document.body.id = ''
+    }
+  }, [])
 
   useEffect(() => {
     void loadAlbums()
   }, [])
 
   const loadAlbums = async (): Promise<void> => {
+    setIsLoading(true)
     try {
       const response = await fetch('/api/albums')
       if (response.ok) {
@@ -29,6 +39,8 @@ export default function Home(): JSX.Element {
       }
     } catch (error) {
       console.error('Error loading albums:', error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -54,22 +66,24 @@ export default function Home(): JSX.Element {
   }
 
   return (
-    <div className={styles.container}>
-      <main className={styles.main}>
-        {searchQuery ? (
-          <SearchResults 
-            results={searchResults}
-            onTrackClick={path => { void handleTrackClick(path); }}
-            isLoading={isSearching}
-          />
-        ) : (
-          <AlbumGrid 
-            albums={albums}
-            onPlayTrack={handlePlayTrack}
-            isLoading={false}
-          />
-        )}
-      </main>
-    </div>
+    <LibraryLayout>
+      <div className={styles.container}>
+        <main className={styles.main}>
+          {searchQuery ? (
+            <SearchResults 
+              results={searchResults}
+              onTrackClick={path => { void handleTrackClick(path); }}
+              isLoading={isSearching}
+            />
+          ) : (
+            <AlbumGrid 
+              albums={albums}
+              onPlayTrack={handlePlayTrack}
+              isLoading={isLoading}
+            />
+          )}
+        </main>
+      </div>
+    </LibraryLayout>
   )
 } 

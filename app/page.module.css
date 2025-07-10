@@ -1,5 +1,5 @@
 .container {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   background: linear-gradient(135deg, var(--jukebox-dark) 0%, var(--jukebox-darker) 100%);
@@ -7,7 +7,7 @@
 
 .main {
   flex: 1;
-  padding: var(--spacing-lg);
+  padding: calc(var(--spacing-lg) / 2) var(--spacing-lg) var(--spacing-lg) var(--spacing-lg);
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -16,12 +16,12 @@
 /* Responsive design */
 @media (max-width: 768px) {
   .main {
-    padding: var(--spacing-md);
+    padding: calc(var(--spacing-md) / 2) var(--spacing-md) var(--spacing-md) var(--spacing-md);
   }
 }
 
 @media (max-width: 480px) {
   .main {
-    padding: var(--spacing-sm);
+    padding: calc(var(--spacing-sm) / 2) var(--spacing-sm) var(--spacing-sm) var(--spacing-sm);
   }
 } 

@@ -324,8 +324,7 @@
 }
 
 .trackList {
-  max-height: 600px;
-  overflow-y: auto;
+  /* Removed max-height and overflow-y to allow the list to grow and use page scroll */
 }
 
 .trackItem {

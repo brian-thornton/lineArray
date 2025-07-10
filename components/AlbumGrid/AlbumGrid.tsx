@@ -27,20 +27,37 @@ function AlbumGrid({ albums, onPlayTrack, isLoading }: AlbumGridProps): JSX.Elem
       if (typeof window === 'undefined') return
 
       const viewportWidth = window.innerWidth
+      const viewportHeight = window.innerHeight
       
       // Responsive layout based on screen size - more columns for compact layout
-      let columnsPerRow = 8 // Default for desktop - increased from 7
+      let columnsPerRow = 9 // Default for extra large desktop (1366px+)
+      if (viewportWidth <= 1366) { // Large desktop
+        columnsPerRow = 8
+      }
+      if (viewportWidth <= 1200) { // Medium desktop
+        columnsPerRow = 7
+      }
       if (viewportWidth <= 1024) { // Desktop
-        columnsPerRow = 6 // Increased from 3
+        columnsPerRow = 6
       }
       if (viewportWidth <= 768) { // Tablet
-        columnsPerRow = 4 // Increased from 2
+        columnsPerRow = 4
       }
       if (viewportWidth <= 480) { // Mobile
-        columnsPerRow = 3 // Increased from 2
+        columnsPerRow = 3
       }
       
-      const rowsPerPage = 3 // Always 3 rows
+      // Calculate rows based on viewport height
+      // Account for header, padding, and pagination
+      const headerHeight = 80 // Approximate header height
+      const padding = 80 // Top and bottom padding
+      const paginationHeight = 60 // Pagination height
+      const availableHeight = viewportHeight - headerHeight - padding - paginationHeight
+      
+      // Estimate album card height (including gap)
+      const albumCardHeight = 200 // Approximate height of album card + gap
+      const rowsPerPage = Math.max(1, Math.floor(availableHeight / albumCardHeight))
+      
       const itemsPerPage = columnsPerRow * rowsPerPage
       
       setGridConfig({
@@ -109,7 +126,7 @@ function AlbumGrid({ albums, onPlayTrack, isLoading }: AlbumGridProps): JSX.Elem
     return (
       <div className={styles.loadingContainer}>
         <div className={styles.loadingSpinner} />
-        <p className={styles.loadingText}>Scanning your music library...</p>
+        <p className={styles.loadingText}>Loading…</p>
       </div>
     )
   }

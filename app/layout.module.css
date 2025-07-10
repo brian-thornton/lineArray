@@ -1,11 +1,13 @@
 .main {
-  min-height: calc(100vh - 80px - 120px); /* Account for header and player */
+  height: calc(100vh - 80px - 120px); /* Account for header and player */
   padding-bottom: 120px; /* Space for player - increased to ensure content is visible */
+  overflow: auto;
 }
 
 /* Mobile and touch screen optimizations */
 @media (max-width: 768px) {
   .main {
+    height: calc(100vh - 80px - 140px); /* Account for header and larger player on mobile */
     padding-bottom: 140px; /* More space on mobile for larger player */
   }
   
@@ -64,6 +66,7 @@
 /* Small screen adjustments */
 @media (max-width: 480px) {
   .main {
+    height: calc(100vh - 80px - 150px); /* Account for header and larger player on small screens */
     padding-bottom: 150px; /* Even more space on very small screens */
   }
 } 
