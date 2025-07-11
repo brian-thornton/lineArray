@@ -1,10 +1,23 @@
-export interface QueueResponse {
+import { QueueTrack } from './audio'
+
+export interface QueueStateResponse {
   isPlaying: boolean
-  currentTrack: string | Track | null
-  queue: Track[]
-  volume?: number
+  currentTrack: QueueTrack | null
+  queue: QueueTrack[]
+  progress: number
+  volume: number
   isMuted: boolean
-  progress?: number
+}
+
+export interface QueueResponse extends QueueStateResponse {
+  success?: boolean
+  error?: string
+}
+
+export interface QueuePlayResponse extends QueueStateResponse {
+  success?: boolean
+  action?: string
+  error?: string
 }
 
 export interface Track {
@@ -24,6 +37,8 @@ export interface ControlResponse {
   isMuted?: boolean
   volume?: number
   success: boolean
+  currentSong?: { file: string | null; title: string | null }
+  progress?: number
 }
 
 export interface SearchResponse {

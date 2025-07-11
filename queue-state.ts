@@ -7,6 +7,10 @@ const audio: AudioManagerInterface = new AudioManager()
 
 let queue: QueueTrack[] = []
 let currentTrack: QueueTrack | null = null
+let isPlaying: boolean = false
+let progress: number = 0
+let volume: number = 1.0
+let isMuted: boolean = false
 
 // File path for persisting queue state
 const STATE_FILE_PATH = path.join(process.cwd(), 'data', 'queue-state.json')
@@ -49,22 +53,6 @@ function loadState(): void {
         console.log('Queue state restored from:', STATE_FILE_PATH)
         console.log('Restored queue length:', queue.length)
         console.log('Restored current track:', currentTrack)
-        
-        // Check if we need to restart audio for the current track
-        if (currentTrack) {
-          // Set the current file in audio manager for state consistency
-          audio.setCurrentFile(currentTrack.path)
-          
-          // Only restart if we were actually playing before (not just paused)
-          // This prevents unwanted restarts during normal navigation
-          setTimeout(async () => {
-            const audioStatus = audio.getStatus()
-            if (!audioStatus.isPlaying && !audioStatus.hasProcess) {
-              console.log('State restored but not auto-restarting audio - user can manually resume if needed')
-              // Don't auto-restart - let the user control playback
-            }
-          }, 1000)
-        }
       } else {
         console.log('Queue state is too old or invalid, starting fresh')
       }
@@ -77,35 +65,47 @@ function loadState(): void {
 // Load state on module initialization
 loadState()
 
+// Set up the track completion callback
+audio.setTrackCompleteCallback(() => {
+  console.log('Queue state: Track completed, playing next in queue')
+  void playNextInQueue()
+})
+
+// Set up the progress callback to update UI
+audio.setProgressCallback((newProgress: number) => {
+  progress = newProgress
+  console.log('Queue state: Progress update:', progress)
+})
+
 async function playNextInQueue(): Promise<boolean> {
   console.log('playNextInQueue: Starting, queue length:', queue.length)
   
   if (queue.length === 0) {
     console.log('playNextInQueue: Queue is empty, stopping audio')
-    await audio.stop()
-    currentTrack = null
-    saveState() // Save state when clearing current track
+    await stopPlayback()
     return false
   }
   
   const nextTrack = queue.shift() || null
   console.log('playNextInQueue: Next track from queue:', nextTrack)
   
-  currentTrack = nextTrack
-  console.log('playNextInQueue: Set currentTrack to:', currentTrack)
-  saveState() // Save state when setting new current track
-  
   if (!nextTrack) {
     console.log('playNextInQueue: No next track, stopping audio')
-    await audio.stop()
-    currentTrack = null
-    saveState()
+    await stopPlayback()
     return false
   }
+  
+  currentTrack = nextTrack
+  console.log('playNextInQueue: Set currentTrack to:', currentTrack)
+  saveState()
   
   console.log('playNextInQueue: Playing file:', nextTrack.path)
   const success = await audio.playFile(nextTrack.path)
   console.log('playNextInQueue: playFile result:', success)
+  
+  if (success) {
+    isPlaying = true
+  }
 
   // Increment play count for this track
   try {
@@ -121,12 +121,176 @@ async function playNextInQueue(): Promise<boolean> {
   return success
 }
 
+async function startPlayback(): Promise<boolean> {
+  if (currentTrack) {
+    console.log('startPlayback: Starting playback for current track')
+    const success = await audio.playFile(currentTrack.path)
+    if (success) {
+      isPlaying = true
+    }
+    return success
+  } else if (queue.length > 0) {
+    console.log('startPlayback: No current track, playing next in queue')
+    return await playNextInQueue()
+  } else {
+    console.log('startPlayback: No tracks to play')
+    return false
+  }
+}
+
+async function stopPlayback(): Promise<boolean> {
+  console.log('stopPlayback: Stopping all playback')
+  const success = await audio.stop()
+  isPlaying = false
+  currentTrack = null
+  progress = 0
+  saveState()
+  return success
+}
+
+async function pausePlayback(): Promise<boolean> {
+  console.log('pausePlayback: Pausing playback')
+  const success = await audio.pause()
+  if (success) {
+    isPlaying = false
+  }
+  return success
+}
+
+async function resumePlayback(): Promise<boolean> {
+  console.log('resumePlayback: Resuming playback')
+  if (currentTrack) {
+    const success = await audio.resume()
+    if (success) {
+      isPlaying = true
+    }
+    return success
+  } else {
+    return await startPlayback()
+  }
+}
+
+async function seekPlayback(position: number): Promise<boolean> {
+  console.log('seekPlayback: Seeking to position:', position)
+  console.log('seekPlayback: currentTrack:', currentTrack)
+  console.log('seekPlayback: isPlaying:', isPlaying)
+  if (!currentTrack) {
+    console.error('seekPlayback: No currentTrack, cannot seek')
+    return false
+  }
+  // Pass normalized position (0-1) to audio.seek
+  const success = await audio.seek(position)
+  // After seek, poll VLC for latest state
+  try {
+    const statusUrl = `http://localhost:8080/requests/status.xml`;
+    const response = await fetch(statusUrl, {
+      headers: {
+        'Authorization': `Basic ${Buffer.from(':jukebox').toString('base64')}`
+      }
+    });
+    if (response.ok) {
+      const statusText = await response.text();
+      const stateMatch = statusText.match(/<state>([^<]+)<\/state>/);
+      const state = stateMatch ? stateMatch[1] : 'unknown';
+      isPlaying = state === 'playing';
+      const timeMatch = statusText.match(/<time>(\d+)<\/time>/);
+      const lengthMatch = statusText.match(/<length>(\d+)<\/length>/);
+      if (timeMatch && lengthMatch) {
+        const currentTime = parseInt(timeMatch[1], 10);
+        const totalLength = parseInt(lengthMatch[1], 10);
+        progress = totalLength > 0 ? currentTime / totalLength : 0;
+      }
+    }
+  } catch (e) {
+    console.error('seekPlayback: Error polling VLC for state after seek', e);
+  }
+  if (success) {
+    console.log('seekPlayback: Seek completed, isPlaying:', isPlaying, 'progress:', progress)
+  }
+  return success
+}
+
+async function addToQueue(filePath: string): Promise<void> {
+  // Generate a unique ID for the track
+  const trackId = `track_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  const track: QueueTrack = {
+    id: trackId,
+    path: filePath,
+    title: filePath.split('/').pop()?.replace(/\.[^/.]+$/, '') || 'Unknown',
+    artist: 'Unknown',
+    album: 'Unknown',
+    duration: '0:00'
+  }
+  queue.push(track)
+  saveState()
+  
+  // If no track is currently playing, start playing this track
+  if (!currentTrack && !isPlaying) {
+    console.log('addToQueue: No current track, starting playback')
+    const success = await playNextInQueue()
+    if (success) {
+      console.log('addToQueue: Playback started successfully')
+    } else {
+      console.log('addToQueue: Failed to start playback')
+    }
+  }
+}
+
 function getQueue(): QueueTrack[] {
   return queue
 }
 
 function getCurrentTrack(): QueueTrack | null {
   return currentTrack
+}
+
+function getIsPlaying(): boolean {
+  return isPlaying
+}
+
+function getProgress(): number {
+  return progress
+}
+
+function getVolume(): number {
+  return volume
+}
+
+function setVolume(newVolume: number): boolean {
+  volume = Math.max(0, Math.min(1, newVolume))
+  isMuted = volume === 0
+  return audio.setVolume(volume)
+}
+
+function getIsMuted(): boolean {
+  return isMuted
+}
+
+function toggleMute(): boolean {
+  isMuted = !isMuted
+  return audio.toggleMute()
+}
+
+async function clearQueue(): Promise<void> {
+  queue = []
+  await stopPlayback()
+  saveState()
+}
+
+function removeFromQueue(index: number): void {
+  if (index >= 0 && index < queue.length) {
+    queue.splice(index, 1)
+    saveState()
+  }
+}
+
+function reorderQueue(fromIndex: number, toIndex: number): void {
+  if (fromIndex >= 0 && fromIndex < queue.length && 
+      toIndex >= 0 && toIndex < queue.length) {
+    const movedTrack = queue.splice(fromIndex, 1)[0]
+    queue.splice(toIndex, 0, movedTrack)
+    saveState()
+  }
 }
 
 // Get debug information about the current state
@@ -141,119 +305,80 @@ function getDebugInfo(): DebugInfo {
   }
 }
 
-// Check and restore audio state if needed (called periodically)
-async function checkAudioState(): Promise<void> {
-  const audioStatus = audio.getStatus()
-  
-  // Only restart if we have a current track but no audio process AND we were playing before kill
-  if (currentTrack && !audioStatus.isPlaying && !audioStatus.hasProcess && audioStatus.wasPlayingBeforeKill) {
-    console.log('checkAudioState: Detected missing audio process that was playing, attempting restart')
-    audio.resetState()
-    audio.setCurrentFile(currentTrack.path)
-    await audio.checkAndRestart()
-  }
-}
-
-function addToQueue(filePath: string): void {
-  // Generate a unique ID for the track
-  const trackId = `track_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-  const track: QueueTrack = {
-    id: trackId,
-    path: filePath,
-    title: filePath.split('/').pop()?.replace(/\.[^/.]+$/, '') || 'Unknown',
-    artist: 'Unknown',
-    album: 'Unknown',
-    duration: '0:00'
-  }
-  queue.push(track)
-  saveState() // Save state when adding to queue
-  
-  // If no track is currently playing, start playing this track
-  if (!currentTrack) {
-    console.log('addToQueue: No current track, starting playback')
-    void playNextInQueue()
-  }
-}
-
-function getIsPlaying(): boolean {
-  // Check if audio is actually playing and we have a current track
-  const audioStatus = audio.getStatus()
-  const hasCurrentTrack = currentTrack !== null
-  const isActuallyPlaying = audioStatus.isPlaying && hasCurrentTrack
-  
-  // Only attempt restart if we have a current track but no audio process AND we're not in a normal navigation scenario
-  // We'll be more conservative about restarts to avoid interrupting playback during navigation
-  if (hasCurrentTrack && !audioStatus.isPlaying && !audioStatus.hasProcess) {
-    // Check if this is a legitimate restart scenario (e.g., after server restart or process kill)
-    // We'll only restart if the audio was previously playing and got interrupted
-    const shouldRestart = audioStatus.wasPlayingBeforeKill || false
-    
-    if (shouldRestart) {
-      console.log('Audio process was killed but we have a current track, attempting to restart...')
-      // Reset audio state and attempt restart
-      audio.resetState()
-      if (currentTrack) {
-        audio.setCurrentFile(currentTrack.path) // Set the current file so restart works
+// Helper to get current file from VLC
+async function getCurrentFileFromVLC(): Promise<string | null> {
+  try {
+    const statusUrl = `http://localhost:8080/requests/status.xml`;
+    const response = await fetch(statusUrl, {
+      headers: {
+        'Authorization': `Basic ${Buffer.from(':jukebox').toString('base64')}`
       }
-      // Schedule restart attempt
-      setTimeout(async () => {
-        if (currentTrack && !audio.getStatus().isPlaying) {
-          console.log('Restarting playback for current track:', currentTrack.path)
-          await audio.checkAndRestart()
-        }
-      }, 100)
-    } else {
-      console.log('Audio process missing but not restarting - likely normal navigation')
+    });
+    if (!response.ok) return null;
+    const statusText = await response.text();
+    const fileMatch = statusText.match(/<info name='filename'>([^<]+)<\/info>/);
+    if (fileMatch) {
+      // This is just the filename, not the full path. Try to match it to a known file in the queue.
+      const filename = fileMatch[1];
+      // Try to find in queue
+      const found = queue.find(t => t.path.endsWith(filename));
+      if (found) return found.path;
+      // If not found, try currentTrack
+      if (currentTrack && currentTrack.path.endsWith(filename)) return currentTrack.path;
+      // Otherwise, return just the filename (not ideal, but better than nothing)
+      return filename;
     }
-    
-    // Return true to indicate we should be playing (even if temporarily stopped)
-    return true
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// Robust getCurrentState with VLC sync
+async function getCurrentState(): Promise<{
+  isPlaying: boolean
+  currentTrack: QueueTrack | null
+  queue: QueueTrack[]
+  progress: number
+  volume: number
+  isMuted: boolean
+}> {
+  // Sync with VLC's actual state if we have a current track
+  if (currentTrack) {
+    try {
+      const statusUrl = `http://localhost:8080/requests/status.xml`;
+      const response = await fetch(statusUrl, {
+        headers: {
+          'Authorization': `Basic ${Buffer.from(':jukebox').toString('base64')}`
+        }
+      });
+      if (response.ok) {
+        const statusText = await response.text();
+        const stateMatch = statusText.match(/<state>([^<]+)<\/state>/);
+        const state = stateMatch ? stateMatch[1] : 'unknown';
+        isPlaying = state === 'playing';
+        const timeMatch = statusText.match(/<time>(\d+)<\/time>/);
+        const lengthMatch = statusText.match(/<length>(\d+)<\/length>/);
+        if (timeMatch && lengthMatch) {
+          const currentTime = parseInt(timeMatch[1], 10);
+          const totalLength = parseInt(lengthMatch[1], 10);
+          progress = totalLength > 0 ? currentTime / totalLength : 0;
+        }
+      }
+    } catch (error) {
+      // If VLC is unreachable, keep current state
+      console.error('getCurrentState: Error syncing with VLC:', error);
+    }
   }
   
-  // Check if track has finished and we should move to next
-  if (isActuallyPlaying && audio.isTrackFinished()) {
-    console.log('Track finished, moving to next...')
-    // Schedule next track
-    setTimeout(async () => {
-      await playNextInQueue()
-    }, 100)
-    return false
-  }
-  
-  // Return true if we have a current track (even if audio is temporarily stopped)
-  // This prevents the player from disappearing during recompiles
-  const shouldShowPlayer = hasCurrentTrack || isActuallyPlaying
-  
-  return shouldShowPlayer
-}
-
-async function clearCurrentTrack(): Promise<void> {
-  currentTrack = null
-  await audio.stop()
-  saveState() // Save state when clearing current track
-}
-
-async function clearQueue(): Promise<void> {
-  queue = []
-  await audio.stop()
-  currentTrack = null
-  saveState() // Save state when clearing queue
-}
-
-function removeFromQueue(index: number): void {
-  if (index >= 0 && index < queue.length) {
-    queue.splice(index, 1)
-    saveState() // Save state when removing from queue
-  }
-}
-
-function reorderQueue(fromIndex: number, toIndex: number): void {
-  if (fromIndex >= 0 && fromIndex < queue.length && 
-      toIndex >= 0 && toIndex < queue.length) {
-    const movedTrack = queue.splice(fromIndex, 1)[0]
-    queue.splice(toIndex, 0, movedTrack)
-    saveState() // Save state when reordering queue
-  }
+  return {
+    isPlaying,
+    currentTrack,
+    queue,
+    progress,
+    volume,
+    isMuted
+  };
 }
 
 const queueState: QueueStateInterface = {
@@ -262,15 +387,23 @@ const queueState: QueueStateInterface = {
   addToQueue,
   getIsPlaying,
   playNextInQueue,
-  clearCurrentTrack,
+  clearCurrentTrack: async () => { await stopPlayback(); },
   clearQueue,
   removeFromQueue,
   reorderQueue,
-  checkAudioState,
+  checkAudioState: async () => {}, // No auto-recovery
   saveState,
   loadState,
   getDebugInfo,
-  audio
+  audio,
+  stopAllPlayback: async () => { await stopPlayback(); },
+  getProgress,
+  getVolume,
+  setVolume,
+  getIsMuted,
+  toggleMute,
+  seekPlayback,
+  getCurrentState
 }
 
 export default queueState 

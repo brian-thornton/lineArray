@@ -49,14 +49,35 @@ function AlbumGrid({ albums, onPlayTrack, isLoading }: AlbumGridProps): JSX.Elem
       
       // Calculate rows based on viewport height
       // Account for header, padding, and pagination
-      const headerHeight = 80 // Approximate header height
-      const padding = 80 // Top and bottom padding
-      const paginationHeight = 60 // Pagination height
-      const availableHeight = viewportHeight - headerHeight - padding - paginationHeight
+      let headerHeight = 80 // Approximate header height
+      let padding = 80 // Top and bottom padding
+      let paginationHeight = 60 // Pagination height
+      let albumCardHeight = 200 // Approximate height of album card + gap
       
-      // Estimate album card height (including gap)
-      const albumCardHeight = 200 // Approximate height of album card + gap
-      const rowsPerPage = Math.max(1, Math.floor(availableHeight / albumCardHeight))
+      // Adjust for mobile
+      if (viewportWidth <= 480) {
+        headerHeight = 60 // Smaller header on mobile
+        padding = 40 // Less padding on mobile
+        paginationHeight = 40 // Smaller pagination on mobile
+        albumCardHeight = 140 // Adjusted for exactly 2 rows on mobile
+        // Force exactly 2 rows on mobile
+        const rowsPerPage = 2
+        const itemsPerPage = columnsPerRow * rowsPerPage
+        
+        setGridConfig({
+          columnsPerRow,
+          itemsPerPage
+        })
+        return
+      } else if (viewportWidth <= 768) {
+        headerHeight = 70
+        padding = 60
+        paginationHeight = 50
+        albumCardHeight = 160 // Medium album cards on tablet
+      }
+      
+      const availableHeight = viewportHeight - headerHeight - padding - paginationHeight
+      const rowsPerPage = Math.max(2, Math.floor(availableHeight / albumCardHeight)) // Ensure at least 2 rows
       
       const itemsPerPage = columnsPerRow * rowsPerPage
       

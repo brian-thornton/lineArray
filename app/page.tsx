@@ -5,6 +5,7 @@ import { Album, Track } from '@/types/music'
 import AlbumGrid from '@/components/AlbumGrid'
 import SearchResults from '@/components/SearchResults'
 import { useSearch } from '@/contexts/SearchContext'
+import { useToast } from '@/contexts/ToastContext'
 import styles from './page.module.css'
 import LibraryLayout from '@/components/LibraryLayout/LibraryLayout'
 
@@ -15,15 +16,20 @@ interface WindowWithPlayer extends Window {
 
 export default function Home(): JSX.Element {
   const { searchQuery, searchResults, isSearching, addTrackToQueue, hideKeyboard } = useSearch()
+  const { showToast } = useToast()
   const [albums, setAlbums] = useState<Album[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    document.body.id = 'library-no-scroll'
+    if (!searchQuery) {
+      document.body.id = 'library-no-scroll'
+    } else {
+      document.body.id = ''
+    }
     return () => {
       document.body.id = ''
     }
-  }, [])
+  }, [searchQuery])
 
   useEffect(() => {
     void loadAlbums()
@@ -52,6 +58,12 @@ export default function Home(): JSX.Element {
     await addTrackToQueue(path)
     hideKeyboard()
     
+    // Find the track title for the toast
+    const track = searchResults.find(result => result.path === path)
+    if (track) {
+      showToast(`Added "${track.title}" to queue`, 'success')
+    }
+    
     // Set flag to show player controls
     if (typeof window !== 'undefined') {
       (window as WindowWithPlayer).hasAddedTrackToQueue = true
@@ -66,24 +78,28 @@ export default function Home(): JSX.Element {
   }
 
   return (
-    <LibraryLayout>
+    searchQuery ? (
       <div className={styles.container}>
         <main className={styles.main}>
-          {searchQuery ? (
-            <SearchResults 
-              results={searchResults}
-              onTrackClick={path => { void handleTrackClick(path); }}
-              isLoading={isSearching}
-            />
-          ) : (
+          <SearchResults 
+            results={searchResults}
+            onTrackClick={path => { void handleTrackClick(path); }}
+            isLoading={isSearching}
+          />
+        </main>
+      </div>
+    ) : (
+      <LibraryLayout>
+        <div className={styles.container}>
+          <main className={styles.main}>
             <AlbumGrid 
               albums={albums}
               onPlayTrack={handlePlayTrack}
               isLoading={isLoading}
             />
-          )}
-        </main>
-      </div>
-    </LibraryLayout>
+          </main>
+        </div>
+      </LibraryLayout>
+    )
   )
 } 

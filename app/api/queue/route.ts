@@ -52,46 +52,18 @@ function checkPartyModePermission(action: string): boolean {
   }
 }
 
-function getDetailedStatus(): {
-  queue: unknown[]
-  currentTrack: unknown
-  isPlaying: boolean
-  volume: number
-  isMuted: boolean
-  audioStatus: unknown
-  progress: unknown
-} {
-  const queue = queueState.getQueue()
-  const currentTrack = queueState.getCurrentTrack()
-  const isPlaying = queueState.getIsPlaying()
-  const audioStatus = queueState.audio.getStatus()
-  
-  // Get playback progress
-  const progress = queueState.audio.getPlaybackProgress()
-  const isFinished = queueState.audio.isTrackFinished()
-  
-  // Enhanced current track info
-  let enhancedCurrentTrack = null
-  if (currentTrack) {
-    enhancedCurrentTrack = {
-      ...currentTrack,
-      progress,
-      isFinished,
-      estimatedDuration: (queueState.audio as { estimatedDuration?: number }).estimatedDuration ?? 0
-    }
-  }
-  
-  return {
-    queue,
-    currentTrack: enhancedCurrentTrack,
-    isPlaying,
-    volume: queueState.audio.getVolume(),
-    isMuted: queueState.audio.isMuted(),
-    audioStatus,
-    progress
+// GET /api/queue - Get current playback state
+export async function GET(): Promise<NextResponse> {
+  try {
+    const state = await queueState.getCurrentState()
+    return noStore(NextResponse.json(state))
+  } catch (error) {
+    logger.error('Queue GET API error', 'QueueAPI', error)
+    return noStore(NextResponse.json({ error: 'Internal server error' }, { status: 500 }))
   }
 }
 
+// POST /api/queue - Add track to queue
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     if (!checkPartyModePermission('add')) {
@@ -104,13 +76,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Path is required' }, { status: 400 })
     }
 
-    queueState.addToQueue(path)
-    
-    const finalStatus = getDetailedStatus()
-
+    await queueState.addToQueue(path)
+    const state = await queueState.getCurrentState()
     return NextResponse.json({
       success: true,
-      ...finalStatus
+      ...state
     })
   } catch (error) {
     logger.error('Queue API Error', 'QueueAPI', error)
@@ -118,6 +88,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 }
 
+// DELETE /api/queue - Clear entire queue
 export async function DELETE(): Promise<NextResponse> {
   try {
     if (!checkPartyModePermission('clear')) {
@@ -126,21 +97,13 @@ export async function DELETE(): Promise<NextResponse> {
 
     await queueState.clearQueue()
     
+    const state = await queueState.getCurrentState()
     return NextResponse.json({
       success: true,
-      ...getDetailedStatus()
+      ...state
     })
   } catch (error) {
     logger.error('Queue API Error', 'QueueAPI', error)
     return NextResponse.json({ error: 'Failed to clear queue' }, { status: 500 })
-  }
-}
-
-export function GET(): Promise<NextResponse> {
-  try {
-    return Promise.resolve(noStore(NextResponse.json(getDetailedStatus())))
-  } catch (error) {
-    logger.error('Queue GET API error', 'QueueAPI', error)
-    return Promise.resolve(noStore(NextResponse.json({ error: 'Internal server error' }, { status: 500 })))
   }
 } 

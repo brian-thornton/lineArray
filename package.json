@@ -17,6 +17,7 @@
     "lucide-react": "^0.292.0",
     "music-metadata": "^7.13.0",
     "next": "14.0.0",
+    "node-vlc-http": "^1.2.0",
     "play-sound": "^1.1.6",
     "qrcode": "^1.5.4",
     "react": "^18.2.0",
@@ -25,6 +26,7 @@
   },
   "devDependencies": {
     "@types/node": "24.0.8",
+    "@types/play-sound": "^1.1.2",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
     "eslint": "^8.0.0",

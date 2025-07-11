@@ -21,6 +21,7 @@ export default function SettingsPage(): JSX.Element {
   const [showConcertDetails, setShowConcertDetails] = useState(settings.showConcertDetails)
   const [showMobileQR, setShowMobileQR] = useState(settings.showMobileQR)
   const [useMobileAlbumLayout, setUseMobileAlbumLayout] = useState(settings.useMobileAlbumLayout)
+  const [showPlaybackPosition, setShowPlaybackPosition] = useState(settings.showPlaybackPosition)
   const [isSaving, setIsSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState('')
   const [partyModeMessage, setPartyModeMessage] = useState('')
@@ -51,8 +52,9 @@ export default function SettingsPage(): JSX.Element {
     setShowConcertDetails(settings.showConcertDetails)
     setShowMobileQR(settings.showMobileQR)
     setUseMobileAlbumLayout(settings.useMobileAlbumLayout)
+    setShowPlaybackPosition(settings.showPlaybackPosition)
     void loadCurrentPaths()
-  }, [settings.jukeboxName, settings.partyMode, settings.theme, settings.showTouchKeyboard, settings.showPagination, settings.showConcertDetails, settings.showMobileQR, settings.useMobileAlbumLayout])
+  }, [settings.jukeboxName, settings.partyMode, settings.theme, settings.showTouchKeyboard, settings.showPagination, settings.showConcertDetails, settings.showMobileQR, settings.useMobileAlbumLayout, settings.showPlaybackPosition])
 
   useEffect(() => {
     // Check if party mode is enabled and user is not authenticated
@@ -251,7 +253,8 @@ export default function SettingsPage(): JSX.Element {
         showPagination,
         showConcertDetails,
         showMobileQR,
-        useMobileAlbumLayout
+        useMobileAlbumLayout,
+        showPlaybackPosition
       })
       setUiFeaturesMessage('UI features saved successfully!')
       setTimeout(() => setUiFeaturesMessage(''), 3000)
@@ -501,6 +504,21 @@ export default function SettingsPage(): JSX.Element {
                   className={styles.toggle}
                 />
                 <span className={styles.toggleText}>Use Mobile Album Layout</span>
+              </label>
+            </div>
+          </div>
+
+          <div className={styles.partyModeSection}>
+            <h3 className={styles.subsectionTitle}>Playback Position</h3>
+            <div className={styles.toggleSetting}>
+              <label className={styles.toggleLabel}>
+                <input
+                  type="checkbox"
+                  checked={showPlaybackPosition}
+                  onChange={() => setShowPlaybackPosition(!showPlaybackPosition)}
+                  className={styles.toggle}
+                />
+                <span className={styles.toggleText}>Show Playback Position</span>
               </label>
             </div>
           </div>

@@ -30,8 +30,13 @@ function LogsViewer({ className }: LogsViewerProps): JSX.Element {
         throw new Error('Failed to fetch logs')
       }
       
-      const data = await response.json() as { logs: LogEntry[]; stats: LogStats }
-      setLogs(data.logs)
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const data: { logs?: LogEntry[] } = await response.json();
+      if (data && Array.isArray(data.logs)) {
+        setLogs(data.logs);
+      } else {
+        setLogs([]);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch logs')
     } finally {
@@ -177,7 +182,7 @@ function LogsViewer({ className }: LogsViewerProps): JSX.Element {
                       <pre>
                         {typeof log.data === 'string' 
                           ? log.data 
-                          : JSON.stringify(log.data as Record<string, unknown>, null, 2)
+                          : JSON.stringify(log.data, null, 2)
                         }
                       </pre>
                     </div>

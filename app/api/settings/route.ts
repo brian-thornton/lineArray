@@ -13,6 +13,7 @@ interface Settings {
   showConcertDetails: boolean
   showMobileQR: boolean
   useMobileAlbumLayout: boolean
+  showPlaybackPosition: boolean
   partyMode: {
     enabled: boolean
     allowPlay: boolean
@@ -48,6 +49,7 @@ function loadSettings(): Settings {
         showConcertDetails: existingSettings.showConcertDetails ?? true,
         showMobileQR: existingSettings.showMobileQR ?? true,
         useMobileAlbumLayout: existingSettings.useMobileAlbumLayout ?? false,
+        showPlaybackPosition: existingSettings.showPlaybackPosition ?? true,
         partyMode: {
           enabled: false,
           allowPlay: true,
@@ -81,6 +83,7 @@ function loadSettings(): Settings {
     showConcertDetails: true,
     showMobileQR: true,
     useMobileAlbumLayout: false,
+    showPlaybackPosition: true,
     partyMode: {
       enabled: false,
       allowPlay: true,
@@ -149,6 +152,7 @@ export function GET(): Promise<NextResponse> {
         showConcertDetails: true,
         showMobileQR: true,
         useMobileAlbumLayout: false,
+        showPlaybackPosition: true,
         partyMode: {
           enabled: false,
           allowPlay: true,
@@ -178,6 +182,7 @@ export function GET(): Promise<NextResponse> {
       showConcertDetails: existingSettings.showConcertDetails ?? true,
       showMobileQR: existingSettings.showMobileQR ?? true,
       useMobileAlbumLayout: existingSettings.useMobileAlbumLayout ?? false,
+      showPlaybackPosition: existingSettings.showPlaybackPosition ?? true,
       partyMode: {
         enabled: existingSettings.partyMode?.enabled ?? false,
         allowPlay: existingSettings.partyMode?.allowPlay ?? true,

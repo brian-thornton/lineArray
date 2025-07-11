@@ -8,11 +8,11 @@ import VolumeModal from '../VolumeModal'
 import { useSettings } from '@/contexts/SettingsContext'
 import { useSearch } from '@/contexts/SearchContext'
 import { useToast } from '@/contexts/ToastContext'
-import type { QueueResponse, Track, ControlResponse } from '@/types/api'
+import type { QueueResponse, QueuePlayResponse, Track } from '@/types/api'
 
 interface PlayerStatus {
   isPlaying: boolean
-  currentTrack: string | Track | null
+  currentTrack: Track | null
   queue: Track[]
   volume?: number
   isMuted: boolean
@@ -30,7 +30,7 @@ interface WindowWithPlayer extends Window {
 }
 
 function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
-  const { canPerformAction } = useSettings()
+  const { canPerformAction, settings } = useSettings()
   const { hideKeyboard } = useSearch()
   const { showToast } = useToast()
   const [loading, setLoading] = useState(false)
@@ -44,6 +44,9 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
     volume: undefined,
     isMuted: false
   })
+  const [isSeeking, setIsSeeking] = useState(false)
+  const [seekPreview, setSeekPreview] = useState<number | null>(null)
+  const [showConfirmClear, setShowConfirmClear] = useState(false)
 
   // Detect mobile devices
   useEffect(() => {
@@ -73,14 +76,13 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
               queue: data.queue ?? [],
               volume: data.volume ?? prev.volume,
               isMuted: data.isMuted ?? prev.isMuted,
-              progress: data.progress ?? prev.progress
+              // Don't update progress during seeking to prevent jumping back
+              progress: isSeeking ? prev.progress : (data.progress ?? prev.progress)
             }
             
             // Show toast when playback starts on mobile
             if (isMobile && data.isPlaying && !prev.isPlaying && data.currentTrack) {
-              const trackName = typeof data.currentTrack === 'string' 
-                ? data.currentTrack.split('/').pop()?.replace(/\.[^/.]+$/, '') ?? 'Unknown Track'
-                : data.currentTrack.title ?? 'Unknown Track'
+              const trackName = data.currentTrack.title ?? 'Unknown Track'
               showToast(`Now playing: ${trackName}`, 'success', 4000)
             }
             
@@ -118,7 +120,7 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
       clearInterval(statusInterval);
       clearInterval(audioCheckInterval);
     }
-  }, [hasLoaded, isMobile, showToast])
+  }, [hasLoaded, isMobile, showToast, isSeeking])
 
   // Add a function to immediately check status (for use after adding tracks)
   const checkStatusImmediately = useCallback(async (): Promise<void> => {
@@ -134,7 +136,8 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
             queue: data.queue ?? [],
             volume: data.volume ?? prev.volume,
             isMuted: data.isMuted ?? prev.isMuted,
-            progress: data.progress ?? prev.progress
+            // Don't update progress during seeking to prevent jumping back
+            progress: isSeeking ? prev.progress : (data.progress ?? prev.progress)
           }
           
           // Clear the flag once we have proper status
@@ -148,7 +151,7 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
     } catch (error) {
       // Silently handle error
     }
-  }, [])
+  }, [isSeeking])
 
   // Expose the immediate check function to parent components
   useEffect(() => {
@@ -156,6 +159,8 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
       (window as WindowWithPlayer).checkPlayerStatusImmediately = checkStatusImmediately
     }
   }, [checkStatusImmediately])
+
+
 
   const handlePlayPause = async (): Promise<void> => {
     if (!canPerformAction('allowPlay')) {
@@ -165,16 +170,37 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
 
     setLoading(true)
     try {
-      const action = playerStatus.isPlaying ? 'pause' : 'resume'
-      const response = await fetch('/api/control', {
+      // Determine the correct action based on current state
+      let action: string
+      if (playerStatus.isPlaying) {
+        action = 'pause'
+      } else if (playerStatus.currentTrack) {
+        // If we have a current track but not playing, resume it
+        action = 'resume'
+      } else if (playerStatus.queue.length > 0) {
+        // If no current track but queue has tracks, start playing
+        action = 'play'
+      } else {
+        // No tracks to play
+        showToast('No tracks in queue to play', 'error', 3000)
+        setLoading(false)
+        return
+      }
+
+      const response = await fetch('/api/queue/play', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action }),
       })
       
       if (response.ok) {
-        const data = await response.json() as ControlResponse
-        setPlayerStatus(prev => ({ ...prev, isPlaying: data.isPlaying }))
+        const data = await response.json() as QueuePlayResponse
+        setPlayerStatus(prev => ({ 
+          ...prev, 
+          isPlaying: data.isPlaying,
+          currentTrack: data.currentTrack,
+          progress: data.progress
+        }))
         hideKeyboard()
       } else {
         // Silently handle error
@@ -194,14 +220,20 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
 
     setLoading(true)
     try {
-      const response = await fetch('/api/control', {
+      const response = await fetch('/api/queue/play', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'stop' }),
       })
       
       if (response.ok) {
-        setPlayerStatus(prev => ({ ...prev, isPlaying: false, currentTrack: null }))
+        const data = await response.json() as QueuePlayResponse
+        setPlayerStatus(prev => ({
+          ...prev,
+          isPlaying: data.isPlaying,
+          currentTrack: data.currentTrack,
+          progress: data.progress
+        }))
         hideKeyboard()
       } else {
         // Silently handle error
@@ -221,13 +253,20 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
 
     setLoading(true)
     try {
-      const response = await fetch('/api/control', {
+      const response = await fetch('/api/queue/play', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'skip' }),
       })
       
       if (response.ok) {
+        const data = await response.json() as QueuePlayResponse
+        setPlayerStatus(prev => ({ 
+          ...prev, 
+          isPlaying: data.isPlaying,
+          currentTrack: data.currentTrack,
+          progress: data.progress
+        }))
         hideKeyboard()
       } else {
         // Silently handle error
@@ -275,10 +314,8 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
 
   const handleVolumeChange = async (newVolume: number): Promise<void> => {
     try {
-      const response = await fetch('/api/control', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'setVolume', volume: newVolume }),
+      const response = await fetch('/api/queue', {
+        method: 'GET',
       })
       
       if (response.ok) {
@@ -295,18 +332,16 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
 
   const handleMuteToggle = async (): Promise<void> => {
     try {
-      const response = await fetch('/api/control', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'toggleMute' }),
+      const response = await fetch('/api/queue', {
+        method: 'GET',
       })
       
       if (response.ok) {
-        const data = await response.json() as ControlResponse
+        const data = await response.json() as QueueResponse;
         setPlayerStatus(prev => ({ 
           ...prev, 
-          isMuted: data.isMuted ?? prev.isMuted,
-          volume: data.volume ?? prev.volume
+          isMuted: data.isMuted,
+          volume: data.volume
         }))
       }
     } catch (error) {
@@ -314,19 +349,62 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
     }
   }
 
+  const handleSeekStart = (): void => {
+    setIsSeeking(true)
+    setSeekPreview(null)
+  }
+
+  const handleSeekDrag = (position: number): void => {
+    // Show preview during drag, but don't update actual progress
+    setSeekPreview(position)
+  }
+
+  const handleSeekEnd = async (position: number): Promise<void> => {
+    if (!canPerformAction('allowPlay')) {
+      showToast('Playback control is restricted in party mode', 'error', 3000)
+      setIsSeeking(false)
+      setSeekPreview(null)
+      return
+    }
+
+    // Keep seeking state and preview active during the seek operation
+    // Don't clear them yet - we'll clear them after the seek completes
+
+    try {
+      const response = await fetch('/api/queue/play', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'seek', position }),
+      })
+      
+      if (response.ok) {
+        const data = await response.json() as QueuePlayResponse
+        setPlayerStatus(prev => ({ 
+          ...prev, 
+          progress: data.progress
+        }))
+        // Clear seeking state only after successful seek
+        setIsSeeking(false)
+        setSeekPreview(null)
+      } else {
+        const errorData = await response.json() as { error?: string }
+        showToast(`Seek failed: ${errorData.error ?? 'Unknown error'}`, 'error', 3000)
+        // Clear seeking state after failed seek
+        setIsSeeking(false)
+        setSeekPreview(null)
+      }
+    } catch (error) {
+      // console.error('Seek error:', error)
+      showToast('Seek failed: Network error', 'error', 3000)
+      // Clear seeking state after network error
+      setIsSeeking(false)
+      setSeekPreview(null)
+    }
+  }
+
   const getCurrentTrackName = (): string => {
     if (!playerStatus.currentTrack) return 'No track playing'
-    
-    // Handle both string paths and track objects
-    if (typeof playerStatus.currentTrack === 'string') {
-      // Extract filename from path
-      const pathParts = playerStatus.currentTrack.split('/')
-      const filename = pathParts[pathParts.length - 1]
-      return filename.replace(/\.[^/.]+$/, '')
-    } else {
-      // Handle track object
-      return playerStatus.currentTrack.title ?? 'Unknown Track'
-    }
+    return playerStatus.currentTrack.title ?? 'Unknown Track'
   }
 
   const getTrackStatus = (): string => {
@@ -345,21 +423,20 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
 
   const getTrackInfo = (): string => {
     if (!playerStatus.currentTrack) return 'Add tracks to get started'
-    
-    if (typeof playerStatus.currentTrack === 'string') {
-      return playerStatus.currentTrack
-    } else {
-      return playerStatus.currentTrack.album ?? 'Unknown Album'
-    }
+    return playerStatus.currentTrack.album ?? 'Unknown Album'
   }
 
   // Only show the player when there's actually music to control or volume is available
-  const shouldShowPlayer = (
-    playerStatus.currentTrack ??
-    (playerStatus.queue.length > 0 ||
+  /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
+  const shouldShowPlayer = Boolean(
     playerStatus.isPlaying ||
-    ((typeof window !== 'undefined' && (window as WindowWithPlayer).hasAddedTrackToQueue) ?? (showQueue ?? typeof playerStatus.volume === 'number')))
+    playerStatus.currentTrack ||
+    playerStatus.queue.length > 0 ||
+    (typeof window !== 'undefined' && (window as WindowWithPlayer).hasAddedTrackToQueue) ||
+    showQueue ||
+    typeof playerStatus.volume === 'number'
   )
+  /* eslint-enable @typescript-eslint/prefer-nullish-coalescing */
 
   if (!shouldShowPlayer) {
     // Player hidden - currentTrack, queue length, isPlaying, hasAddedTrackToQueue
@@ -370,121 +447,183 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
 
   if (!hasLoaded) return null;
 
+  // console.log('[Player] isMobile:', isMobile)
+
   return (
-    <div className={styles.player}>
-      <MeterBridge isPlaying={playerStatus.isPlaying} />
-      <div className={styles.content}>
-        <div className={styles.trackInfo}>
-          <div className={styles.cover}>
-            <div className={styles.coverPlaceholder}>🎵</div>
+    <>
+      <div className={styles.player}>
+        <MeterBridge isPlaying={playerStatus.isPlaying} />
+        <div className={styles.content}>
+          <div className={styles.trackInfo}>
+            <div className={styles.cover}>
+              <div className={styles.coverPlaceholder}>🎵</div>
+            </div>
+            <div className={styles.info}>
+              <h3 className={styles.title}>
+                {playerStatus.currentTrack
+                  ? getCurrentTrackName()
+                  : (typeof playerStatus.volume === 'number' ? 'Ready' : 'No track playing')}
+              </h3>
+              <p className={styles.artist}>
+                {getTrackStatus()} •
+                Queue: {playerStatus.queue.length} tracks
+              </p>
+              <p className={styles.album}>
+                {getTrackInfo()}
+              </p>
+            </div>
           </div>
-          <div className={styles.info}>
-            <h3 className={styles.title}>
-              {playerStatus.currentTrack
-                ? getCurrentTrackName()
-                : (typeof playerStatus.volume === 'number' ? 'Ready' : 'No track playing')}
-            </h3>
-            <p className={styles.artist}>
-              {getTrackStatus()} •
-              Queue: {playerStatus.queue.length} tracks
-            </p>
-            <p className={styles.album}>
-              {getTrackInfo()}
-            </p>
-          </div>
-        </div>
-        
-        <div className={styles.mainControls}>
-          <button
-            className={styles.controlButton}
-            onClick={() => { void handlePlayPause(); }}
-            disabled={loading || !canPerformAction('allowPlay')}
-            aria-label={playerStatus.isPlaying ? 'Pause' : 'Play'}
-            title={!canPerformAction('allowPlay') ? 'Playback restricted in party mode' : undefined}
-          >
-            {playerStatus.isPlaying ? <Pause className={styles.controlIcon} /> : <Play className={styles.controlIcon} />}
-          </button>
-          <button
-            className={styles.controlButton}
-            onClick={() => { void handleSkip(); }}
-            disabled={loading || playerStatus.queue.length <= 1 || !canPerformAction('allowNext')}
-            aria-label="Skip to next track"
-            title={!canPerformAction('allowNext') ? 'Skip restricted in party mode' : undefined}
-          >
-            <SkipForward className={styles.controlIcon} />
-          </button>
-          <button
-            className={styles.controlButton}
-            onClick={() => { void handleStop(); }}
-            disabled={loading || !canPerformAction('allowStop')}
-            aria-label="Stop playback"
-            title={!canPerformAction('allowStop') ? 'Stop restricted in party mode' : undefined}
-          >
-            <Square className={styles.controlIcon} />
-          </button>
-          <button
-            className={`${styles.controlButton} ${showQueue ? styles.activeButton : ''}`}
-            onClick={() => { setShowQueue(!showQueue); }}
-            aria-label={showQueue ? 'Hide queue' : 'Show queue'}
-            title={showQueue ? 'Hide queue' : `Show queue (${playerStatus.queue.length} tracks)`}
-          >
-            <List className={styles.controlIcon} />
-          </button>
-          <button
-            className={`${styles.controlButton} ${styles.clearButton}`}
-            onClick={() => { void handleClearQueue(); }}
-            disabled={loading || playerStatus.queue.length === 0 || !canPerformAction('allowRemoveFromQueue')}
-            aria-label="Clear queue"
-            title={!canPerformAction('allowRemoveFromQueue') ? 'Queue management restricted in party mode' : 'Clear queue'}
-          >
-            <Trash2 className={styles.controlIcon} />
-          </button>
-        </div>
-        
-        <div className={styles.volume}>
-          {isMobile ? (
+          
+          {settings.showPlaybackPosition && playerStatus.currentTrack && (
+            <div className={styles.playbackPosition}>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={isSeeking ? (seekPreview ?? playerStatus.progress ?? 0) : (playerStatus.progress ?? 0)}
+                onChange={(e) => { handleSeekDrag(parseFloat(e.target.value)); }}
+                onMouseUp={(e) => { void handleSeekEnd(parseFloat((e.target as HTMLInputElement).value)); }}
+                onPointerUp={(e) => { void handleSeekEnd(parseFloat((e.target as HTMLInputElement).value)); }}
+                onMouseDown={handleSeekStart}
+                onPointerDown={handleSeekStart}
+                className={styles.positionSlider}
+                aria-label="Playback position"
+                disabled={!canPerformAction('allowPlay') || !playerStatus.isPlaying}
+              />
+              <div className={styles.positionInfo}>
+                <span className={styles.positionText}>
+                  {isSeeking && seekPreview !== null 
+                    ? `${Math.round(seekPreview * 100)}%`
+                    : playerStatus.progress 
+                      ? `${Math.round((playerStatus.progress ?? 0) * 100)}%` 
+                      : '0%'
+                  }
+                </span>
+              </div>
+            </div>
+          )}
+          
+          <div className={styles.mainControls}>
             <button
-              onClick={() => { setShowVolumeModal(true); }}
-              className={styles.volumeButton}
-              aria-label="Volume settings"
+              className={styles.controlButton}
+              onClick={() => { void handlePlayPause(); }}
+              disabled={loading || !canPerformAction('allowPlay')}
+              aria-label={playerStatus.isPlaying ? 'Pause' : 'Play'}
+              title={!canPerformAction('allowPlay') ? 'Playback restricted in party mode' : undefined}
             >
-              {playerStatus.isMuted ? <VolumeX className={styles.volumeIcon} /> : <Volume2 className={styles.volumeIcon} />}
+              {playerStatus.isPlaying ? <Pause className={styles.controlIcon} /> : <Play className={styles.controlIcon} />}
             </button>
-          ) : (
-            <>
+            {/* Hide skip button on mobile */}
+            {!isMobile && (
               <button
-                onClick={() => { void handleMuteToggle(); }}
+                className={`${styles.controlButton} ${styles.skipButton}`}
+                onClick={() => { void handleSkip(); }}
+                disabled={loading || playerStatus.queue.length <= 1 || !canPerformAction('allowNext')}
+                aria-label="Skip to next track"
+                title={!canPerformAction('allowNext') ? 'Skip restricted in party mode' : undefined}
+              >
+                <SkipForward className={styles.controlIcon} />
+              </button>
+            )}
+            <button
+              className={styles.controlButton}
+              onClick={() => { void handleStop(); }}
+              disabled={loading || !canPerformAction('allowStop')}
+              aria-label="Stop playback"
+              title={!canPerformAction('allowStop') ? 'Stop restricted in party mode' : undefined}
+            >
+              <Square className={styles.controlIcon} />
+            </button>
+            <button
+              className={`${styles.controlButton} ${showQueue ? styles.activeButton : ''}`}
+              onClick={() => { setShowQueue(!showQueue); }}
+              aria-label={showQueue ? 'Hide queue' : 'Show queue'}
+              title={showQueue ? 'Hide queue' : `Show queue (${playerStatus.queue.length} tracks)`}
+            >
+              <List className={styles.controlIcon} />
+            </button>
+            <button
+              className={`${styles.controlButton} ${styles.clearButton}`}
+              onClick={() => { setShowConfirmClear(true); }}
+              disabled={loading || playerStatus.queue.length === 0 || !canPerformAction('allowRemoveFromQueue')}
+              aria-label="Clear queue"
+              title={!canPerformAction('allowRemoveFromQueue') ? 'Queue management restricted in party mode' : 'Clear queue'}
+            >
+              <Trash2 className={styles.controlIcon} />
+            </button>
+          </div>
+          
+          <div className={styles.volume}>
+            {isMobile ? (
+              <button
+                onClick={() => { setShowVolumeModal(true); }}
                 className={styles.volumeButton}
-                aria-label={playerStatus.isMuted ? 'Unmute' : 'Mute'}
+                aria-label="Volume settings"
               >
                 {playerStatus.isMuted ? <VolumeX className={styles.volumeIcon} /> : <Volume2 className={styles.volumeIcon} />}
               </button>
-              {typeof playerStatus.volume === 'number' && (
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={playerStatus.isMuted ? 0 : playerStatus.volume}
-                  onChange={(e) => { void handleVolumeChange(parseFloat(e.target.value)); }}
-                  className={styles.volumeBar}
-                  aria-label="Volume"
-                />
-              )}
-            </>
-          )}
+            ) : (
+              <>
+                <button
+                  onClick={() => { void handleMuteToggle(); }}
+                  className={styles.volumeButton}
+                  aria-label={playerStatus.isMuted ? 'Unmute' : 'Mute'}
+                >
+                  {playerStatus.isMuted ? <VolumeX className={styles.volumeIcon} /> : <Volume2 className={styles.volumeIcon} />}
+                </button>
+                {typeof playerStatus.volume === 'number' && (
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={playerStatus.isMuted ? 0 : playerStatus.volume}
+                    onChange={(e) => { void handleVolumeChange(parseFloat(e.target.value)); }}
+                    className={styles.volumeBar}
+                    aria-label="Volume"
+                  />
+                )}
+              </>
+            )}
+          </div>
         </div>
+        
+        <VolumeModal
+          isOpen={showVolumeModal}
+          onClose={() => { setShowVolumeModal(false); }}
+          volume={playerStatus.volume ?? 0}
+          isMuted={playerStatus.isMuted}
+          onVolumeChange={(volume) => { void handleVolumeChange(volume); }}
+          onMuteToggle={() => { void handleMuteToggle(); }}
+        />
       </div>
-      
-      <VolumeModal
-        isOpen={showVolumeModal}
-        onClose={() => { setShowVolumeModal(false); }}
-        volume={playerStatus.volume ?? 0}
-        isMuted={playerStatus.isMuted}
-        onVolumeChange={(volume) => { void handleVolumeChange(volume); }}
-        onMuteToggle={() => { void handleMuteToggle(); }}
-      />
-    </div>
+      {showConfirmClear && (
+        <div className={styles.confirmModal} role="dialog" aria-modal="true" aria-labelledby="confirmClearTitle">
+          <div className={styles.confirmModalContent}>
+            <h3 id="confirmClearTitle" className={styles.confirmModalTitle}>Clear Queue?</h3>
+            <p className={styles.confirmModalText}>Are you sure you want to remove all tracks from the queue?</p>
+            <div className={styles.confirmModalActions}>
+              <button
+                className={styles.confirmButton}
+                onClick={() => {
+                  setShowConfirmClear(false)
+                  void handleClearQueue()
+                }}
+              >
+                Yes, clear queue
+              </button>
+              <button
+                className={styles.cancelButton}
+                onClick={() => setShowConfirmClear(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 

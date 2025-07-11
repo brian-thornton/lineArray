@@ -41,6 +41,7 @@ export interface AudioManagerInterface {
   stop(): Promise<boolean>
   pause(): Promise<boolean>
   resume(): Promise<boolean>
+  seek(position: number): Promise<boolean>
   getStatus(): AudioStatus
   resetState(): void
   checkAndRestart(): Promise<boolean>
@@ -57,13 +58,17 @@ export interface AudioManagerInterface {
   applySystemVolume(): void
   muteSystemAudio(): void
   unmuteSystemAudio(): void
-
+  setTrackCompleteCallback(callback: () => void): void
+  setProgressCallback(callback: (progress: number) => void): void
+  getLatestProgress(): number
+  getVLCProgress(): Promise<number>
+  getVLCDuration(): Promise<number>
 }
 
 export interface QueueStateInterface {
   getQueue(): QueueTrack[]
   getCurrentTrack(): QueueTrack | null
-  addToQueue(path: string): void
+  addToQueue(path: string): Promise<void>
   getIsPlaying(): boolean
   playNextInQueue(): Promise<boolean>
   clearCurrentTrack(): Promise<void>
@@ -75,4 +80,19 @@ export interface QueueStateInterface {
   loadState(): void
   getDebugInfo(): DebugInfo
   audio: AudioManagerInterface
+  stopAllPlayback(): Promise<void>
+  getProgress(): number
+  getVolume(): number
+  setVolume(volume: number): boolean
+  getIsMuted(): boolean
+  toggleMute(): boolean
+  seekPlayback(position: number): Promise<boolean>
+  getCurrentState(): Promise<{
+    isPlaying: boolean
+    currentTrack: QueueTrack | null
+    queue: QueueTrack[]
+    progress: number
+    volume: number
+    isMuted: boolean
+  }>
 } 

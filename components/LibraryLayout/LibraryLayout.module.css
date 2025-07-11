@@ -4,4 +4,11 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+@media (max-width: 480px) {
+  .libraryLayout {
+    height: auto;
+    overflow: visible;
+  }
 } 

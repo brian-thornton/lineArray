@@ -4,7 +4,7 @@
   /* Color Palette - Legacy variables for backward compatibility */
   --jukebox-dark: #1a1a2e;
   --jukebox-darker: #16213e;
-  --jukebox-accent: #0ea5e9;
+  --jukebox-accent: #ffd700;
   --jukebox-gold: #ffd700;
   --jukebox-blue: #0ea5e9;
   --jukebox-purple: #8b5cf6;
@@ -12,10 +12,10 @@
   --jukebox-gray: #6b7280;
   --jukebox-light-gray: #f3f4f6;
   
-  /* New theme variables */
+  /* New theme variables - will be set by ThemeContext */
   --jukebox-primary: #1a1a2e;
   --jukebox-secondary: #16213e;
-  --jukebox-background: #0f0f23;
+  --jukebox-background: #1a1a2e;
   --jukebox-surface: rgba(255, 255, 255, 0.05);
   --jukebox-text: #ffffff;
   --jukebox-text-secondary: #a0a0a0;
@@ -65,6 +65,36 @@ body {
   background: var(--jukebox-background);
   color: var(--jukebox-text);
   min-height: 100vh;
+}
+
+/* Mobile Safari specific theme enforcement */
+@media screen and (max-width: 768px) {
+  html,
+  body {
+    background: var(--jukebox-background) !important;
+    color: var(--jukebox-text) !important;
+  }
+  
+  /* Force theme colors on mobile Safari */
+  * {
+    background-color: inherit;
+  }
+  
+  /* Additional mobile Safari theme enforcement */
+  body.theme-applied,
+  body.theme-applied * {
+    background-color: var(--jukebox-background) !important;
+    color: var(--jukebox-text) !important;
+  }
+  
+  /* Force background on all containers */
+  .container,
+  .main,
+  .gridContainer,
+  .albumCard {
+    background: var(--jukebox-background) !important;
+    color: var(--jukebox-text) !important;
+  }
 }
 
 body#library-no-scroll, body#library-no-scroll main {

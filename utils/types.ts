@@ -10,5 +10,13 @@ export interface LogEntry {
   level: LogLevel
   message: string
   context?: string
-  data?: unknown
+  data?: string | Record<string, unknown>
+}
+
+export interface LogStats {
+  total: number
+  debug: number
+  info: number
+  warn: number
+  error: number
 } 

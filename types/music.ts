@@ -73,6 +73,7 @@ export interface Settings {
   showConcertDetails: boolean
   showMobileQR: boolean
   useMobileAlbumLayout: boolean
+  showPlaybackPosition: boolean
   partyMode: {
     enabled: boolean
     allowPlay: boolean

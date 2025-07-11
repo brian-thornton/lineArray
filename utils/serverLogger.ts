@@ -50,12 +50,18 @@ class ServerLogger {
   }
 
   private log(level: LogLevel, message: string, context?: string, data?: unknown): void {
+    let safeData: string | Record<string, unknown> | undefined = undefined;
+    if (typeof data === 'string' || (typeof data === 'object' && data !== null)) {
+      safeData = data as string | Record<string, unknown>;
+    } else if (typeof data !== 'undefined') {
+      safeData = String(data);
+    }
     const entry: LogEntry = {
       timestamp: new Date().toISOString(),
       level,
       message,
       context,
-      data
+      data: safeData
     }
     this.writeToFile(entry)
   }

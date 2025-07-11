@@ -132,48 +132,12 @@
 
 @media (max-width: 768px) {
   .paginationContainer {
-    display: none; /* Hide pagination controls on mobile */
+    display: none !important; /* Hide pagination controls on mobile - use swipe gestures instead */
   }
 }
 
 @media (max-width: 480px) {
-  .paginationContainer {
-    padding: var(--spacing-md) var(--spacing-sm);
-    gap: var(--spacing-sm);
-  }
-  
-  .pagination {
-    flex-direction: column;
-    gap: var(--spacing-sm);
-    width: 100%;
-  }
-  
-  .pageNumbers {
-    gap: var(--spacing-xs);
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-  
-  .pageButton {
-    min-width: 40px;
-    height: 40px;
-    font-size: 0.85rem;
-  }
-  
-  .navButton {
-    min-width: 120px;
-    height: 44px;
-    width: 100%;
-    max-width: 200px;
-  }
-  
-  .navText {
-    font-size: 0.8rem;
-  }
-  
-  .results {
-    font-size: 0.8rem;
-  }
+  /* Pagination is already hidden on mobile via the 768px rule above */
 }
 
 /* Focus styles for accessibility */

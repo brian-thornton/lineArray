@@ -17,6 +17,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({
@@ -26,6 +27,9 @@ export default function RootLayout({
 }): JSX.Element {
   return (
     <html lang="en">
+      <head>
+        <meta name="theme-color" content="#0f0f23" />
+      </head>
       <body>
         <SettingsProvider>
           <ThemeProvider>

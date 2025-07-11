@@ -24,6 +24,7 @@ export function SettingsProvider({ children }: { children: ReactNode }): JSX.Ele
     showConcertDetails: true,
     showMobileQR: true,
     useMobileAlbumLayout: false,
+    showPlaybackPosition: true,
     partyMode: {
       enabled: false,
       allowPlay: true,

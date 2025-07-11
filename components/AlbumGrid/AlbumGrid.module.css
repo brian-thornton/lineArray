@@ -214,30 +214,23 @@
     min-height: 350px;
   }
   
+  /* Hide navigation arrows on mobile - use swipe gestures instead */
   .navArrow {
-    width: 48px;
-    height: 48px;
-  }
-  
-  .navArrow.navArrowLeft {
-    left: 12px !important;
-    right: auto !important;
-  }
-  
-  .navArrow.navArrowRight {
-    right: 12px !important;
-    left: auto !important;
+    display: none !important;
   }
 }
 
 @media (max-width: 480px) {
   .container {
-    height: 100vh;
-    overflow: hidden;
+    height: auto;
+    overflow: visible;
+    align-items: flex-start;
   }
   
   .gridContainer {
-    gap: var(--spacing-xs);
+    gap: 8px; /* Reduced gap for mobile to fit more rows */
+    align-items: start;
+    justify-items: center;
   }
   
   .loadingContainer,

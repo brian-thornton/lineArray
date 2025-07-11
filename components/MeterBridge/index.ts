@@ -1,1 +1,1 @@
-export { default } from './MeterBridge'; 
+export { default } from '../Player/MeterBridge'; 

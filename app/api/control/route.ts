@@ -45,6 +45,7 @@ function checkPartyModePermission(action: string): boolean {
     case 'pause':
     case 'resume':
     case 'playTrack':
+    case 'seek':
       return partyMode.allowPlay ?? true
     case 'stop':
       return partyMode.allowStop ?? true
@@ -60,7 +61,7 @@ function checkPartyModePermission(action: string): boolean {
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const { action, volume, trackId } = await request.json() as { action: string; volume?: number; trackId?: string }
+    const { action, volume, trackId, position } = await request.json() as { action: string; volume?: number; trackId?: string; position?: number }
     if (!action) {
       return NextResponse.json({ error: 'No action provided' }, { status: 400 })
     }
@@ -87,14 +88,42 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         }
         break
       case 'stop':
-        success = await queueState.audio.stop()
-        if (success) {
-          void queueState.clearCurrentTrack()
-        }
+        await queueState.stopAllPlayback()
+        success = true
         break
       case 'skip':
         // Play next track in queue
         success = await queueState.playNextInQueue()
+        break
+      case 'seek':
+        if (typeof position !== 'number' || position < 0 || position > 1) {
+          error = 'Invalid position value (must be between 0 and 1)'
+          break
+        }
+        // Get duration from estimatedDuration or VLC
+        let duration = (queueState.audio as { estimatedDuration?: number }).estimatedDuration ?? 0
+        if (!duration || duration < 5) {
+          // Try to get duration from VLC
+          try {
+            const statusUrl = `http://localhost:8080/requests/status.xml`
+            const response = await fetch(statusUrl, {
+              headers: {
+                'Authorization': `Basic ${Buffer.from(`:jukebox`).toString('base64')}`
+              }
+            })
+            if (response.ok) {
+              const statusText = await response.text()
+              const lengthMatch = statusText.match(/<length>(\d+)<\/length>/)
+              if (lengthMatch) {
+                duration = parseInt(lengthMatch[1])
+              }
+            }
+          } catch (e) {
+            // ignore
+          }
+        }
+        const seekTimeSeconds = Math.round(position * duration)
+        success = await queueState.audio.seek(seekTimeSeconds)
         break
       case 'playTrack':
         if (!trackId) {
