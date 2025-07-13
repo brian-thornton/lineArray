@@ -250,4 +250,39 @@
   .resultType {
     font-size: 0.85rem;
   }
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  margin: 2rem 0 0 0;
+}
+
+.pageButton {
+  background: var(--jukebox-accent);
+  color: var(--jukebox-white);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 1.2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.pageButton:disabled {
+  background: rgba(255,255,255,0.08);
+  color: var(--jukebox-gray);
+  cursor: not-allowed;
+}
+.pageButton:not(:disabled):hover {
+  background: var(--jukebox-gold);
+  color: var(--jukebox-background);
+}
+
+.pageInfo {
+  font-size: 1rem;
+  color: var(--jukebox-gold);
+  font-weight: 600;
 } 

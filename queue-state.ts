@@ -65,6 +65,17 @@ function loadState(): void {
 // Load state on module initialization
 loadState()
 
+// Sync volume with audio manager on startup
+function syncVolumeWithAudioManager(): void {
+  const audioVolume = audio.getVolume()
+  volume = audioVolume
+  isMuted = audio.isMuted()
+  console.log('Queue state: Synced volume with audio manager:', `${Math.round(volume * 100)}%`)
+}
+
+// Sync volume after a short delay to allow audio manager to query system volume
+setTimeout(syncVolumeWithAudioManager, 1000)
+
 // Set up the track completion callback
 audio.setTrackCompleteCallback(() => {
   console.log('Queue state: Track completed, playing next in queue')
@@ -74,7 +85,6 @@ audio.setTrackCompleteCallback(() => {
 // Set up the progress callback to update UI
 audio.setProgressCallback((newProgress: number) => {
   progress = newProgress
-  console.log('Queue state: Progress update:', progress)
 })
 
 async function playNextInQueue(): Promise<boolean> {
@@ -253,17 +263,22 @@ function getProgress(): number {
 }
 
 function getVolume(): number {
-  return volume
+  // Always return the current audio manager volume to ensure consistency
+  return audio.getVolume()
 }
 
-function setVolume(newVolume: number): boolean {
+async function setVolume(newVolume: number): Promise<number> {
   volume = Math.max(0, Math.min(1, newVolume))
   isMuted = volume === 0
-  return audio.setVolume(volume)
+  const actualVolumePercent = await audio.setVolume(volume)
+  // Update our local volume to match the actual system volume
+  volume = actualVolumePercent / 100
+  return actualVolumePercent
 }
 
 function getIsMuted(): boolean {
-  return isMuted
+  // Always return the current audio manager mute state to ensure consistency
+  return audio.isMuted()
 }
 
 function toggleMute(): boolean {
@@ -376,8 +391,8 @@ async function getCurrentState(): Promise<{
     currentTrack,
     queue,
     progress,
-    volume,
-    isMuted
+    volume: audio.getVolume(), // Always get the current audio manager volume
+    isMuted: audio.isMuted() // Always get the current audio manager mute state
   };
 }
 

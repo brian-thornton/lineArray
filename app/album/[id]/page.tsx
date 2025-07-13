@@ -5,8 +5,10 @@ import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, Play, Plus, Music } from 'lucide-react'
 import { Album, Track } from '@/types/music'
 import PlaylistModal from '@/components/PlaylistModal/PlaylistModal'
+import SearchResults from '@/components/SearchResults/SearchResults'
 import { useSettings } from '@/contexts/SettingsContext'
 import { useSearch } from '@/contexts/SearchContext'
+import { useToast } from '@/contexts/ToastContext'
 import styles from './page.module.css'
 import Image from 'next/image'
 
@@ -19,7 +21,8 @@ export default function AlbumDetail(): JSX.Element {
   const params = useParams()
   const router = useRouter()
   const { canPerformAction, settings } = useSettings()
-  const { hideKeyboard } = useSearch()
+  const { searchQuery, searchResults, isSearching, addTrackToQueue, hideKeyboard } = useSearch()
+  const { showToast } = useToast()
   const [album, setAlbum] = useState<Album | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -239,6 +242,42 @@ export default function AlbumDetail(): JSX.Element {
       console.error('Error adding tracks to playlist:', error)
       // TODO: Implement a non-blocking UI alternative for showing error
     }
+  }
+
+  const handleTrackClick = async (path: string): Promise<void> => {
+    await addTrackToQueue(path)
+    hideKeyboard()
+    
+    // Find the track title for the toast
+    const track = searchResults.find(result => result.path === path)
+    if (track) {
+      showToast(`Added "${track.title}" to queue`, 'success')
+    }
+    
+    // Set flag to show player controls
+    if (typeof window !== 'undefined') {
+      (window as WindowWithPlayer).hasAddedTrackToQueue = true
+    }
+    
+    // Immediately check player status to show controls faster
+    if (typeof window !== 'undefined' && (window as WindowWithPlayer).checkPlayerStatusImmediately) {
+      setTimeout(() => {
+        void (window as WindowWithPlayer).checkPlayerStatusImmediately?.()
+      }, 100)
+    }
+  }
+
+  // Show search results if there's an active search
+  if (searchQuery) {
+    return (
+      <div className={styles.container}>
+        <SearchResults 
+          results={searchResults}
+          onTrackClick={path => { void handleTrackClick(path); }}
+          isLoading={isSearching}
+        />
+      </div>
+    )
   }
 
   // Generate cover URL using the API endpoint

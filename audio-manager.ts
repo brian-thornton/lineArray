@@ -32,6 +32,47 @@ class AudioManager implements AudioManagerInterface {
   constructor() {
     this.platform = process.platform
     console.log('Audio Manager: Initialized for platform:', this.platform)
+    
+    // Query system volume on startup
+    this.querySystemVolumeOnStartup()
+  }
+
+  // Query system volume on startup and sync our internal state
+  private async querySystemVolumeOnStartup(): Promise<void> {
+    try {
+      let command: string
+      
+      if (this.platform === 'win32') {
+        // Windows: Use PowerShell to get system volume
+        command = 'powershell -Command "[math]::Round((Get-AudioDevice -Playback).Volume / 100, 2)"'
+      } else {
+        // macOS: Use osascript to get system volume
+        command = 'osascript -e "output volume of (get volume settings)"'
+      }
+      
+      exec(command, (error, stdout, stderr) => {
+        if (error) {
+          console.log('Audio Manager: Error querying system volume:', error.message)
+          console.log('Audio Manager: Using default volume:', this.volume)
+        } else {
+          try {
+            const systemVolume = parseFloat(stdout.trim())
+            if (!isNaN(systemVolume)) {
+              // Convert from percentage to 0-1 range
+              const normalizedVolume = this.platform === 'win32' ? systemVolume : systemVolume / 100
+              this.volume = Math.max(0, Math.min(1, normalizedVolume))
+              console.log('Audio Manager: System volume queried on startup:', `${Math.round(this.volume * 100)}%`)
+            } else {
+              console.log('Audio Manager: Invalid system volume response, using default:', this.volume)
+            }
+          } catch (parseError) {
+            console.log('Audio Manager: Error parsing system volume, using default:', this.volume)
+          }
+        }
+      })
+    } catch (error) {
+      console.error('Audio Manager: Error in querySystemVolumeOnStartup:', error)
+    }
   }
 
   // Set the completion callback
@@ -165,13 +206,11 @@ class AudioManager implements AudioManagerInterface {
 
   async getVLCProgress(): Promise<number> {
     if (!this.currentFile) {
-      console.log('VLC Progress: No current file');
       return 0;
     }
     
     try {
       const statusUrl = `http://localhost:${this.vlcPort}/requests/status.xml`;
-      console.log('VLC Progress: Fetching status from:', statusUrl);
       
       const response = await fetch(statusUrl, {
         headers: {
@@ -180,7 +219,6 @@ class AudioManager implements AudioManagerInterface {
       });
       
       if (!response.ok) {
-        console.log('VLC Progress: HTTP error:', response.status, response.statusText);
         // If VLC is unreachable, reset state
         if (response.status === 0 || response.status === 502 || response.status === 503 || response.status === 504) {
           this.isPlaying = false;
@@ -190,35 +228,26 @@ class AudioManager implements AudioManagerInterface {
       }
       
       const statusText = await response.text();
-      console.log('VLC Progress: Raw status response length:', statusText.length);
       
       const timeMatch = statusText.match(/<time>(\d+)<\/time>/);
       const lengthMatch = statusText.match(/<length>(\d+)<\/length>/);
       const stateMatch = statusText.match(/<state>(\w+)<\/state>/);
-      
-      console.log('VLC Progress: Parsed matches - time:', timeMatch?.[1], 'length:', lengthMatch?.[1], 'state:', stateMatch?.[1]);
       
       if (timeMatch && lengthMatch && stateMatch) {
         const currentTime = parseInt(timeMatch[1]);
         const totalLength = parseInt(lengthMatch[1]);
         const state = stateMatch[1];
         
-        console.log('VLC Progress: Parsed values - currentTime:', currentTime, 'totalLength:', totalLength, 'state:', state);
-        
         if (totalLength > 0) {
           const progress = currentTime / totalLength;
-          console.log('VLC Progress: Success - progress:', progress, 'currentTime:', currentTime, 'totalLength:', totalLength, 'state:', state);
           return progress;
         } else {
-          console.log('VLC Progress: Invalid total length:', totalLength);
           return 0;
         }
       } else {
-        console.log('VLC Progress: Could not parse VLC status response');
         return 0;
       }
     } catch (error) {
-      console.error('VLC Progress: Error:', error);
       return 0;
     }
   }
@@ -877,39 +906,90 @@ class AudioManager implements AudioManagerInterface {
     }
   }
 
-  setVolume(volume: number): boolean {
+  async setVolume(volume: number): Promise<number> {
     this.volume = Math.max(0, Math.min(1, volume))
     this.muted = this.volume === 0
     console.log('Audio Manager: Volume set to:', this.volume)
-    
-    // Apply volume to system audio
-    this.applySystemVolume()
-    return true
+    // Apply volume to system audio and return the actual system volume
+    const actualVolumePercent = await this.applySystemVolume()
+    // Update our internal volume to match the actual system volume
+    this.volume = actualVolumePercent / 100
+    return actualVolumePercent
   }
 
-  applySystemVolume(): void {
-    try {
-      let command: string
+  /**
+   * Set system volume and retry up to 3 times if needed. Returns the actual system volume (percent 0-100).
+   */
+  private applySystemVolume(): Promise<number> {
+    return new Promise((resolve) => {
       const volumePercent = Math.round(this.volume * 100)
-      
-      if (this.platform === 'win32') {
-        // Windows: Use PowerShell to set system volume
-        command = `powershell -Command "(New-Object -ComObject WScript.Shell).SendKeys([char]${volumePercent})"`
-      } else {
-        // macOS: Use osascript to set system volume
-        command = `osascript -e 'set volume output volume ${volumePercent}'`
-      }
-      
-      exec(command, (error, stdout, stderr) => {
-        if (error) {
-          console.log('Audio Manager: Error setting system volume:', error.message)
+      const setAndVerify = (attempt: number = 1) => {
+        let command: string
+        if (this.platform === 'win32') {
+          command = `powershell -Command "(New-Object -ComObject WScript.Shell).SendKeys([char]${volumePercent})"`
         } else {
-          console.log('Audio Manager: System volume set to:', `${volumePercent  }%`)
+          command = `osascript -e 'set volume output volume ${volumePercent}'`
         }
-      })
-    } catch (error) {
-      console.error('Audio Manager: Error applying system volume:', error)
-    }
+        exec(command, (error, stdout, stderr) => {
+          if (error) {
+            console.log('Audio Manager: Error setting system volume:', error.message)
+            if (attempt < 3) {
+              setTimeout(() => setAndVerify(attempt + 1), 100)
+            } else {
+              console.log('Audio Manager: Failed to set system volume after 3 attempts')
+              this.querySystemVolume().then(resolve).catch(() => resolve(volumePercent))
+            }
+          } else {
+            this.querySystemVolume().then((actualPercent) => {
+              if (Math.abs(actualPercent - volumePercent) > 2) {
+                if (attempt < 3) {
+                  setTimeout(() => setAndVerify(attempt + 1), 100)
+                } else {
+                  console.log(`Audio Manager: System volume mismatch after 3 attempts (wanted ${volumePercent}%, got ${actualPercent}%)`)
+                  resolve(actualPercent)
+                }
+              } else {
+                console.log('Audio Manager: System volume set to:', `${actualPercent}%`)
+                resolve(actualPercent)
+              }
+            }).catch(() => {
+              if (attempt < 3) {
+                setTimeout(() => setAndVerify(attempt + 1), 100)
+              } else {
+                console.log('Audio Manager: Failed to verify system volume after 3 attempts')
+                resolve(volumePercent)
+              }
+            })
+          }
+        })
+      }
+      setAndVerify()
+    })
+  }
+
+  // Helper to query the current system volume (returns percent 0-100)
+  private querySystemVolume(): Promise<number> {
+    return new Promise((resolve, reject) => {
+      let command: string
+      if (this.platform === 'win32') {
+        // Not implemented for Windows
+        resolve(Math.round(this.volume * 100))
+      } else {
+        command = `osascript -e "output volume of (get volume settings)"`
+        exec(command, (error, stdout, stderr) => {
+          if (error) {
+            reject(error)
+          } else {
+            const val = parseInt(stdout.trim(), 10)
+            if (!isNaN(val)) {
+              resolve(val)
+            } else {
+              reject(new Error('Could not parse system volume'))
+            }
+          }
+        })
+      }
+    })
   }
 
   getVolume(): number {

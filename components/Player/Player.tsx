@@ -1,14 +1,15 @@
 "use client"
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { Play, Pause, SkipForward, Square, Trash2, Volume2, VolumeX, List } from 'lucide-react'
+import { Play, Pause, SkipForward, Square, Trash2, Volume2, VolumeX, List, Plus, Minus, X } from 'lucide-react'
 import styles from './Player.module.css'
-import MeterBridge from './MeterBridge'
-import VolumeModal from '../VolumeModal'
+// Remove VolumeModal import
+// import VolumeModal from '../VolumeModal'
 import { useSettings } from '@/contexts/SettingsContext'
 import { useSearch } from '@/contexts/SearchContext'
 import { useToast } from '@/contexts/ToastContext'
 import type { QueueResponse, QueuePlayResponse, Track } from '@/types/api'
+import { createPortal } from 'react-dom'
 
 interface PlayerStatus {
   isPlaying: boolean
@@ -36,7 +37,9 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
   const [loading, setLoading] = useState(false)
   const [hasLoaded, setHasLoaded] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
-  const [showVolumeModal, setShowVolumeModal] = useState(false)
+  // Remove VolumeModal import and state
+  // const [showVolumeModal, setShowVolumeModal] = useState(false)
+  const [showVolumeOverlay, setShowVolumeOverlay] = useState(false)
   const [playerStatus, setPlayerStatus] = useState<PlayerStatus>({
     isPlaying: false,
     currentTrack: null,
@@ -47,6 +50,7 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
   const [isSeeking, setIsSeeking] = useState(false)
   const [seekPreview, setSeekPreview] = useState<number | null>(null)
   const [showConfirmClear, setShowConfirmClear] = useState(false)
+  const [volumeLoading, setVolumeLoading] = useState(false)
 
   // Detect mobile devices
   useEffect(() => {
@@ -313,39 +317,66 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
   }
 
   const handleVolumeChange = async (newVolume: number): Promise<void> => {
+    setVolumeLoading(true)
     try {
-      const response = await fetch('/api/queue', {
-        method: 'GET',
+      const response = await fetch('/api/control', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'setVolume', volume: newVolume }),
       })
-      
       if (response.ok) {
+        const data = await response.json() as { volume?: number; isMuted?: boolean }
         setPlayerStatus(prev => ({
           ...prev, 
-          volume: newVolume, 
-          isMuted: newVolume === 0 
+          volume: typeof data.volume === 'number' ? data.volume : newVolume, 
+          isMuted: data.isMuted ?? (newVolume === 0)
         }))
+        // Show toast if the backend value is not close to the requested value
+        if (typeof data.volume === 'number' && Math.abs(data.volume - newVolume) > 0.02) {
+          showToast(`Volume set to ${Math.round((data.volume ?? 0) * 100)}% (closest possible)`, 'info', 2500)
+        }
+      } else {
+        console.error('Failed to set volume')
       }
     } catch (error) {
-      // Silently handle error
+      console.error('Error setting volume:', error)
+    } finally {
+      setVolumeLoading(false)
     }
+  }
+
+  const handleVolumeUp = async (): Promise<void> => {
+    const currentVolume = playerStatus.volume ?? 0
+    const newVolume = Math.min(1, currentVolume + 0.05) // Increase by 5%
+    await handleVolumeChange(newVolume)
+  }
+
+  const handleVolumeDown = async (): Promise<void> => {
+    const currentVolume = playerStatus.volume ?? 0
+    const newVolume = Math.max(0, currentVolume - 0.05) // Decrease by 5%
+    await handleVolumeChange(newVolume)
   }
 
   const handleMuteToggle = async (): Promise<void> => {
     try {
-      const response = await fetch('/api/queue', {
-        method: 'GET',
+      const response = await fetch('/api/control', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'toggleMute' }),
       })
       
       if (response.ok) {
-        const data = await response.json() as QueueResponse;
+        const data = await response.json() as { isMuted?: boolean; volume?: number }
         setPlayerStatus(prev => ({ 
           ...prev, 
-          isMuted: data.isMuted,
-          volume: data.volume
+          isMuted: data.isMuted ?? !prev.isMuted,
+          volume: data.volume ?? prev.volume
         }))
+      } else {
+        console.error('Failed to toggle mute')
       }
     } catch (error) {
-      // Silently handle error
+      console.error('Error toggling mute:', error)
     }
   }
 
@@ -428,7 +459,7 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
 
   // Only show the player when there's actually music to control or volume is available
   /* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
-  const shouldShowPlayer = Boolean(
+  const shouldShowPlayer = isMobile ? true : Boolean(
     playerStatus.isPlaying ||
     playerStatus.currentTrack ||
     playerStatus.queue.length > 0 ||
@@ -438,21 +469,27 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
   )
   /* eslint-enable @typescript-eslint/prefer-nullish-coalescing */
 
+  // DEBUG: Confirm Player is rendering
+  // Removed debug log
+
   if (!shouldShowPlayer) {
     // Player hidden - currentTrack, queue length, isPlaying, hasAddedTrackToQueue
-    return null
+    return isMobile ? (
+      <div style={{position: 'fixed', bottom: 0, left: 0, right: 0, background: 'magenta', color: 'white', zIndex: 9999, textAlign: 'center', padding: 8}}>DEBUG: Player should be visible on mobile</div>
+    ) : null;
   }
   
   // Player visible - currentTrack, queue length, isPlaying, hasAddedTrackToQueue
-
-  if (!hasLoaded) return null;
 
   // console.log('[Player] isMobile:', isMobile)
 
   return (
     <>
+      {/* DEBUG: Confirm main player JSX is rendering */}
+      {isMobile && (
+        <div style={{background: 'yellow', color: 'black', textAlign: 'center', fontWeight: 'bold', padding: 4, zIndex: 9999}}>DEBUG: Main player JSX is rendering</div>
+      )}
       <div className={styles.player}>
-        <MeterBridge isPlaying={playerStatus.isPlaying} />
         <div className={styles.content}>
           <div className={styles.trackInfo}>
             <div className={styles.cover}>
@@ -481,7 +518,7 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
                 min="0"
                 max="1"
                 step="0.01"
-                value={isSeeking ? (seekPreview ?? playerStatus.progress ?? 0) : (playerStatus.progress ?? 0)}
+                value={isSeeking ? (seekPreview ?? 0) : (playerStatus.progress ?? 0)}
                 onChange={(e) => { handleSeekDrag(parseFloat(e.target.value)); }}
                 onMouseUp={(e) => { void handleSeekEnd(parseFloat((e.target as HTMLInputElement).value)); }}
                 onPointerUp={(e) => { void handleSeekEnd(parseFloat((e.target as HTMLInputElement).value)); }}
@@ -557,7 +594,7 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
           <div className={styles.volume}>
             {isMobile ? (
               <button
-                onClick={() => { setShowVolumeModal(true); }}
+                onClick={() => { setShowVolumeOverlay(true); }}
                 className={styles.volumeButton}
                 aria-label="Volume settings"
               >
@@ -573,30 +610,70 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
                   {playerStatus.isMuted ? <VolumeX className={styles.volumeIcon} /> : <Volume2 className={styles.volumeIcon} />}
                 </button>
                 {typeof playerStatus.volume === 'number' && (
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.01"
-                    value={playerStatus.isMuted ? 0 : playerStatus.volume}
-                    onChange={(e) => { void handleVolumeChange(parseFloat(e.target.value)); }}
-                    className={styles.volumeBar}
-                    aria-label="Volume"
-                  />
+                  <div className={styles.volumeControls}>
+                    <button
+                      onClick={() => { void handleVolumeDown(); }}
+                      className={styles.volumeButton}
+                      disabled={volumeLoading}
+                      aria-label="Decrease volume"
+                    >
+                      <Minus className={styles.volumeIcon} />
+                    </button>
+                    <span className={styles.volumeDisplay}>
+                      {Math.round((playerStatus.volume ?? 0) * 100)}%
+                    </span>
+                    <button
+                      onClick={() => { void handleVolumeUp(); }}
+                      className={styles.volumeButton}
+                      disabled={volumeLoading}
+                      aria-label="Increase volume"
+                    >
+                      <Plus className={styles.volumeIcon} />
+                    </button>
+                  </div>
                 )}
               </>
             )}
           </div>
         </div>
         
-        <VolumeModal
-          isOpen={showVolumeModal}
-          onClose={() => { setShowVolumeModal(false); }}
-          volume={playerStatus.volume ?? 0}
-          isMuted={playerStatus.isMuted}
-          onVolumeChange={(volume) => { void handleVolumeChange(volume); }}
-          onMuteToggle={() => { void handleMuteToggle(); }}
-        />
+        {/* Full-page volume overlay for mobile - must be outside .player for true fullscreen */}
+        {isMobile && showVolumeOverlay && typeof window !== 'undefined' && createPortal(
+          <div className={styles.volumeOverlay}>
+            <button className={styles.volumeOverlayClose} onClick={() => setShowVolumeOverlay(false)} aria-label="Close volume overlay">
+              <X size={32} />
+            </button>
+            <div className={styles.volumeOverlayContent}>
+              <button
+                onClick={() => { void handleMuteToggle(); }}
+                className={styles.volumeOverlayMute}
+                aria-label={playerStatus.isMuted ? 'Unmute' : 'Mute'}
+              >
+                {playerStatus.isMuted ? <VolumeX size={40} /> : <Volume2 size={40} />}
+              </button>
+              <div className={styles.volumeOverlayValue}>{Math.round((playerStatus.volume ?? 0) * 100)}%</div>
+              <div className={styles.volumeOverlayControls}>
+                <button
+                  onClick={() => { void handleVolumeDown(); }}
+                  className={styles.volumeOverlayButton}
+                  disabled={volumeLoading}
+                  aria-label="Decrease volume"
+                >
+                  <Minus size={36} />
+                </button>
+                <button
+                  onClick={() => { void handleVolumeUp(); }}
+                  className={styles.volumeOverlayButton}
+                  disabled={volumeLoading}
+                  aria-label="Increase volume"
+                >
+                  <Plus size={36} />
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
       </div>
       {showConfirmClear && (
         <div className={styles.confirmModal} role="dialog" aria-modal="true" aria-labelledby="confirmClearTitle">

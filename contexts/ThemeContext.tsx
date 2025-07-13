@@ -55,8 +55,6 @@ export function ThemeProvider({ children }: { children: ReactNode }): JSX.Elemen
   const applyTheme = (theme: Theme): void => {
     const root = document.documentElement
     const body = document.body
-    console.log('[Theme] Applying theme:', theme.id, theme.colors)
-    console.log('[Theme] Setting CSS variables for theme:', theme.id)
     
     // Set CSS custom properties for the theme
     root.style.setProperty('--jukebox-primary', theme.colors.primary)
@@ -73,7 +71,7 @@ export function ThemeProvider({ children }: { children: ReactNode }): JSX.Elemen
     root.style.setProperty('--jukebox-error', theme.colors.error)
     root.style.setProperty('--jukebox-warning', theme.colors.warning)
     
-    console.log('[Theme] CSS variables set. Background:', theme.colors.background, 'Text:', theme.colors.text, 'Accent:', theme.colors.accent)
+
     
     // Apply theme directly to body and html for immediate effect
     if (body) {
@@ -104,7 +102,7 @@ export function ThemeProvider({ children }: { children: ReactNode }): JSX.Elemen
     root.style.setProperty('--jukebox-gold', theme.colors.accent)
     root.style.setProperty('--jukebox-blue', theme.colors.accent)
     
-    console.log('[Theme] Legacy CSS variables also set')
+
     
     // Enhanced mobile Safari support
     if (typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent)) {
@@ -163,10 +161,9 @@ export function ThemeProvider({ children }: { children: ReactNode }): JSX.Elemen
         document.head.appendChild(metaThemeColor);
       }
       metaThemeColor.content = theme.colors.background;
-      console.log('[Theme] Updated meta theme-color to', theme.colors.background)
     }
     
-    console.log('[Theme] Theme application complete for:', theme.id)
+
   }
 
   // Set theme by ID
@@ -185,27 +182,20 @@ export function ThemeProvider({ children }: { children: ReactNode }): JSX.Elemen
   useEffect(() => {
     let didCancel = false;
     const loadAndApplyTheme = async () => {
-      console.log('[Theme] Starting theme loading process');
       await loadThemes().catch(console.error);
       if (didCancel) return;
       
-      console.log('[Theme] Themes loaded:', themes);
       const savedTheme = localStorage.getItem('jukebox-theme');
-      console.log('[Theme] Saved theme from localStorage:', savedTheme);
       
       if (savedTheme && themes.find(t => t.id === savedTheme)) {
-        console.log('[Theme] Applying saved theme from localStorage:', savedTheme);
         setTheme(savedTheme);
       } else {
         // Try to load theme from backend settings
         try {
-          console.log('[Theme] Loading theme from backend settings');
           const res = await fetch('/api/settings');
           if (res.ok) {
             const data = await res.json() as { theme?: string };
-            console.log('[Theme] Backend settings theme:', data?.theme);
             if (data?.theme && themes.find(t => t.id === data.theme)) {
-              console.log('[Theme] Applying theme from backend settings:', data.theme);
               setTheme(data.theme);
               return;
             }
@@ -214,7 +204,6 @@ export function ThemeProvider({ children }: { children: ReactNode }): JSX.Elemen
           console.error('Error loading theme from settings:', error)
         }
         // Fallback to default
-        console.log('[Theme] Falling back to default theme:', defaultTheme.id);
         setTheme(defaultTheme.id);
       }
     };
@@ -228,7 +217,6 @@ export function ThemeProvider({ children }: { children: ReactNode }): JSX.Elemen
     
     // Reapply theme after a short delay to ensure it sticks
     const timer = setTimeout(() => {
-      console.log('[Theme] Reapplying theme after delay:', currentTheme.id)
       applyTheme(currentTheme)
     }, 100)
     

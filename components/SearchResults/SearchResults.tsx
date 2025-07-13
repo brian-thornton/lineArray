@@ -1,9 +1,9 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Plus } from 'lucide-react'
-import PlaylistModal from '../PlaylistModal'
+import PlaylistModal from '../PlaylistModal/PlaylistModal'
 import { useSettings } from '@/contexts/SettingsContext'
 import styles from './SearchResults.module.css'
 
@@ -22,10 +22,46 @@ interface SearchResultsProps {
   isLoading: boolean
 }
 
+const MIN_PAGE_SIZE = 5
+const MAX_PAGE_SIZE = 50
+
 export default function SearchResults({ results, onTrackClick, isLoading }: SearchResultsProps): JSX.Element {
   const { canPerformAction } = useSettings()
   const [showPlaylistModal, setShowPlaylistModal] = useState(false)
   const [selectedTrack, setSelectedTrack] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+
+  // Dynamically calculate page size based on viewport height
+  useEffect(() => {
+    function updatePageSize(): void {
+      // More conservative height estimates to prevent scrolling
+      const headerHeight = 120 // Increased from 80
+      const paginationHeight = 80 // Increased from 60
+      const padding = 80 // Increased from 48
+      const searchBoxHeight = 60 // Account for search box
+      const safetyMargin = 40 // Extra safety margin
+      
+      // Estimate per-result height (mobile/desktop)
+      let resultHeight = 72
+      if (window.innerWidth >= 1024 && window.matchMedia('(pointer: coarse)').matches) {
+        resultHeight = 80
+      } else if (window.innerWidth > 768) {
+        resultHeight = 64
+      }
+      
+      const totalReserved = headerHeight + paginationHeight + padding + searchBoxHeight + safetyMargin
+      const available = window.innerHeight - totalReserved
+      const fit = Math.floor(available / resultHeight)
+      setPageSize(Math.max(MIN_PAGE_SIZE, Math.min(MAX_PAGE_SIZE, fit)))
+    }
+    updatePageSize()
+    window.addEventListener('resize', updatePageSize)
+    return () => window.removeEventListener('resize', updatePageSize)
+  }, [])
+
+  const totalPages = Math.max(1, Math.ceil(results.length / pageSize))
+  const pagedResults = results.slice((page - 1) * pageSize, page * pageSize)
 
   if (isLoading) {
     return (
@@ -90,7 +126,7 @@ export default function SearchResults({ results, onTrackClick, isLoading }: Sear
   return (
     <div className={styles.container}>
       <div className={styles.results}>
-        {results.map((result) => (
+        {pagedResults.map((result) => (
           <div key={result.id} className={styles.resultItem}>
             {result.type === 'album' ? (
               <Link href={`/album/${result.id}`} className={styles.albumResult}>
@@ -132,7 +168,27 @@ export default function SearchResults({ results, onTrackClick, isLoading }: Sear
           </div>
         ))}
       </div>
-
+      {totalPages > 1 && (
+        <div className={styles.pagination}>
+          <button
+            className={styles.pageButton}
+            onClick={() => setPage(page - 1)}
+            disabled={page === 1}
+          >
+            Prev
+          </button>
+          <span className={styles.pageInfo}>
+            Page {page} of {totalPages}
+          </span>
+          <button
+            className={styles.pageButton}
+            onClick={() => setPage(page + 1)}
+            disabled={page === totalPages}
+          >
+            Next
+          </button>
+        </div>
+      )}
       <PlaylistModal
         isOpen={showPlaylistModal}
         onClose={() => setShowPlaylistModal(false)}

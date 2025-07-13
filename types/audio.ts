@@ -47,7 +47,7 @@ export interface AudioManagerInterface {
   checkAndRestart(): Promise<boolean>
   setCurrentFile(filePath: string): void
   getCurrentSong(): CurrentSong
-  setVolume(volume: number): boolean
+  setVolume(volume: number): Promise<number>
   getVolume(): number
   toggleMute(): boolean
   isMuted(): boolean
@@ -55,7 +55,7 @@ export interface AudioManagerInterface {
   isTrackFinished(): boolean
   estimateDuration(filePath: string): number
   killAllAudioProcesses(): Promise<void>
-  applySystemVolume(): void
+
   muteSystemAudio(): void
   unmuteSystemAudio(): void
   setTrackCompleteCallback(callback: () => void): void
@@ -83,7 +83,7 @@ export interface QueueStateInterface {
   stopAllPlayback(): Promise<void>
   getProgress(): number
   getVolume(): number
-  setVolume(volume: number): boolean
+  setVolume(volume: number): Promise<number>
   getIsMuted(): boolean
   toggleMute(): boolean
   seekPlayback(position: number): Promise<boolean>

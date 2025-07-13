@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Folder, X, Plus, FolderOpen } from 'lucide-react'
-import FileBrowser from '../FileBrowser'
+import FileBrowser from '../FileBrowser/FileBrowser'
 import styles from './MusicFoldersManager.module.css'
 
 interface MusicFoldersManagerProps {

@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react'
 import { Album, Track } from '@/types/music'
-import AlbumGrid from '@/components/AlbumGrid'
-import SearchResults from '@/components/SearchResults'
+import AlbumGrid from '@/components/AlbumGrid/AlbumGrid'
+import SearchResults from '@/components/SearchResults/SearchResults'
 import { useSearch } from '@/contexts/SearchContext'
 import { useToast } from '@/contexts/ToastContext'
 import styles from './page.module.css'

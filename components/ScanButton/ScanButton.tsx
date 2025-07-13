@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { FolderOpen, Loader, Folder } from 'lucide-react'
-import FileBrowser from '../FileBrowser'
+import FileBrowser from '../FileBrowser/FileBrowser'
 import styles from './ScanButton.module.css'
 
 interface ScanButtonProps {

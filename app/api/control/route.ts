@@ -138,9 +138,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           error = 'Invalid volume value'
           break
         }
-        success = queueState.audio.setVolume(volume)
-        responseData.volume = volume
-        responseData.isMuted = volume === 0
+        try {
+          const actualVolume = await queueState.audio.setVolume(volume)
+          success = true
+          responseData.volume = actualVolume / 100 // Convert from percent to 0-1 range
+          responseData.isMuted = actualVolume === 0
+        } catch (error) {
+          success = false
+          console.error('Error setting volume:', error)
+        }
         break
       case 'toggleMute':
         success = queueState.audio.toggleMute()

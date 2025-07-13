@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import RecentlyPlayed from '@/components/RecentlyPlayed'
+import RecentlyPlayed from '@/components/RecentlyPlayed/RecentlyPlayed'
 import styles from './page.module.css'
 
 export default function RecentPage(): JSX.Element {

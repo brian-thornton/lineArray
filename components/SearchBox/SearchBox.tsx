@@ -87,6 +87,12 @@ const SearchBox = forwardRef<SearchBoxRef>((_props, ref): JSX.Element => {
     }
   }, [query, performSearch, clearSearch])
 
+  // Clear search when navigating to a new page
+  useEffect(() => {
+    clearSearch()
+    setQuery('')
+  }, [pathname, clearSearch])
+
   const handleClearSearch = (): void => {
     setQuery('')
     clearSearch()

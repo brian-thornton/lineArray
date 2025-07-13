@@ -294,6 +294,21 @@
   height: 18px;
 }
 
+.volumeControls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.volumeDisplay {
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  color: var(--jukebox-accent);
+  font-weight: 600;
+  min-width: 35px;
+  text-align: center;
+}
+
 .volumeBar {
   width: 80px;
   height: 6px;
@@ -379,74 +394,28 @@
   .content {
     flex-direction: row;
     gap: var(--spacing-sm);
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
+    min-height: 60px;
+    display: flex;
   }
   
   .trackInfo {
-    display: none; /* Hide album info on mobile */
+    display: none;
   }
   
   .mainControls {
-    height: auto; /* Allow natural height on mobile */
+    height: auto;
     gap: var(--spacing-xs);
+    flex-shrink: 0;
+    order: 1;
+    display: flex;
   }
   
   .controlButton {
     margin: 0 var(--spacing-xs);
-  }
-  
-  .volume {
-    width: auto;
-    justify-content: center;
-  }
-  
-  .volumeBar {
-    width: 100px;
-  }
-  
-  /* Hide volume slider on mobile, only show volume button */
-  .volume input[type="range"] {
-    display: none;
-  }
-  
-  /* Hide MeterBridge on mobile */
-  .player > div:first-child {
-    display: none;
-  }
-
-  .skipButton {
-    display: none !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .cover {
-    width: 50px;
-    height: 50px;
-  }
-  
-  .trackInfo {
-    height: 50px; /* Match the smaller cover height */
-  }
-  
-  .mainControls {
-    height: 50px; /* Match the track info height */
-    gap: 4px;
-  }
-  
-  .title {
-    font-size: 1rem;
-  }
-  
-  .artist {
-    font-size: 0.8rem;
-  }
-  
-  .controlButton {
     width: 44px;
     height: 44px;
-    margin: 0 2px;
   }
   
   .controlIcon {
@@ -454,9 +423,68 @@
     height: 18px;
   }
   
-  .time {
-    font-size: 0.7rem;
-    min-width: 35px;
+  .volume {
+    width: auto;
+    justify-content: center;
+    flex-shrink: 0;
+    order: 2;
+    display: flex;
+  }
+  
+  .volumeControls {
+    display: flex;
+  }
+  
+  .skipButton {
+    display: flex;
+  }
+  
+  .playbackPosition {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .player {
+    padding: var(--spacing-xs);
+  }
+  
+  .content {
+    gap: var(--spacing-xs);
+    min-height: 50px;
+    justify-content: space-between;
+  }
+  
+  .mainControls {
+    height: 50px;
+    gap: 2px;
+    flex-shrink: 0;
+    order: 1;
+  }
+  
+  .controlButton {
+    width: 36px;
+    height: 36px;
+    margin: 0 1px;
+  }
+  
+  .controlIcon {
+    width: 14px;
+    height: 14px;
+  }
+  
+  .volume {
+    order: 2;
+  }
+  
+  .volumeButton {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .volumeIcon {
+    width: 14px;
+    height: 14px;
   }
 } 
 
@@ -535,4 +563,113 @@
 .cancelButton:hover {
   color: var(--jukebox-white);
   border-color: var(--jukebox-white);
+} 
+
+.volumeOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(20, 20, 40, 0.98);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  min-width: 100vw;
+  width: 100vw;
+  height: 100vh;
+  box-sizing: border-box;
+  animation: fadeIn 0.2s;
+}
+
+.volumeOverlayClose {
+  position: absolute;
+  top: 1.2rem;
+  right: 1.2rem;
+  background: none;
+  border: none;
+  color: var(--jukebox-accent);
+  cursor: pointer;
+  z-index: 10001;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+.volumeOverlayClose:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+.volumeOverlayContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2.5rem;
+  width: 100%;
+  max-width: 340px;
+  margin-top: 3rem;
+}
+
+.volumeOverlayMute {
+  background: var(--jukebox-accent);
+  color: var(--jukebox-white);
+  border: none;
+  border-radius: 50%;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.volumeOverlayMute:hover {
+  background: var(--jukebox-gold);
+  color: var(--jukebox-background);
+}
+
+.volumeOverlayValue {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  color: var(--jukebox-gold);
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.volumeOverlayControls {
+  display: flex;
+  gap: 2.5rem;
+  justify-content: center;
+  align-items: center;
+}
+
+.volumeOverlayButton {
+  background: var(--jukebox-accent);
+  color: var(--jukebox-white);
+  border: none;
+  border-radius: 50%;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.volumeOverlayButton:disabled {
+  background: rgba(255,255,255,0.08);
+  color: var(--jukebox-gray);
+  cursor: not-allowed;
+}
+.volumeOverlayButton:hover:not(:disabled) {
+  background: var(--jukebox-gold);
+  color: var(--jukebox-background);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 } 
