@@ -102,6 +102,10 @@
     height: auto;
     padding: 0 !important;
   }
+  
+  .qrIcon {
+    display: none;
+  }
 }
 
 @media (max-width: 480px) {

@@ -45,6 +45,7 @@ export default function AppHeader(): JSX.Element {
             type="button"
             aria-label="Show Mobile Access QR Code"
             onClick={() => setShowQR(true)}
+            className={styles.qrIcon}
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginLeft: 8 }}
           >
             <Smartphone size={28} style={{ color: 'var(--jukebox-gold)' }} />

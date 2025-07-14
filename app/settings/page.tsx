@@ -6,13 +6,18 @@ import ScanProgress from '@/components/ScanProgress/ScanProgress'
 import PinPad from '@/components/PinPad/PinPad'
 import PlayCounts from '@/components/PlayCounts/PlayCounts'
 import LogsViewer from '@/components/LogsViewer/LogsViewer'
+import SearchResults from '@/components/SearchResults/SearchResults'
 import { useSettings } from '@/contexts/SettingsContext'
-import { useTheme } from '@/contexts/ThemeContext'
+import { useThemeContext } from '@/contexts/ThemeContext'
+import { useSearch } from '@/contexts/SearchContext'
+import { useToast } from '@/contexts/ToastContext'
 import styles from './page.module.css'
 
 export default function SettingsPage(): JSX.Element {
   const { settings, updateSettings } = useSettings()
-  const { themes, setTheme } = useTheme()
+  const { themes, setTheme } = useThemeContext()
+  const { searchQuery, searchResults, isSearching, addTrackToQueue, hideKeyboard } = useSearch()
+  const { showToast } = useToast()
   const [jukeboxName, setJukeboxName] = useState(settings.jukeboxName)
   const [partyMode, setPartyMode] = useState(settings.partyMode)
   const [selectedTheme, setSelectedTheme] = useState(settings.theme)
@@ -315,8 +320,28 @@ export default function SettingsPage(): JSX.Element {
   }
 
   return (
-    <div className={styles.container}>
-      <h1 className={styles.title}>Settings</h1>
+    searchQuery ? (
+      <div className={styles.container}>
+        <SearchResults 
+          results={searchResults}
+          onTrackClick={(path) => {
+            void (async () => {
+              await addTrackToQueue(path)
+              hideKeyboard()
+              
+              // Find the track title for the toast
+              const track = searchResults.find(result => result.path === path)
+              if (track) {
+                showToast(`Added "${track.title}" to queue`, 'success')
+              }
+            })()
+          }}
+          isLoading={isSearching}
+        />
+      </div>
+    ) : (
+      <div className={styles.container}>
+        <h1 className={styles.title}>Settings</h1>
       
       <div className={styles.section}>
         <h2 className={styles.sectionTitle}>Jukebox Configuration</h2>
@@ -733,5 +758,6 @@ export default function SettingsPage(): JSX.Element {
         currentAlbum={scanProgress.currentAlbum}
       />
     </div>
+    )
   )
 } 

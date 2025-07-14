@@ -40,8 +40,8 @@ export default function QRCodeComponent({ className }: QRCodeProps): JSX.Element
                 width: 160,
                 margin: 2,
                 color: {
-                  dark: '#FFD700', // Gold color to match theme
-                  light: '#1a1a1a' // Dark background
+                  dark: getComputedStyle(document.documentElement).getPropertyValue('--jukebox-accent').trim() || '#06b6d4', // Theme accent color
+                  light: getComputedStyle(document.documentElement).getPropertyValue('--jukebox-background').trim() || '#020617' // Theme background color
                 }
               })
               setQrDataUrl(qrCode)
@@ -52,8 +52,8 @@ export default function QRCodeComponent({ className }: QRCodeProps): JSX.Element
                 width: 160,
                 margin: 2,
                 color: {
-                  dark: '#FFD700',
-                  light: '#1a1a1a'
+                  dark: getComputedStyle(document.documentElement).getPropertyValue('--jukebox-accent').trim() || '#06b6d4', // Theme accent color
+                  light: getComputedStyle(document.documentElement).getPropertyValue('--jukebox-background').trim() || '#020617' // Theme background color
                 }
               })
               setQrDataUrl(qrCode)
@@ -65,8 +65,8 @@ export default function QRCodeComponent({ className }: QRCodeProps): JSX.Element
               width: 160,
               margin: 2,
               color: {
-                dark: '#FFD700',
-                light: '#1a1a1a'
+                dark: getComputedStyle(document.documentElement).getPropertyValue('--jukebox-accent').trim() || '#06b6d4', // Theme accent color
+                light: getComputedStyle(document.documentElement).getPropertyValue('--jukebox-background').trim() || '#020617' // Theme background color
               }
             })
             setQrDataUrl(qrCode)
@@ -78,8 +78,8 @@ export default function QRCodeComponent({ className }: QRCodeProps): JSX.Element
             width: 160,
             margin: 2,
             color: {
-              dark: '#FFD700',
-              light: '#1a1a1a'
+              dark: getComputedStyle(document.documentElement).getPropertyValue('--jukebox-accent').trim() || '#06b6d4', // Theme accent color
+              light: getComputedStyle(document.documentElement).getPropertyValue('--jukebox-background').trim() || '#020617' // Theme background color
             }
           })
           setQrDataUrl(qrCode)

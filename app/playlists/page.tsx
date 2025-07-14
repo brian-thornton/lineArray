@@ -5,11 +5,16 @@ import { useRouter } from 'next/navigation'
 import { Plus, Edit, Trash2, Play, Music } from 'lucide-react'
 import { Playlist } from '@/types/music'
 import { useSettings } from '@/contexts/SettingsContext'
+import { useSearch } from '@/contexts/SearchContext'
+import { useToast } from '@/contexts/ToastContext'
+import SearchResults from '@/components/SearchResults/SearchResults'
 import styles from './page.module.css'
 
 export default function PlaylistsPage(): JSX.Element {
   const router = useRouter()
   const { canPerformAction } = useSettings()
+  const { searchQuery, searchResults, isSearching, addTrackToQueue, hideKeyboard } = useSearch()
+  const { showToast } = useToast()
   const [playlists, setPlaylists] = useState<Playlist[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -134,6 +139,17 @@ export default function PlaylistsPage(): JSX.Element {
     }
   }
 
+  const handleTrackClick = async (path: string): Promise<void> => {
+    await addTrackToQueue(path)
+    hideKeyboard()
+    
+    // Find the track title for the toast
+    const track = searchResults.find(result => result.path === path)
+    if (track) {
+      showToast(`Added "${track.title}" to queue`, 'success')
+    }
+  }
+
   const formatDate = (dateString: string): string => {
     return new Date(dateString).toLocaleDateString()
   }
@@ -148,93 +164,105 @@ export default function PlaylistsPage(): JSX.Element {
   }
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <h1 className={styles.title}>Playlists</h1>
-        <button 
-          onClick={() => setShowCreateModal(true)}
-          className={styles.createButton}
-          disabled={!canPerformAction('allowCreatePlaylists')}
-          title={!canPerformAction('allowCreatePlaylists') ? 'Creating playlists is restricted in party mode' : 'Create new playlist'}
-        >
-          <Plus className={styles.plusIcon} />
-          New Playlist
-        </button>
-      </div>
-
-      {playlists.length === 0 ? (
-        <div className={styles.emptyState}>
-          <Music className={styles.emptyIcon} />
-          <h2>No playlists yet</h2>
-          <p>Create your first playlist to get started</p>
-          <button 
-            onClick={() => setShowCreateModal(true)}
-            className={styles.createFirstButton}
-            disabled={!canPerformAction('allowCreatePlaylists')}
-            title={!canPerformAction('allowCreatePlaylists') ? 'Creating playlists is restricted in party mode' : 'Create your first playlist'}
-          >
-            <Plus className={styles.plusIcon} />
-            Create Playlist
-          </button>
+    <>
+      {searchQuery ? (
+        <div className={styles.container}>
+          <SearchResults 
+            results={searchResults}
+            onTrackClick={path => { void handleTrackClick(path); }}
+            isLoading={isSearching}
+          />
         </div>
       ) : (
-        <div className={styles.playlistsGrid}>
-          {playlists.map((playlist) => (
-            <div key={playlist.id} className={styles.playlistCard}>
-              <div className={styles.playlistHeader}>
-                <div className={styles.playlistIcon}>
-                  <Music className={styles.musicIcon} />
-                </div>
-                <div className={styles.playlistInfo}>
-                  <h3 className={styles.playlistName}>{playlist.name}</h3>
-                  {playlist.description && (
-                    <p className={styles.playlistDescription}>{playlist.description}</p>
-                  )}
-                  <div className={styles.playlistMeta}>
-                    <span className={styles.trackCount}>
-                      {playlist.trackCount} {playlist.trackCount === 1 ? 'track' : 'tracks'}
-                    </span>
-                    <span className={styles.createdDate}>
-                      Created {formatDate(playlist.createdAt)}
-                    </span>
+        <div className={styles.container}>
+          <div className={styles.header}>
+            <h1 className={styles.title}>Playlists</h1>
+            <button 
+              onClick={() => setShowCreateModal(true)}
+              className={styles.createButton}
+              disabled={!canPerformAction('allowCreatePlaylists')}
+              title={!canPerformAction('allowCreatePlaylists') ? 'Creating playlists is restricted in party mode' : 'Create new playlist'}
+            >
+              <Plus className={styles.plusIcon} />
+              New Playlist
+            </button>
+          </div>
+
+          {playlists.length === 0 ? (
+            <div className={styles.emptyState}>
+              <Music className={styles.emptyIcon} />
+              <h2>No playlists yet</h2>
+              <p>Create your first playlist to get started</p>
+              <button 
+                onClick={() => setShowCreateModal(true)}
+                className={styles.createFirstButton}
+                disabled={!canPerformAction('allowCreatePlaylists')}
+                title={!canPerformAction('allowCreatePlaylists') ? 'Creating playlists is restricted in party mode' : 'Create your first playlist'}
+              >
+                <Plus className={styles.plusIcon} />
+                Create Playlist
+              </button>
+            </div>
+          ) : (
+            <div className={styles.playlistsGrid}>
+              {playlists.map((playlist) => (
+                <div key={playlist.id} className={styles.playlistCard}>
+                  <div className={styles.playlistHeader}>
+                    <div className={styles.playlistIcon}>
+                      <Music className={styles.musicIcon} />
+                    </div>
+                    <div className={styles.playlistInfo}>
+                      <h3 className={styles.playlistName}>{playlist.name}</h3>
+                      {playlist.description && (
+                        <p className={styles.playlistDescription}>{playlist.description}</p>
+                      )}
+                      <div className={styles.playlistMeta}>
+                        <span className={styles.trackCount}>
+                          {playlist.trackCount} {playlist.trackCount === 1 ? 'track' : 'tracks'}
+                        </span>
+                        <span className={styles.createdDate}>
+                          Created {formatDate(playlist.createdAt)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className={styles.playlistActions}>
+                    <button
+                      onClick={() => { void handlePlayPlaylist(playlist) }}
+                      className={styles.playButton}
+                      disabled={playlist.trackCount === 0 || !canPerformAction('allowAddToQueue')}
+                      title={
+                        playlist.trackCount === 0 
+                          ? 'Playlist is empty' 
+                          : !canPerformAction('allowAddToQueue')
+                          ? 'Adding to queue is restricted in party mode'
+                          : 'Play playlist'
+                      }
+                    >
+                      <Play className={styles.playIcon} />
+                    </button>
+                    <button
+                      onClick={() => { void router.push(`/playlists/${playlist.id}`) }}
+                      className={styles.editButton}
+                      disabled={!canPerformAction('allowEditPlaylists')}
+                      title={!canPerformAction('allowEditPlaylists') ? 'Editing playlists is restricted in party mode' : 'Edit playlist'}
+                    >
+                      <Edit className={styles.editIcon} />
+                    </button>
+                    <button
+                      onClick={() => setShowDeleteModal(playlist.id)}
+                      className={styles.deleteButton}
+                      disabled={!canPerformAction('allowDeletePlaylists')}
+                      title={!canPerformAction('allowDeletePlaylists') ? 'Deleting playlists is restricted in party mode' : 'Delete playlist'}
+                    >
+                      <Trash2 className={styles.deleteIcon} />
+                    </button>
                   </div>
                 </div>
-              </div>
-
-              <div className={styles.playlistActions}>
-                <button
-                  onClick={() => { void handlePlayPlaylist(playlist) }}
-                  className={styles.playButton}
-                  disabled={playlist.trackCount === 0 || !canPerformAction('allowAddToQueue')}
-                  title={
-                    playlist.trackCount === 0 
-                      ? 'Playlist is empty' 
-                      : !canPerformAction('allowAddToQueue')
-                      ? 'Adding to queue is restricted in party mode'
-                      : 'Play playlist'
-                  }
-                >
-                  <Play className={styles.playIcon} />
-                </button>
-                <button
-                  onClick={() => { void router.push(`/playlists/${playlist.id}`) }}
-                  className={styles.editButton}
-                  disabled={!canPerformAction('allowEditPlaylists')}
-                  title={!canPerformAction('allowEditPlaylists') ? 'Editing playlists is restricted in party mode' : 'Edit playlist'}
-                >
-                  <Edit className={styles.editIcon} />
-                </button>
-                <button
-                  onClick={() => setShowDeleteModal(playlist.id)}
-                  className={styles.deleteButton}
-                  disabled={!canPerformAction('allowDeletePlaylists')}
-                  title={!canPerformAction('allowDeletePlaylists') ? 'Deleting playlists is restricted in party mode' : 'Delete playlist'}
-                >
-                  <Trash2 className={styles.deleteIcon} />
-                </button>
-              </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
       )}
 
@@ -338,6 +366,6 @@ export default function PlaylistsPage(): JSX.Element {
           </div>
         </div>
       )}
-    </div>
+    </>
   )
 } 
