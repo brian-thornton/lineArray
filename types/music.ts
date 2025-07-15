@@ -74,7 +74,7 @@ export interface Settings {
   showMobileQR: boolean
   useMobileAlbumLayout: boolean
   showPlaybackPosition: boolean
-  libraryLayout: 'modern' | 'classic'
+  libraryLayout: 'modern' | 'classic' | 'large'
   partyMode: {
     enabled: boolean
     allowPlay: boolean

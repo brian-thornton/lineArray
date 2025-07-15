@@ -9,6 +9,7 @@ import { useToast } from '@/contexts/ToastContext'
 import styles from './page.module.css'
 import LibraryLayout from '@/components/LibraryLayout/LibraryLayout'
 import ClassicLibraryGrid from '@/components/ClassicLibraryGrid/ClassicLibraryGrid'
+import LargeAlbumGrid from '@/components/LargeAlbumGrid/LargeAlbumGrid'
 import { useSettings } from '@/contexts/SettingsContext'
 
 interface WindowWithPlayer extends Window {
@@ -24,7 +25,7 @@ export default function Home(): JSX.Element {
   const [isLoading, setIsLoading] = useState(true)
   const [classicPage, setClassicPage] = useState(1)
   const albumsPerClassicPage = 4
-
+  
   useEffect(() => {
     if (!searchQuery) {
       document.body.id = 'library-no-scroll'
@@ -106,6 +107,12 @@ export default function Home(): JSX.Element {
                 page={classicPage}
                 setPage={setClassicPage}
                 totalPages={totalClassicPages}
+              />
+            ) : settings.libraryLayout === 'large' ? (
+              <LargeAlbumGrid 
+                albums={albums}
+                onPlayTrack={handlePlayTrack}
+                isLoading={isLoading}
               />
             ) : (
               <AlbumGrid 

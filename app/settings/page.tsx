@@ -273,7 +273,7 @@ export default function SettingsPage(): JSX.Element {
   }
 
   const handleLibraryLayoutChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    void updateSettings({ libraryLayout: e.target.value as 'modern' | 'classic' });
+    void updateSettings({ libraryLayout: e.target.value as 'modern' | 'classic' | 'large' });
   };
 
   // If party mode is enabled and user is not authenticated, show PIN modal
@@ -545,6 +545,7 @@ export default function SettingsPage(): JSX.Element {
               >
                 <option value="modern">Modern (Grid)</option>
                 <option value="classic">Classic (4-up with tracks)</option>
+                <option value="large">Large (2x6 with letters)</option>
               </select>
             </div>
           </div>

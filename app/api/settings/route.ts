@@ -14,6 +14,7 @@ interface Settings {
   showMobileQR: boolean
   useMobileAlbumLayout: boolean
   showPlaybackPosition: boolean
+  libraryLayout: 'modern' | 'classic' | 'large'
   partyMode: {
     enabled: boolean
     allowPlay: boolean
@@ -50,6 +51,7 @@ function loadSettings(): Settings {
         showMobileQR: existingSettings.showMobileQR ?? true,
         useMobileAlbumLayout: existingSettings.useMobileAlbumLayout ?? false,
         showPlaybackPosition: existingSettings.showPlaybackPosition ?? true,
+        libraryLayout: existingSettings.libraryLayout ?? 'modern',
         partyMode: {
           enabled: false,
           allowPlay: true,
@@ -84,6 +86,7 @@ function loadSettings(): Settings {
     showMobileQR: true,
     useMobileAlbumLayout: false,
     showPlaybackPosition: true,
+    libraryLayout: 'modern',
     partyMode: {
       enabled: false,
       allowPlay: true,
@@ -153,6 +156,7 @@ export function GET(): Promise<NextResponse> {
         showMobileQR: true,
         useMobileAlbumLayout: false,
         showPlaybackPosition: true,
+        libraryLayout: 'modern',
         partyMode: {
           enabled: false,
           allowPlay: true,
@@ -183,6 +187,7 @@ export function GET(): Promise<NextResponse> {
       showMobileQR: existingSettings.showMobileQR ?? true,
       useMobileAlbumLayout: existingSettings.useMobileAlbumLayout ?? false,
       showPlaybackPosition: existingSettings.showPlaybackPosition ?? true,
+      libraryLayout: existingSettings.libraryLayout ?? 'modern',
       partyMode: {
         enabled: existingSettings.partyMode?.enabled ?? false,
         allowPlay: existingSettings.partyMode?.allowPlay ?? true,
