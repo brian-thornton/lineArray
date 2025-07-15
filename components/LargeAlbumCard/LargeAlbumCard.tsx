@@ -1,4 +1,5 @@
 import React from 'react'
+import { useRouter } from 'next/navigation'
 import { Album, Track } from '@/types/music'
 import styles from './LargeAlbumCard.module.css'
 
@@ -8,11 +9,11 @@ interface LargeAlbumCardProps {
   isSelected: boolean
 }
 
-function LargeAlbumCard({ album, onPlayTrack, isSelected }: LargeAlbumCardProps): JSX.Element {
+function LargeAlbumCard({ album, onPlayTrack: _onPlayTrack, isSelected }: LargeAlbumCardProps): JSX.Element {
+  const router = useRouter()
+
   const handleClick = (): void => {
-    if (album.tracks.length > 0) {
-      onPlayTrack(album.tracks[0])
-    }
+    router.push(`/album/${album.id}`)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent): void => {
@@ -29,7 +30,7 @@ function LargeAlbumCard({ album, onPlayTrack, isSelected }: LargeAlbumCardProps)
       onKeyDown={handleKeyDown}
       tabIndex={0}
       role="button"
-      aria-label={`Play ${album.title}`}
+      aria-label={`View ${album.title} details`}
     >
       <div className={styles.coverContainer}>
         <div className={styles.reflectiveFrame}>

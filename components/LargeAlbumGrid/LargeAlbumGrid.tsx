@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import LargeAlbumCard from '../LargeAlbumCard/LargeAlbumCard'
 import { Album, Track } from '@/types/music'
-import { Music, Hash, Folder, FileText, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Music, Hash, ChevronLeft, ChevronRight } from 'lucide-react'
 import styles from './LargeAlbumGrid.module.css'
 
 interface LargeAlbumGridProps {
@@ -99,13 +99,6 @@ function LargeAlbumGrid({ albums, onPlayTrack, isLoading }: LargeAlbumGridProps)
 
   return (
     <div className={styles.container}>
-      {/* Pagination Info */}
-      <div className={styles.paginationInfo}>
-        <span className={styles.pageInfo}>
-          {filteredAlbums.length > 0 ? `${startIndex + 1}-${Math.min(endIndex, filteredAlbums.length)}` : '0'} of {filteredAlbums.length} albums
-        </span>
-      </div>
-
       {/* Album Grid */}
       <div className={styles.gridContainer}>
         {/* Left Navigation Arrow */}
@@ -150,37 +143,7 @@ function LargeAlbumGrid({ albums, onPlayTrack, isLoading }: LargeAlbumGridProps)
         </div>
       )}
 
-      {/* Currently Playing Queue */}
-      <div className={styles.queueSection}>
-        <div className={styles.queueTitle}>Currently Playing</div>
-        <div className={styles.queueItems}>
-          {/* Placeholder queue items - you can replace with actual queue data */}
-          <div className={styles.queueItem}>
-            <div className={styles.queueCover} />
-            <div className={styles.queueInfo}>
-              <div className={styles.queueTrack}>Hung Up</div>
-              <div className={styles.queueArtist}>Madonna</div>
-              <div className={styles.queueDuration}>02:04</div>
-            </div>
-          </div>
-          <div className={styles.queueItem}>
-            <div className={styles.queueCover} />
-            <div className={styles.queueInfo}>
-              <div className={styles.queueTrack}>Circus</div>
-              <div className={styles.queueArtist}>Britney Spears</div>
-              <div className={styles.queueDuration}>00:27</div>
-            </div>
-          </div>
-          <div className={styles.queueItem}>
-            <div className={styles.queueCover} />
-            <div className={styles.queueInfo}>
-              <div className={styles.queueTrack}>Axel F</div>
-              <div className={styles.queueArtist}>Crazy Frog</div>
-              <div className={styles.queueDuration}>02:11</div>
-            </div>
-          </div>
-        </div>
-      </div>
+
 
       {/* Letter Navigation Bar */}
       <div className={styles.letterNav}>
@@ -214,20 +177,7 @@ function LargeAlbumGrid({ albums, onPlayTrack, isLoading }: LargeAlbumGridProps)
           </button>
         ))}
 
-        <button
-          className={`${styles.letterButton} ${selectedLetter === '~' ? styles.active : ''}`}
-          onClick={() => handleLetterClick('~')}
-          aria-label="Albums starting with symbols"
-        >
-          <Folder size={16} />
-        </button>
 
-        <button
-          className={styles.letterButton}
-          aria-label="Playlist"
-        >
-          <FileText size={16} />
-        </button>
       </div>
     </div>
   )

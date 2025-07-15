@@ -38,34 +38,36 @@ export default function ClassicLibraryGrid({ albums, page, setPage, totalPages }
               aria-label={`View details for ${album.title}`}
               onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') router.push(`/album/${album.id}`) }}
             >
-              <div className={styles.coverRow}>
-                {album.coverPath ? (
-                  <Image
-                    src={`/api/cover/${encodeURIComponent(album.coverPath)}`}
-                    alt={album.title}
-                    className={styles.cover}
-                    width={110}
-                    height={110}
-                    unoptimized
-                  />
-                ) : (
-                  <div className={styles.defaultCover}>
-                    <Music className={styles.defaultIcon} />
+              <div className={styles.albumTitle}>{album.title}</div>
+              <div className={styles.contentRow}>
+                <div className={styles.coverRow}>
+                  {album.coverPath ? (
+                    <Image
+                      src={`/api/cover/${encodeURIComponent(album.coverPath)}`}
+                      alt={album.title}
+                      className={styles.cover}
+                      width={240}
+                      height={240}
+                      unoptimized
+                    />
+                  ) : (
+                    <div className={styles.defaultCover}>
+                      <Music className={styles.defaultIcon} />
+                    </div>
+                  )}
+                </div>
+                <div className={styles.rightColumn}>
+                  <div className={styles.tracksList}>
+                    <ol>
+                      {album.tracks.slice(0, 10).map((track, tIdx) => (
+                        <li key={track.id} className={styles.trackItem}>
+                          <span className={styles.trackNumber}>{(track.trackNumber ?? tIdx + 1).toString().padStart(2, '0')}</span>
+                          {' - '}
+                          <span className={styles.trackTitle}>{track.title}</span>
+                        </li>
+                      ))}
+                    </ol>
                   </div>
-                )}
-              </div>
-              <div className={styles.rightColumn}>
-                <div className={styles.albumTitle}>{album.title}</div>
-                <div className={styles.tracksList}>
-                  <ol>
-                    {album.tracks.slice(0, 10).map((track, tIdx) => (
-                      <li key={track.id} className={styles.trackItem}>
-                        <span className={styles.trackNumber}>{(track.trackNumber ?? tIdx + 1).toString().padStart(2, '0')}</span>
-                        {' - '}
-                        <span className={styles.trackTitle}>{track.title}</span>
-                      </li>
-                    ))}
-                  </ol>
                 </div>
               </div>
             </div>

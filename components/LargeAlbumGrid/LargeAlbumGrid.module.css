@@ -1,11 +1,10 @@
 .container {
   width: 100%;
-  height: 100%;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
   position: relative;
-  overflow: hidden;
-  background: var(--jukebox-background);
+  overflow: visible;
   color: var(--jukebox-text);
 }
 
@@ -26,47 +25,53 @@
   position: relative;
   flex: 1;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   padding: 0 var(--spacing-lg);
-  overflow: hidden;
+  overflow: visible;
   min-height: 0;
+  margin-bottom: 80px; /* Add space for letter navigation */
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  grid-template-rows: repeat(2, 1fr);
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-rows: repeat(2, 250px);
   gap: var(--spacing-md);
   width: 100%;
-  max-width: 1200px;
-  height: 100%;
-  max-height: 70vh;
-  align-items: start;
+  max-width: 1300px;
+  height: auto;
+  align-items: stretch;
 }
 
 .navArrow {
   position: absolute;
-  top: 50%;
+  top: 250px;
   transform: translateY(-50%);
   z-index: 10;
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--jukebox-accent);
-  border: 1px solid var(--jukebox-accent);
+  background: rgba(0, 0, 0, 0.6);
+  color: #00bfff;
+  border: 1px solid #00bfff;
+  border-radius: 50%;
   width: 44px;
   height: 44px;
-  border-radius: 50%;
+  min-width: 44px;
+  min-height: 44px;
+  font-size: 1.5rem;
+  font-weight: bold;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
   backdrop-filter: blur(10px);
+  box-shadow: none;
 }
 
 .navArrow:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: translateY(-50%) scale(1.1);
+  background: rgba(0, 0, 0, 0.8);
+  border-color: #00bfff;
+  transform: translateY(-50%) scale(1.05);
 }
 
 .navArrowLeft {
@@ -159,15 +164,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 8px;
   padding: var(--spacing-sm) var(--spacing-lg);
-  background: rgba(255, 255, 255, 0.1);
-  border-top: 2px solid var(--jukebox-accent);
+  background: rgba(0, 0, 0, 0.9);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   flex-shrink: 0;
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
   min-height: 50px;
+  position: fixed;
+  bottom: 100px;
+  left: 0;
+  right: 0;
+  z-index: 1000;
 }
 
 .letterNav::-webkit-scrollbar {
@@ -180,8 +190,8 @@
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: var(--radius-sm);
   padding: var(--spacing-xs) var(--spacing-sm);
-  min-width: 32px;
-  height: 32px;
+  min-width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -303,8 +313,8 @@
   }
   
   .navArrow {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
   }
   
   .navArrowLeft {
@@ -316,15 +326,7 @@
   }
   
   .letterNav {
-    padding: var(--spacing-xs) var(--spacing-md);
-    gap: 1px;
-  }
-  
-  .letterButton {
-    min-width: 28px;
-    height: 28px;
-    padding: var(--spacing-xs);
-    font-size: 0.7rem;
+    display: none;
   }
 }
 
@@ -336,13 +338,11 @@
   }
   
   .navArrow {
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
   }
   
-  .letterButton {
-    min-width: 24px;
-    height: 24px;
-    font-size: 0.65rem;
+  .letterNav {
+    display: none;
   }
 } 

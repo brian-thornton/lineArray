@@ -474,9 +474,7 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
 
   if (!shouldShowPlayer) {
     // Player hidden - currentTrack, queue length, isPlaying, hasAddedTrackToQueue
-    return isMobile ? (
-      <div style={{position: 'fixed', bottom: 0, left: 0, right: 0, background: 'magenta', color: 'white', zIndex: 9999, textAlign: 'center', padding: 8}}>DEBUG: Player should be visible on mobile</div>
-    ) : null;
+    return null;
   }
   
   // Player visible - currentTrack, queue length, isPlaying, hasAddedTrackToQueue
@@ -485,10 +483,6 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
 
   return (
     <>
-      {/* DEBUG: Confirm main player JSX is rendering */}
-      {isMobile && (
-        <div style={{background: 'yellow', color: 'black', textAlign: 'center', fontWeight: 'bold', padding: 4, zIndex: 9999}}>DEBUG: Main player JSX is rendering</div>
-      )}
       <div className={styles.player}>
         <div className={styles.content}>
           <div className={styles.trackInfo}>

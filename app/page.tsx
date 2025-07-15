@@ -26,6 +26,8 @@ export default function Home(): JSX.Element {
   const [classicPage, setClassicPage] = useState(1)
   const albumsPerClassicPage = 4
   
+  console.log('Current layout setting:', settings.libraryLayout)
+  
   useEffect(() => {
     if (!searchQuery) {
       document.body.id = 'library-no-scroll'
