@@ -8,6 +8,8 @@ import { useSearch } from '@/contexts/SearchContext'
 import { useToast } from '@/contexts/ToastContext'
 import styles from './page.module.css'
 import LibraryLayout from '@/components/LibraryLayout/LibraryLayout'
+import ClassicLibraryGrid from '@/components/ClassicLibraryGrid/ClassicLibraryGrid'
+import { useSettings } from '@/contexts/SettingsContext'
 
 interface WindowWithPlayer extends Window {
   hasAddedTrackToQueue?: boolean
@@ -17,8 +19,11 @@ interface WindowWithPlayer extends Window {
 export default function Home(): JSX.Element {
   const { searchQuery, searchResults, isSearching, addTrackToQueue, hideKeyboard } = useSearch()
   const { showToast } = useToast()
+  const { settings } = useSettings()
   const [albums, setAlbums] = useState<Album[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [classicPage, setClassicPage] = useState(1)
+  const albumsPerClassicPage = 4
 
   useEffect(() => {
     if (!searchQuery) {
@@ -77,6 +82,9 @@ export default function Home(): JSX.Element {
     }
   }
 
+  const totalClassicPages = Math.max(1, Math.ceil(albums.length / albumsPerClassicPage))
+  const pagedClassicAlbums = albums.slice((classicPage - 1) * albumsPerClassicPage, classicPage * albumsPerClassicPage)
+
   return (
     searchQuery ? (
       <div className={styles.container}>
@@ -92,11 +100,20 @@ export default function Home(): JSX.Element {
       <LibraryLayout>
         <div className={styles.container}>
           <main className={styles.main}>
-            <AlbumGrid 
-              albums={albums}
-              onPlayTrack={handlePlayTrack}
-              isLoading={isLoading}
-            />
+            {settings.libraryLayout === 'classic' ? (
+              <ClassicLibraryGrid
+                albums={pagedClassicAlbums}
+                page={classicPage}
+                setPage={setClassicPage}
+                totalPages={totalClassicPages}
+              />
+            ) : (
+              <AlbumGrid 
+                albums={albums}
+                onPlayTrack={handlePlayTrack}
+                isLoading={isLoading}
+              />
+            )}
           </main>
         </div>
       </LibraryLayout>

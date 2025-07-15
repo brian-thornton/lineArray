@@ -373,12 +373,6 @@ export default function AlbumDetail(): JSX.Element {
           <div className={styles.infoSection}>
             <h1 className={styles.title}>{album.title}</h1>
             {album.year && <p className={styles.year}>{album.year}</p>}
-            
-            <div className={styles.meta}>
-              <span className={styles.trackCount}>
-                {album.tracks.length} tracks
-              </span>
-            </div>
 
             <div className={styles.actions}>
               <button 

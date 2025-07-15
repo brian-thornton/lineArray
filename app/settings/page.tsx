@@ -272,6 +272,10 @@ export default function SettingsPage(): JSX.Element {
     }
   }
 
+  const handleLibraryLayoutChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    void updateSettings({ libraryLayout: e.target.value as 'modern' | 'classic' });
+  };
+
   // If party mode is enabled and user is not authenticated, show PIN modal
   if (settings.partyMode.enabled && !isAuthenticated) {
     return (
@@ -530,6 +534,18 @@ export default function SettingsPage(): JSX.Element {
                 />
                 <span className={styles.toggleText}>Use Mobile Album Layout</span>
               </label>
+            </div>
+            <div className={styles.setting}>
+              <label htmlFor="libraryLayout" className={styles.label}>Library Layout Style</label>
+              <select
+                id="libraryLayout"
+                value={settings.libraryLayout}
+                onChange={handleLibraryLayoutChange}
+                className={styles.select}
+              >
+                <option value="modern">Modern (Grid)</option>
+                <option value="classic">Classic (4-up with tracks)</option>
+              </select>
             </div>
           </div>
 
