@@ -1,6 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import AudioManager from './audio-manager'
+import logger from './utils/serverLogger'
 import type { QueueTrack, QueueState, DebugInfo, AudioManagerInterface, QueueStateInterface } from './types/audio'
 
 const audio: AudioManagerInterface = new AudioManager()
@@ -88,30 +89,30 @@ audio.setProgressCallback((newProgress: number) => {
 })
 
 async function playNextInQueue(): Promise<boolean> {
-  console.log('playNextInQueue: Starting, queue length:', queue.length)
+  logger.info('Playing next track in queue', 'QueueState', { queueLength: queue.length })
   
   if (queue.length === 0) {
-    console.log('playNextInQueue: Queue is empty, stopping audio')
+    logger.info('Queue is empty, stopping audio', 'QueueState')
     await stopPlayback()
     return false
   }
   
   const nextTrack = queue.shift() || null
-  console.log('playNextInQueue: Next track from queue:', nextTrack)
+  logger.info('Next track from queue', 'QueueState', { track: nextTrack })
   
   if (!nextTrack) {
-    console.log('playNextInQueue: No next track, stopping audio')
+    logger.info('No next track, stopping audio', 'QueueState')
     await stopPlayback()
     return false
   }
   
   currentTrack = nextTrack
-  console.log('playNextInQueue: Set currentTrack to:', currentTrack)
+  logger.info('Set current track', 'QueueState', { track: currentTrack })
   saveState()
   
-  console.log('playNextInQueue: Playing file:', nextTrack.path)
+  logger.info('Playing file', 'QueueState', { filePath: nextTrack.path })
   const success = await audio.playFile(nextTrack.path)
-  console.log('playNextInQueue: playFile result:', success)
+  logger.info('Play file result', 'QueueState', { success, filePath: nextTrack.path })
   
   if (success) {
     isPlaying = true
@@ -133,23 +134,23 @@ async function playNextInQueue(): Promise<boolean> {
 
 async function startPlayback(): Promise<boolean> {
   if (currentTrack) {
-    console.log('startPlayback: Starting playback for current track')
+    logger.info('Starting playback for current track', 'QueueState', { track: currentTrack })
     const success = await audio.playFile(currentTrack.path)
     if (success) {
       isPlaying = true
     }
     return success
   } else if (queue.length > 0) {
-    console.log('startPlayback: No current track, playing next in queue')
+    logger.info('No current track, playing next in queue', 'QueueState')
     return await playNextInQueue()
   } else {
-    console.log('startPlayback: No tracks to play')
+    logger.info('No tracks to play', 'QueueState')
     return false
   }
 }
 
 async function stopPlayback(): Promise<boolean> {
-  console.log('stopPlayback: Stopping all playback')
+  logger.info('Stopping all playback', 'QueueState')
   const success = await audio.stop()
   isPlaying = false
   currentTrack = null
@@ -234,14 +235,16 @@ async function addToQueue(filePath: string): Promise<void> {
   queue.push(track)
   saveState()
   
+  logger.info('Added track to queue', 'QueueState', { track, queueLength: queue.length })
+  
   // If no track is currently playing, start playing this track
   if (!currentTrack && !isPlaying) {
-    console.log('addToQueue: No current track, starting playback')
+    logger.info('No current track, starting playback', 'QueueState')
     const success = await playNextInQueue()
     if (success) {
-      console.log('addToQueue: Playback started successfully')
+      logger.info('Playback started successfully', 'QueueState')
     } else {
-      console.log('addToQueue: Failed to start playback')
+      logger.error('Failed to start playback', 'QueueState')
     }
   }
 }

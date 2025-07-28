@@ -206,18 +206,18 @@
 }
 
 .deleteButton {
-  background: rgba(255, 59, 48, 0.1);
+  background: transparent;
   color: #ff3b30;
   border: 1px solid rgba(255, 59, 48, 0.3);
 }
 
 .deleteButton:hover:not(:disabled) {
-  background: rgba(255, 59, 48, 0.2);
+  background: rgba(255, 59, 48, 0.1);
   transform: translateY(-1px);
 }
 
 .deleteButton:disabled {
-  background: rgba(255, 59, 48, 0.05);
+  background: transparent;
   color: var(--jukebox-gray);
   border-color: rgba(255, 59, 48, 0.1);
   cursor: not-allowed;
@@ -225,7 +225,7 @@
 }
 
 .deleteButton:disabled:hover {
-  background: rgba(255, 59, 48, 0.05);
+  background: transparent;
   transform: none;
 }
 
@@ -476,7 +476,7 @@
   justify-content: center;
   width: 36px;
   height: 36px;
-  background: rgba(255, 59, 48, 0.1);
+  background: transparent;
   color: #ff3b30;
   border: 1px solid rgba(255, 59, 48, 0.3);
   border-radius: var(--radius-md);
@@ -485,12 +485,12 @@
 }
 
 .removeTrackButton:hover:not(:disabled) {
-  background: rgba(255, 59, 48, 0.2);
+  background: rgba(255, 59, 48, 0.1);
   transform: translateY(-1px);
 }
 
 .removeTrackButton:disabled {
-  background: rgba(255, 59, 48, 0.05);
+  background: transparent;
   color: var(--jukebox-gray);
   border-color: rgba(255, 59, 48, 0.1);
   cursor: not-allowed;
@@ -498,7 +498,39 @@
 }
 
 .removeTrackButton:disabled:hover {
-  background: rgba(255, 59, 48, 0.05);
+  background: transparent;
+  transform: none;
+}
+
+.removeButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  color: #ff3b30;
+  border: 1px solid rgba(255, 59, 48, 0.3);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.removeButton:hover:not(:disabled) {
+  background: rgba(255, 59, 48, 0.1);
+  transform: translateY(-1px);
+}
+
+.removeButton:disabled {
+  background: transparent;
+  color: var(--jukebox-gray);
+  border-color: rgba(255, 59, 48, 0.1);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.removeButton:disabled:hover {
+  background: transparent;
   transform: none;
 }
 

@@ -1,20 +1,11 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { Plus } from 'lucide-react'
 import PlaylistModal from '../PlaylistModal/PlaylistModal'
 import { useSettings } from '@/contexts/SettingsContext'
+import SearchResultItem from './SearchResultItem'
 import styles from './SearchResults.module.css'
-
-interface SearchResult {
-  type: 'album' | 'track'
-  id: string
-  title: string
-  artist: string
-  album?: string
-  path?: string
-}
+import { SearchResult } from './types'
 
 interface SearchResultsProps {
   results: SearchResult[]
@@ -84,14 +75,7 @@ export default function SearchResults({ results, onTrackClick, isLoading }: Sear
     )
   }
 
-  const handleTrackClick = (e: React.MouseEvent, path: string): void => {
-    e.preventDefault()
-    if (!canPerformAction('allowAddToQueue')) {
-      console.error('Adding to queue is restricted in party mode')
-      return
-    }
-    onTrackClick(path)
-  }
+
 
   const handleAddToPlaylist = (e: React.MouseEvent, trackPath: string): void => {
     e.preventDefault()
@@ -127,45 +111,12 @@ export default function SearchResults({ results, onTrackClick, isLoading }: Sear
     <div className={styles.container}>
       <div className={styles.results}>
         {pagedResults.map((result) => (
-          <div key={result.id} className={styles.resultItem}>
-            {result.type === 'album' ? (
-              <Link href={`/album/${result.id}`} className={styles.albumResult}>
-                <div className={styles.resultIcon}>📀</div>
-                <div className={styles.resultContent}>
-                  <div className={styles.resultTitle}>{result.title}</div>
-                  <div className={styles.resultType}>Album</div>
-                </div>
-              </Link>
-            ) : (
-              <div className={styles.trackResultContainer}>
-                {result.path && (
-                  <>
-                    <button
-                      onClick={(e) => handleTrackClick(e, result.path as string)}
-                      className={styles.trackResult}
-                      disabled={!canPerformAction('allowAddToQueue')}
-                      title={!canPerformAction('allowAddToQueue') ? 'Adding to queue is restricted in party mode' : 'Play track'}
-                    >
-                      <div className={styles.resultIcon}>🎵</div>
-                      <div className={styles.resultContent}>
-                        <div className={styles.resultTitle}>{result.title}</div>
-                        <div className={styles.resultAlbum}>{result.album}</div>
-                        <div className={styles.resultType}>Track</div>
-                      </div>
-                    </button>
-                    <button
-                      onClick={(e) => handleAddToPlaylist(e, result.path as string)}
-                      className={styles.addToPlaylistButton}
-                      disabled={!canPerformAction('allowCreatePlaylists')}
-                      title={!canPerformAction('allowCreatePlaylists') ? 'Creating playlists is restricted in party mode' : 'Add to Playlist'}
-                    >
-                      <Plus className={styles.plusIcon} />
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
+          <SearchResultItem
+            key={result.id}
+            result={result}
+            onTrackClick={onTrackClick}
+            onAddToPlaylist={handleAddToPlaylist}
+          />
         ))}
       </div>
       {totalPages > 1 && (

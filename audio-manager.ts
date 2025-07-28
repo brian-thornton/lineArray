@@ -2,8 +2,7 @@ import player from 'play-sound'
 import { exec, type ChildProcess } from 'child_process'
 import fs from 'fs'
 // VLC HTTP API client - we'll implement this manually
-// Temporarily disable logger to fix playback
-// import logger from './utils/serverLogger'
+import logger from './utils/serverLogger'
 import type { AudioStatus, CurrentSong, AudioManagerInterface } from './types/audio'
 
 const audioPlayer = player({
@@ -102,6 +101,10 @@ class AudioManager implements AudioManagerInterface {
           if (this.vlcProgressCallback) {
             this.vlcProgressCallback(progress)
           }
+          
+          // Check for track completion
+          console.log('VLC Progress Polling: Checking for completion...');
+          await this.checkVLCCompletion()
         } catch (error) {
           console.error('VLC Progress Polling: Error:', error)
         }
@@ -124,11 +127,11 @@ class AudioManager implements AudioManagerInterface {
 
   async playFile(filePath: string): Promise<boolean> {
     try {
-      console.log('Audio Manager: Playing file:', filePath)
+      logger.info('Starting playback', 'AudioManager', { filePath })
       
       // If we're already playing this file, don't restart
       if (this.currentFile === filePath && this.isPlaying && this.vlcProcess) {
-        console.log('Audio Manager: Already playing this file, skipping restart')
+        logger.info('Already playing this file, skipping restart', 'AudioManager', { filePath })
         return true
       }
       
@@ -139,13 +142,13 @@ class AudioManager implements AudioManagerInterface {
       this.estimatedDuration = this.estimateDuration(filePath)
       this.playbackStartTime = Date.now()
       
-      console.log('Audio Manager: Starting VLC playback')
+      logger.info('Starting VLC playback', 'AudioManager')
       
       // Start VLC if not already running
       if (!this.vlcProcess) {
         const vlcStarted = await this.startVLC()
         if (!vlcStarted) {
-          console.error('Audio Manager: VLC failed to start')
+          logger.error('VLC failed to start', 'AudioManager')
           return false
         }
       }
@@ -160,14 +163,18 @@ class AudioManager implements AudioManagerInterface {
         // Start progress polling
         this.startVLCProgressPolling()
         
-        console.log('Audio Manager: Now playing with VLC:', filePath, 'isPlaying:', this.isPlaying)
+        logger.info('Playback started successfully', 'AudioManager', { 
+          filePath, 
+          isPlaying: this.isPlaying,
+          estimatedDuration: this.estimatedDuration 
+        })
         return true
       } else {
-        console.error('Audio Manager: VLC failed to load file')
+        logger.error('VLC failed to load file', 'AudioManager', { filePath })
         return false
       }
     } catch (error) {
-      console.error('Audio Manager: Error playing file:', error)
+      logger.error('Error playing file', 'AudioManager', { filePath, error: error instanceof Error ? error.message : String(error) })
       this.isPlaying = false
       this.currentFile = null
       this.playbackStartTime = null
@@ -309,6 +316,7 @@ class AudioManager implements AudioManagerInterface {
       });
       
       if (!response.ok) {
+        console.log('Audio Manager: VLC status request failed:', response.status);
         return;
       }
       
@@ -322,25 +330,61 @@ class AudioManager implements AudioManagerInterface {
         const totalLength = parseInt(lengthMatch[1]);
         const state = stateMatch[1];
         
+        console.log('Audio Manager: VLC Status Check - currentTime:', currentTime, 'totalLength:', totalLength, 'state:', state, 'isPlaying:', this.isPlaying);
+        
+        // VLC time values are in seconds, but let's be more lenient with the completion detection
+        const timeThreshold = Math.max(1, Math.floor(totalLength * 0.95)); // 95% of track length
+        
         // Check if track is finished (at end or stopped)
-        if (state === 'stopped' || (totalLength > 0 && currentTime >= totalLength - 1)) {
-          console.log('Audio Manager: Track finished detected - currentTime:', currentTime, 'totalLength:', totalLength, 'state:', state);
+        if (state === 'stopped' || (totalLength > 0 && currentTime >= timeThreshold)) {
+          console.log('Audio Manager: Track finished detected - currentTime:', currentTime, 'totalLength:', totalLength, 'threshold:', timeThreshold, 'state:', state);
           this.isPlaying = false;
           
           // Call the completion callback if set
           if (this.onTrackComplete) {
             console.log('Audio Manager: Calling track completion callback');
             this.onTrackComplete();
+          } else {
+            console.log('Audio Manager: No track completion callback set');
+          }
+        } else if (state === 'playing' && totalLength > 0 && currentTime >= timeThreshold) {
+          // VLC might still show as playing but be at the end
+          console.log('Audio Manager: Track at end but still playing - forcing completion');
+          this.isPlaying = false;
+          
+          if (this.onTrackComplete) {
+            console.log('Audio Manager: Calling track completion callback (forced)');
+            this.onTrackComplete();
+          } else {
+            console.log('Audio Manager: No track completion callback set (forced)');
+          }
+        } else if (state === 'playing' && this.playbackStartTime && this.estimatedDuration) {
+          // Fallback: check if we've been playing longer than the estimated duration
+          const elapsed = (Date.now() - this.playbackStartTime) / 1000;
+          if (elapsed > this.estimatedDuration + 5) { // 5 second buffer
+            console.log('Audio Manager: Track exceeded estimated duration - forcing completion. Elapsed:', elapsed, 'Estimated:', this.estimatedDuration);
+            this.isPlaying = false;
+            
+            if (this.onTrackComplete) {
+              console.log('Audio Manager: Calling track completion callback (duration fallback)');
+              this.onTrackComplete();
+            } else {
+              console.log('Audio Manager: No track completion callback set (duration fallback)');
+            }
           }
         }
+      } else {
+        console.log('Audio Manager: Could not parse VLC status response:', statusText);
       }
     } catch (error) {
-      // Ignore errors - this is just a check
+      console.log('Audio Manager: Error checking VLC completion:', error);
     }
   }
 
   async stop(): Promise<boolean> {
     try {
+      logger.info('Stopping playback', 'AudioManager', { currentFile: this.currentFile })
+      
       // Send stop command to VLC
       const stopUrl = `http://localhost:${this.vlcPort}/requests/status.xml?command=pl_stop`;
       await fetch(stopUrl, {
@@ -381,15 +425,15 @@ class AudioManager implements AudioManagerInterface {
         this.currentFile = null;
         this.playbackStartTime = null;
         this.stopVLCProgressPolling();
-        console.log('Audio Manager: Playback stopped and playlist cleared (confirmed stopped)');
+        logger.info('Playback stopped successfully', 'AudioManager')
         return true;
       } else {
-        console.warn('Audio Manager: VLC did not confirm stopped state');
+        logger.warn('VLC did not confirm stopped state', 'AudioManager')
         return false;
       }
     } catch (error) {
-      console.error('Audio Manager: Error stopping playback:', error);
-      return false;
+      logger.error('Error stopping playback', 'AudioManager', { error: error instanceof Error ? error.message : String(error) })
+      return false
     }
   }
 

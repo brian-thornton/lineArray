@@ -225,22 +225,25 @@ export default function AlbumDetail(): JSX.Element {
 
   const handleAddToPlaylistSuccess = async (playlistId: string, trackPaths: string[]): Promise<void> => {
     try {
-      const response = await fetch(`/api/playlists/${playlistId}/tracks`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ trackPaths }),
-      })
+      // Add each track individually to the playlist
+      for (const trackPath of trackPaths) {
+        const response = await fetch(`/api/playlists/${playlistId}/tracks`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ trackPath }),
+        })
 
-      if (response.ok) {
-        setShowPlaylistModal(false)
-        setSelectedTracks(new Set())
-        // You could show a success message here
-      } else {
-        // TODO: Implement a non-blocking UI alternative for showing error
+        if (!response.ok) {
+          console.error('Failed to add track to playlist:', trackPath)
+        }
       }
+
+      setShowPlaylistModal(false)
+      setSelectedTracks(new Set())
+      showToast(`Added ${trackPaths.length} track${trackPaths.length === 1 ? '' : 's'} to playlist`, 'success')
     } catch (error) {
       console.error('Error adding tracks to playlist:', error)
-      // TODO: Implement a non-blocking UI alternative for showing error
+      showToast('Failed to add tracks to playlist', 'error')
     }
   }
 

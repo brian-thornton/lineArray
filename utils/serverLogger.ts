@@ -21,8 +21,35 @@ class ServerLogger {
     if (!fs.existsSync(this.logFilePath)) {
       fs.writeFileSync(this.logFilePath, '')
     }
+    // Load existing logs from file into buffer
+    this.loadExistingLogs()
     this.isInitialized = true
     this.info('Logger initialized', 'Logger')
+  }
+
+  private loadExistingLogs(): void {
+    try {
+      if (fs.existsSync(this.logFilePath)) {
+        const fileContent = fs.readFileSync(this.logFilePath, 'utf8')
+        const lines = fileContent.trim().split('\n').filter(line => line.length > 0)
+        
+        for (const line of lines) {
+          try {
+            const entry = JSON.parse(line) as LogEntry
+            this.logBuffer.push(entry)
+          } catch (parseError) {
+            console.error('Failed to parse log entry:', parseError)
+          }
+        }
+        
+        // Keep only the most recent logs if we exceed maxLogEntries
+        if (this.logBuffer.length > this.maxLogEntries) {
+          this.logBuffer = this.logBuffer.slice(-this.maxLogEntries)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load existing logs:', error)
+    }
   }
 
   private writeToFile(entry: LogEntry): void {

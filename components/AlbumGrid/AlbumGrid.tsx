@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react'
 import AlbumCard from '../AlbumCard/AlbumCard'
 import Pagination from '../Pagination/Pagination'
 import SwipeGestures from '../SwipeGestures/SwipeGestures'
+import LetterNavigation from '../LetterNavigation/LetterNavigation'
 import { Album, Track } from '@/types/music'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useSettings } from '@/contexts/SettingsContext'
@@ -16,6 +17,7 @@ interface AlbumGridProps {
 function AlbumGrid({ albums, onPlayTrack, isLoading }: AlbumGridProps): JSX.Element {
   const { settings } = useSettings()
   const [currentPage, setCurrentPage] = useState(1)
+  const [selectedLetter, setSelectedLetter] = useState<string | null>(null)
   const [gridConfig, setGridConfig] = useState({
     columnsPerRow: 4,
     itemsPerPage: 12
@@ -97,16 +99,32 @@ function AlbumGrid({ albums, onPlayTrack, isLoading }: AlbumGridProps): JSX.Elem
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
+  // Filter albums based on selected letter
+  const filteredAlbums = useMemo(() => {
+    if (!selectedLetter || selectedLetter === 'all') return albums
+    
+    return albums.filter(album => {
+      const firstChar = album.title.charAt(0).toUpperCase()
+      if (selectedLetter === '#') {
+        return /[0-9]/.test(firstChar)
+      }
+      if (selectedLetter === '~') {
+        return /[^A-Z0-9]/.test(firstChar)
+      }
+      return firstChar === selectedLetter
+    })
+  }, [albums, selectedLetter])
+
   // Calculate pagination using dynamic items per page
-  const totalPages = Math.ceil(albums.length / gridConfig.itemsPerPage)
+  const totalPages = Math.ceil(filteredAlbums.length / gridConfig.itemsPerPage)
   const startIndex = (currentPage - 1) * gridConfig.itemsPerPage
   const endIndex = startIndex + gridConfig.itemsPerPage
-  const currentAlbums = albums.slice(startIndex, endIndex)
+  const currentAlbums = filteredAlbums.slice(startIndex, endIndex)
 
-  // Reset to first page when albums change
+  // Reset to first page when albums change or letter filter changes
   React.useEffect(() => {
     setCurrentPage(1)
-  }, [albums.length])
+  }, [filteredAlbums.length])
 
   const handlePageChange = (page: number): void => {
     setCurrentPage(page)
@@ -136,6 +154,11 @@ function AlbumGrid({ albums, onPlayTrack, isLoading }: AlbumGridProps): JSX.Elem
     if (currentPage < totalPages) {
       handlePageChange(currentPage + 1)
     }
+  }
+
+  const handleLetterClick = (letter: string): void => {
+    setSelectedLetter(selectedLetter === letter ? null : letter)
+    setCurrentPage(1)
   }
 
   // Generate dynamic CSS for grid columns
@@ -171,6 +194,13 @@ function AlbumGrid({ albums, onPlayTrack, isLoading }: AlbumGridProps): JSX.Elem
       disabled={totalPages <= 1}
     >
       <div className={styles.container}>
+        {/* Letter Navigation */}
+        <LetterNavigation
+          albums={albums}
+          selectedLetter={selectedLetter}
+          onLetterClick={handleLetterClick}
+        />
+
         {/* Left Navigation Arrow */}
         {totalPages > 1 && currentPage > 1 && (
           <button
@@ -214,7 +244,7 @@ function AlbumGrid({ albums, onPlayTrack, isLoading }: AlbumGridProps): JSX.Elem
             currentPage={currentPage}
             totalPages={totalPages}
             onPageChange={handlePageChange}
-            totalItems={albums.length}
+            totalItems={filteredAlbums.length}
             itemsPerPage={gridConfig.itemsPerPage}
           />
         )}

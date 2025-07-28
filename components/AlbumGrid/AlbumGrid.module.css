@@ -7,6 +7,8 @@
   overflow: hidden;
 }
 
+
+
 .slideContainer {
   position: relative;
   width: 100%;
@@ -52,6 +54,7 @@
   align-items: start;
   height: 100%;
   overflow-y: auto;
+  margin-bottom: 80px; /* Add space for letter navigation */
 }
 
 .navArrow {
@@ -210,6 +213,8 @@
   .navArrow {
     display: none !important;
   }
+
+
 }
 
 @media (max-width: 480px) {

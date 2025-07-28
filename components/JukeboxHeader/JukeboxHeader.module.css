@@ -49,15 +49,24 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  transition: color 0.2s ease;
+  transition: all 0.2s ease;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 200px;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  padding: var(--spacing-xs);
 }
 
 .logo:hover {
-  color: var(--jukebox-accent-light);
+  color: var(--jukebox-accent);
+  background: rgba(255, 255, 255, 0.05);
+  transform: translateY(-1px);
+}
+
+.logo:active {
+  transform: translateY(0);
 }
 
 /* Responsive design */
