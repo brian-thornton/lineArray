@@ -432,7 +432,7 @@ export default function AlbumDetail(): JSX.Element {
                   src={getCoverUrl(album.coverPath) ?? ''}
                   alt={`${album.title} cover`}
                   width={350}
-                  height={350}
+                  height={400}
                   className={styles.sideBySideCoverImage}
                   onError={(e) => {
                     const target = e.target as HTMLImageElement
