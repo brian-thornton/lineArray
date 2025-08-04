@@ -1,11 +1,13 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Album, Track } from '@/types/music'
 import AlbumGrid from '@/components/AlbumGrid/AlbumGrid'
 import SearchResults from '@/components/SearchResults/SearchResults'
 import { useSearch } from '@/contexts/SearchContext'
 import { useToast } from '@/contexts/ToastContext'
+import { useLibrary } from '@/contexts/LibraryContext'
 import styles from './page.module.css'
 import LibraryLayout from '@/components/LibraryLayout/LibraryLayout'
 import ClassicLibraryGrid from '@/components/ClassicLibraryGrid/ClassicLibraryGrid'
@@ -18,13 +20,21 @@ interface WindowWithPlayer extends Window {
 }
 
 export default function Home(): JSX.Element {
+  // const router = useRouter()
+  const searchParams = useSearchParams()
   const { searchQuery, searchResults, isSearching, addTrackToQueue, hideKeyboard } = useSearch()
   const { showToast } = useToast()
   const { settings } = useSettings()
+  const { libraryState, updateLibraryState } = useLibrary()
   const [albums, setAlbums] = useState<Album[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [classicPage, setClassicPage] = useState(1)
   const albumsPerClassicPage = 4
+  
+  // Get page and letter from URL query parameters
+  const pageFromUrl = searchParams.get('page')
+  const letterFromUrl = searchParams.get('letter')
+  const currentPage = pageFromUrl ? parseInt(pageFromUrl, 10) : 1
+  const currentLetter = letterFromUrl ?? null
   
   console.log('Current layout setting:', settings.libraryLayout)
   
@@ -42,6 +52,30 @@ export default function Home(): JSX.Element {
   useEffect(() => {
     void loadAlbums()
   }, [])
+
+  // Update library state with page and letter from URL
+  useEffect(() => {
+    const updates: Partial<{ currentPage: number; selectedLetter: string | null }> = {}
+    
+    if (currentPage !== libraryState.currentPage) {
+      updates.currentPage = currentPage
+    }
+    
+    if (currentLetter !== libraryState.selectedLetter) {
+      updates.selectedLetter = currentLetter
+    }
+    
+    if (Object.keys(updates).length > 0) {
+      updateLibraryState(updates)
+    }
+  }, [currentPage, currentLetter, libraryState.currentPage, libraryState.selectedLetter, updateLibraryState])
+
+  // Only update layout if it's the default layout and settings has a different preference
+  useEffect(() => {
+    if (libraryState.layout === 'modern' && settings.libraryLayout !== 'modern' && !isLoading) {
+      updateLibraryState({ layout: settings.libraryLayout })
+    }
+  }, [settings.libraryLayout, libraryState.layout, updateLibraryState, isLoading])
 
   const loadAlbums = async (): Promise<void> => {
     setIsLoading(true)
@@ -86,7 +120,7 @@ export default function Home(): JSX.Element {
   }
 
   const totalClassicPages = Math.max(1, Math.ceil(albums.length / albumsPerClassicPage))
-  const pagedClassicAlbums = albums.slice((classicPage - 1) * albumsPerClassicPage, classicPage * albumsPerClassicPage)
+  const pagedClassicAlbums = albums.slice((libraryState.currentPage - 1) * albumsPerClassicPage, libraryState.currentPage * albumsPerClassicPage)
 
   return (
     searchQuery ? (
@@ -106,8 +140,8 @@ export default function Home(): JSX.Element {
             {settings.libraryLayout === 'classic' ? (
               <ClassicLibraryGrid
                 albums={pagedClassicAlbums}
-                page={classicPage}
-                setPage={setClassicPage}
+                page={libraryState.currentPage}
+                setPage={(page) => updateLibraryState({ currentPage: page })}
                 totalPages={totalClassicPages}
               />
             ) : settings.libraryLayout === 'large' ? (

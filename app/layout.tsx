@@ -5,6 +5,7 @@ import { SearchProvider } from '@/contexts/SearchContext'
 import { SettingsProvider } from '@/contexts/SettingsContext'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import { ToastProvider } from '@/contexts/ToastContext'
+import { LibraryProvider } from '@/contexts/LibraryContext'
 import AppShell from '@/components/AppShell'
 
 export const metadata: Metadata = {
@@ -35,7 +36,9 @@ export default function RootLayout({
           <ThemeProvider>
             <SearchProvider>
               <ToastProvider>
-                <AppShell>{children}</AppShell>
+                <LibraryProvider>
+                  <AppShell>{children}</AppShell>
+                </LibraryProvider>
               </ToastProvider>
             </SearchProvider>
           </ThemeProvider>

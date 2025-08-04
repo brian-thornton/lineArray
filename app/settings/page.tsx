@@ -274,7 +274,9 @@ function UserInterfaceSection(): JSX.Element {
   const [showConcertDetails, setShowConcertDetails] = useState(settings.showConcertDetails)
   const [showMobileQR, setShowMobileQR] = useState(settings.showMobileQR)
   const [useMobileAlbumLayout, setUseMobileAlbumLayout] = useState(settings.useMobileAlbumLayout)
+  const [useSideBySideAlbumLayout, setUseSideBySideAlbumLayout] = useState(settings.useSideBySideAlbumLayout)
   const [showPlaybackPosition, setShowPlaybackPosition] = useState(settings.showPlaybackPosition)
+  const [enableAdminMode, setEnableAdminMode] = useState(settings.enableAdminMode)
   const [isSaving, setIsSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState('')
 
@@ -309,7 +311,9 @@ function UserInterfaceSection(): JSX.Element {
         showConcertDetails,
         showMobileQR,
         useMobileAlbumLayout,
-        showPlaybackPosition
+        useSideBySideAlbumLayout,
+        showPlaybackPosition,
+        enableAdminMode
       })
       setSaveMessage('UI features saved successfully!')
       setTimeout(() => setSaveMessage(''), 3000)
@@ -479,6 +483,17 @@ function UserInterfaceSection(): JSX.Element {
                 <span className={styles.toggleText}>Use Mobile Album Layout</span>
               </label>
             </div>
+            <div className={styles.toggleSetting}>
+              <label className={styles.toggleLabel}>
+                <input
+                  type="checkbox"
+                  checked={useSideBySideAlbumLayout}
+                  onChange={() => setUseSideBySideAlbumLayout(!useSideBySideAlbumLayout)}
+                  className={styles.toggle}
+                />
+                <span className={styles.toggleText}>Use Side-by-Side Album Layout</span>
+              </label>
+            </div>
             <div className={styles.setting}>
               <label htmlFor="libraryLayout" className={styles.label}>Library Layout Style</label>
               <select
@@ -507,6 +522,24 @@ function UserInterfaceSection(): JSX.Element {
                 <span className={styles.toggleText}>Show Playback Position</span>
               </label>
             </div>
+          </div>
+
+          <div className={styles.featureSection}>
+            <h4 className={styles.featureTitle}>Admin Features</h4>
+            <div className={styles.toggleSetting}>
+              <label className={styles.toggleLabel}>
+                <input
+                  type="checkbox"
+                  checked={enableAdminMode}
+                  onChange={() => setEnableAdminMode(!enableAdminMode)}
+                  className={styles.toggle}
+                />
+                <span className={styles.toggleText}>Enable Admin Mode</span>
+              </label>
+            </div>
+            <p className={styles.description}>
+              When enabled, admin features will be available for managing albums and files on disk.
+            </p>
           </div>
         </div>
         

@@ -73,7 +73,9 @@ export interface Settings {
   showConcertDetails: boolean
   showMobileQR: boolean
   useMobileAlbumLayout: boolean
+  useSideBySideAlbumLayout: boolean
   showPlaybackPosition: boolean
+  enableAdminMode: boolean
   libraryLayout: 'modern' | 'classic' | 'large'
   partyMode: {
     enabled: boolean

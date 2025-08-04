@@ -13,7 +13,9 @@ interface Settings {
   showConcertDetails: boolean
   showMobileQR: boolean
   useMobileAlbumLayout: boolean
+  useSideBySideAlbumLayout: boolean
   showPlaybackPosition: boolean
+  enableAdminMode: boolean
   libraryLayout: 'modern' | 'classic' | 'large'
   partyMode: {
     enabled: boolean
@@ -50,7 +52,9 @@ function loadSettings(): Settings {
         showConcertDetails: existingSettings.showConcertDetails ?? true,
         showMobileQR: existingSettings.showMobileQR ?? true,
         useMobileAlbumLayout: existingSettings.useMobileAlbumLayout ?? false,
+        useSideBySideAlbumLayout: existingSettings.useSideBySideAlbumLayout ?? false,
         showPlaybackPosition: existingSettings.showPlaybackPosition ?? true,
+        enableAdminMode: existingSettings.enableAdminMode ?? false,
         libraryLayout: existingSettings.libraryLayout ?? 'modern',
         partyMode: {
           enabled: false,
@@ -85,7 +89,9 @@ function loadSettings(): Settings {
     showConcertDetails: true,
     showMobileQR: true,
     useMobileAlbumLayout: false,
+    useSideBySideAlbumLayout: false,
     showPlaybackPosition: true,
+    enableAdminMode: false,
     libraryLayout: 'modern',
     partyMode: {
       enabled: false,
@@ -145,32 +151,34 @@ export function GET(): Promise<NextResponse> {
     
     if (!fs.existsSync(settingsPath)) {
       // Return default settings if no settings file exists
-      return Promise.resolve(NextResponse.json({
-        scanPath: '',
-        jukeboxName: 'Jukebox 2.0',
-        adminPin: '1234',
-        theme: 'jukebox-classic',
-        showTouchKeyboard: true,
-        showPagination: true,
-        showConcertDetails: true,
-        showMobileQR: true,
-        useMobileAlbumLayout: false,
-        showPlaybackPosition: true,
-        libraryLayout: 'modern',
-        partyMode: {
-          enabled: false,
-          allowPlay: true,
-          allowStop: true,
-          allowNext: true,
-          allowPrevious: true,
-          allowCreatePlaylists: true,
-          allowEditPlaylists: true,
-          allowDeletePlaylists: true,
-          allowAddToQueue: true,
-          allowRemoveFromQueue: true,
-          allowSkipInQueue: true
-        }
-      }))
+          return Promise.resolve(NextResponse.json({
+      scanPath: '',
+      jukeboxName: 'Jukebox 2.0',
+      adminPin: '1234',
+      theme: 'jukebox-classic',
+      showTouchKeyboard: true,
+      showPagination: true,
+      showConcertDetails: true,
+      showMobileQR: true,
+      useMobileAlbumLayout: false,
+      useSideBySideAlbumLayout: false,
+      showPlaybackPosition: true,
+      enableAdminMode: false,
+      libraryLayout: 'modern',
+      partyMode: {
+        enabled: false,
+        allowPlay: true,
+        allowStop: true,
+        allowNext: true,
+        allowPrevious: true,
+        allowCreatePlaylists: true,
+        allowEditPlaylists: true,
+        allowDeletePlaylists: true,
+        allowAddToQueue: true,
+        allowRemoveFromQueue: true,
+        allowSkipInQueue: true
+      }
+    }))
     }
 
     const data = fs.readFileSync(settingsPath, 'utf8')
@@ -186,7 +194,9 @@ export function GET(): Promise<NextResponse> {
       showConcertDetails: existingSettings.showConcertDetails ?? true,
       showMobileQR: existingSettings.showMobileQR ?? true,
       useMobileAlbumLayout: existingSettings.useMobileAlbumLayout ?? false,
+      useSideBySideAlbumLayout: existingSettings.useSideBySideAlbumLayout ?? false,
       showPlaybackPosition: existingSettings.showPlaybackPosition ?? true,
+      enableAdminMode: existingSettings.enableAdminMode ?? false,
       libraryLayout: existingSettings.libraryLayout ?? 'modern',
       partyMode: {
         enabled: existingSettings.partyMode?.enabled ?? false,

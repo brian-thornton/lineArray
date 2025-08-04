@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import AlbumCard from '../AlbumCard/AlbumCard'
 import Pagination from '../Pagination/Pagination'
 import SwipeGestures from '../SwipeGestures/SwipeGestures'
@@ -6,6 +7,7 @@ import LetterNavigation from '../LetterNavigation/LetterNavigation'
 import { Album, Track } from '@/types/music'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useSettings } from '@/contexts/SettingsContext'
+import { useLibrary } from '@/contexts/LibraryContext'
 import styles from './AlbumGrid.module.css'
 
 interface AlbumGridProps {
@@ -15,9 +17,11 @@ interface AlbumGridProps {
 }
 
 function AlbumGrid({ albums, onPlayTrack, isLoading }: AlbumGridProps): JSX.Element {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const { settings } = useSettings()
-  const [currentPage, setCurrentPage] = useState(1)
-  const [selectedLetter, setSelectedLetter] = useState<string | null>(null)
+  const { libraryState, updateLibraryState } = useLibrary()
+  const { currentPage, selectedLetter } = libraryState
   const [gridConfig, setGridConfig] = useState({
     columnsPerRow: 4,
     itemsPerPage: 12
@@ -123,11 +127,13 @@ function AlbumGrid({ albums, onPlayTrack, isLoading }: AlbumGridProps): JSX.Elem
 
   // Reset to first page when albums change or letter filter changes
   React.useEffect(() => {
-    setCurrentPage(1)
+    updateLibraryState({ currentPage: 1 })
   }, [filteredAlbums.length])
 
   const handlePageChange = (page: number): void => {
-    setCurrentPage(page)
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('page', page.toString())
+    router.push(`/?${params.toString()}`)
     // Scroll to top of grid
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -157,8 +163,15 @@ function AlbumGrid({ albums, onPlayTrack, isLoading }: AlbumGridProps): JSX.Elem
   }
 
   const handleLetterClick = (letter: string): void => {
-    setSelectedLetter(selectedLetter === letter ? null : letter)
-    setCurrentPage(1)
+    const params = new URLSearchParams(searchParams.toString())
+    const newLetter = selectedLetter === letter ? null : letter
+    if (newLetter) {
+      params.set('letter', newLetter)
+    } else {
+      params.delete('letter')
+    }
+    params.set('page', '1')
+    router.push(`/?${params.toString()}`)
   }
 
   // Generate dynamic CSS for grid columns

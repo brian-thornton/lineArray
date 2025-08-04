@@ -3,7 +3,7 @@ import { Album } from '@/types/music';
 import styles from './ClassicLibraryGrid.module.css';
 import Image from 'next/image';
 import { Music } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 interface ClassicLibraryGridProps {
   albums: Album[];
@@ -12,15 +12,20 @@ interface ClassicLibraryGridProps {
   totalPages: number;
 }
 
-export default function ClassicLibraryGrid({ albums, page, setPage, totalPages }: ClassicLibraryGridProps): JSX.Element {
+export default function ClassicLibraryGrid({ albums, page, totalPages }: ClassicLibraryGridProps): JSX.Element {
   const router = useRouter();
+  const searchParams = useSearchParams();
   return (
     <div className={styles.classicGridWrapper}>
       <div className={styles.gridNavWrapper}>
         {totalPages > 1 && page > 1 && (
           <button
             className={`${styles.navArrow} ${styles.navArrowLeft}`}
-            onClick={() => setPage(page - 1)}
+            onClick={() => {
+              const params = new URLSearchParams(searchParams.toString())
+              params.set('page', (page - 1).toString())
+              router.push(`/?${params.toString()}`)
+            }}
             aria-label="Previous page"
             title="Previous page"
           >
@@ -76,7 +81,11 @@ export default function ClassicLibraryGrid({ albums, page, setPage, totalPages }
         {totalPages > 1 && page < totalPages && (
           <button
             className={`${styles.navArrow} ${styles.navArrowRight}`}
-            onClick={() => setPage(page + 1)}
+            onClick={() => {
+              const params = new URLSearchParams(searchParams.toString())
+              params.set('page', (page + 1).toString())
+              router.push(`/?${params.toString()}`)
+            }}
             aria-label="Next page"
             title="Next page"
           >

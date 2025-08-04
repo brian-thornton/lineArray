@@ -1,7 +1,9 @@
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useMemo } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import LargeAlbumCard from '../LargeAlbumCard/LargeAlbumCard'
 import { Album, Track } from '@/types/music'
 import { Music, Hash, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useLibrary } from '@/contexts/LibraryContext'
 import styles from './LargeAlbumGrid.module.css'
 
 interface LargeAlbumGridProps {
@@ -11,8 +13,10 @@ interface LargeAlbumGridProps {
 }
 
 function LargeAlbumGrid({ albums, onPlayTrack, isLoading }: LargeAlbumGridProps): JSX.Element {
-  const [selectedLetter, setSelectedLetter] = useState<string | null>(null)
-  const [currentPage, setCurrentPage] = useState(1)
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const { libraryState, updateLibraryState } = useLibrary()
+  const { selectedLetter, currentPage } = libraryState
   const albumsPerPage = 12 // 6x2 grid as shown in screenshot
 
   // Filter albums based on selected letter
@@ -55,24 +59,33 @@ function LargeAlbumGrid({ albums, onPlayTrack, isLoading }: LargeAlbumGridProps)
     return Array.from(letters).sort()
   }, [albums])
 
-  // Reset to first page when filter changes
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [selectedLetter, albums.length])
+  // Note: Page reset is now handled through URL navigation in handleLetterClick
 
   const handleLetterClick = (letter: string): void => {
-    setSelectedLetter(selectedLetter === letter ? null : letter)
+    const params = new URLSearchParams(searchParams.toString())
+    const newLetter = selectedLetter === letter ? null : letter
+    if (newLetter) {
+      params.set('letter', newLetter)
+    } else {
+      params.delete('letter')
+    }
+    params.set('page', '1')
+    router.push(`/?${params.toString()}`)
   }
 
   const handlePreviousPage = (): void => {
     if (currentPage > 1) {
-      setCurrentPage(currentPage - 1)
+      const params = new URLSearchParams(searchParams.toString())
+      params.set('page', (currentPage - 1).toString())
+      router.push(`/?${params.toString()}`)
     }
   }
 
   const handleNextPage = (): void => {
     if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1)
+      const params = new URLSearchParams(searchParams.toString())
+      params.set('page', (currentPage + 1).toString())
+      router.push(`/?${params.toString()}`)
     }
   }
 
@@ -149,7 +162,7 @@ function LargeAlbumGrid({ albums, onPlayTrack, isLoading }: LargeAlbumGridProps)
       <div className={styles.letterNav}>
         <button
           className={`${styles.letterButton} ${!selectedLetter ? styles.active : ''}`}
-          onClick={() => setSelectedLetter(null)}
+                          onClick={() => updateLibraryState({ selectedLetter: null })}
           aria-label="Show all albums"
         >
           <Music size={16} />

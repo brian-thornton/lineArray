@@ -94,6 +94,8 @@ export interface Settings {
   showConcertDetails: boolean
   showMobileQRControl: boolean
   useMobileAlbumLayout: boolean
+  showPlaybackPosition: boolean
+  enableAdminMode: boolean
 }
 
 export interface ThemeResponse {
