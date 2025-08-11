@@ -79,6 +79,10 @@ class AudioManager implements AudioManagerInterface {
     this.onTrackComplete = callback
   }
 
+  clearTrackCompleteCallback(): void {
+    this.onTrackComplete = null
+  }
+
   setProgressCallback(callback: (progress: number) => void): void {
     this.vlcProgressCallback = callback
   }

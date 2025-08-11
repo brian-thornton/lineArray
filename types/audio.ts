@@ -59,6 +59,7 @@ export interface AudioManagerInterface {
   muteSystemAudio(): void
   unmuteSystemAudio(): void
   setTrackCompleteCallback(callback: () => void): void
+  clearTrackCompleteCallback(): void
   setProgressCallback(callback: (progress: number) => void): void
   getLatestProgress(): number
   getVLCProgress(): Promise<number>

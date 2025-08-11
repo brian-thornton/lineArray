@@ -12,6 +12,7 @@ let isPlaying: boolean = false
 let progress: number = 0
 let volume: number = 1.0
 let isMuted: boolean = false
+let isStopping: boolean = false
 
 // File path for persisting queue state
 const STATE_FILE_PATH = path.join(process.cwd(), 'data', 'queue-state.json')
@@ -79,6 +80,10 @@ setTimeout(syncVolumeWithAudioManager, 1000)
 
 // Set up the track completion callback
 audio.setTrackCompleteCallback(() => {
+  if (isStopping) {
+    console.log('Queue state: Track completion ignored - stopping in progress')
+    return
+  }
   console.log('Queue state: Track completed, playing next in queue')
   void playNextInQueue()
 })
@@ -89,6 +94,12 @@ audio.setProgressCallback((newProgress: number) => {
 })
 
 async function playNextInQueue(): Promise<boolean> {
+  // Check if we're in the process of stopping
+  if (isStopping) {
+    logger.info('Ignoring playNextInQueue - stopping in progress', 'QueueState')
+    return false
+  }
+  
   logger.info('Playing next track in queue', 'QueueState', { queueLength: queue.length })
   
   if (queue.length === 0) {
@@ -133,6 +144,12 @@ async function playNextInQueue(): Promise<boolean> {
 }
 
 async function startPlayback(): Promise<boolean> {
+  // Check if we're in the process of stopping
+  if (isStopping) {
+    logger.info('Ignoring startPlayback - stopping in progress', 'QueueState')
+    return false
+  }
+  
   if (currentTrack) {
     logger.info('Starting playback for current track', 'QueueState', { track: currentTrack })
     const success = await audio.playFile(currentTrack.path)
@@ -222,6 +239,12 @@ async function seekPlayback(position: number): Promise<boolean> {
 }
 
 async function addToQueue(filePath: string): Promise<void> {
+  // Check if we're in the process of stopping
+  if (isStopping) {
+    logger.info('Ignoring addToQueue - stopping in progress', 'QueueState')
+    return
+  }
+  
   // Generate a unique ID for the track
   const trackId = `track_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
   const track: QueueTrack = {
@@ -414,7 +437,25 @@ const queueState: QueueStateInterface = {
   loadState,
   getDebugInfo,
   audio,
-  stopAllPlayback: async () => { await stopPlayback(); },
+  stopAllPlayback: async () => { 
+    // Set stopping flag to prevent track completion callback from executing
+    isStopping = true
+    
+    // Clear the queue and stop all playback
+    queue = []
+    currentTrack = null
+    isPlaying = false
+    progress = 0
+    saveState()
+    
+    // Stop playback (this will also stop progress polling)
+    await stopPlayback()
+    
+    // Reset stopping flag after a short delay
+    setTimeout(() => {
+      isStopping = false
+    }, 500)
+  },
   getProgress,
   getVolume,
   setVolume,
