@@ -88,7 +88,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         success = true
         break
       case 'skip':
-        success = await queueState.playNextInQueue()
+        success = await queueState.skipToNext()
         break
       case 'seek':
         if (typeof position !== 'number' || position < 0 || position > 1) {

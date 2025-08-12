@@ -173,6 +173,7 @@ function AdminSection(): JSX.Element {
   const { settings, updateSettings } = useSettings()
   const [jukeboxName, setJukeboxName] = useState(settings.jukeboxName)
   const [adminPin, setAdminPin] = useState(settings.adminPin ?? '')
+  const [audioPlayer, setAudioPlayer] = useState(settings.audioPlayer)
   const [isSaving, setIsSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState('')
 
@@ -181,10 +182,34 @@ function AdminSection(): JSX.Element {
     setSaveMessage('')
     
     try {
+      // First update the settings
       await updateSettings({
         jukeboxName: jukeboxName.trim() || 'Jukebox 2.0',
-        adminPin: adminPin || '1234'
+        adminPin: adminPin || '1234',
+        audioPlayer
       })
+      
+      // Then switch the audio player if it changed
+      if (settings.audioPlayer !== audioPlayer) {
+        try {
+          const response = await fetch('/api/settings/switch-audio-player', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ playerType: audioPlayer })
+          })
+          
+          if (!response.ok) {
+            throw new Error('Failed to switch audio player')
+          }
+        } catch (switchError) {
+          console.error('Error switching audio player:', switchError)
+          setSaveMessage('Settings saved but failed to switch audio player')
+          setTimeout(() => setSaveMessage(''), 5000)
+          setIsSaving(false)
+          return
+        }
+      }
+      
       setSaveMessage('Settings saved successfully!')
       setTimeout(() => setSaveMessage(''), 3000)
     } catch (error) {
@@ -234,9 +259,30 @@ function AdminSection(): JSX.Element {
             maxLength={10}
             pattern="[0-9]*"
           />
-                     <p className={styles.description}>
-             Set an admin PIN to protect settings access when party mode is enabled. Default PIN is &quot;1234&quot;.
-           </p>
+          <p className={styles.description}>
+            Set an admin PIN to protect settings access when party mode is enabled. Default PIN is &quot;1234&quot;.
+          </p>
+        </div>
+      </div>
+
+      <div className={styles.settingGroup}>
+        <h3 className={styles.subsectionTitle}>Audio Player</h3>
+        <div className={styles.setting}>
+          <label htmlFor="audioPlayer" className={styles.label}>
+            Audio Player Engine
+          </label>
+          <select
+            id="audioPlayer"
+            value={audioPlayer}
+            onChange={(e) => setAudioPlayer(e.target.value as 'vlc' | 'mpd')}
+            className={styles.input}
+          >
+            <option value="vlc">VLC Media Player</option>
+            <option value="mpd">Music Player Daemon (MPD)</option>
+          </select>
+          <p className={styles.description}>
+            Choose your preferred audio player. VLC is more feature-rich but can be unstable. MPD is more reliable and lightweight.
+          </p>
         </div>
       </div>
 

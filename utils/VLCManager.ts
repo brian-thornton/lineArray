@@ -37,7 +37,7 @@ export class VLCManager {
       if (platform === 'win32') {
         command = `vlc --intf http --http-port ${this.vlcPort} --http-password ${this.vlcPassword} --no-video --no-qt-error-dialogs --no-qt-system-tray`
       } else {
-        command = `vlc --intf http --http-port ${this.vlcPort} --http-password ${this.vlcPassword} --no-video --no-qt-error-dialogs`
+        command = `vlc --intf http --http-port ${this.vlcPort} --http-password ${this.vlcPassword} --no-video --quiet`
       }
 
       console.log('VLC Manager: Starting VLC with command:', command)

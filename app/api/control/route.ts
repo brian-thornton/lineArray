@@ -100,22 +100,31 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           error = 'Invalid position value (must be between 0 and 1)'
           break
         }
-        // Get duration from estimatedDuration or VLC
-        let duration = (queueState.audio as { estimatedDuration?: number }).estimatedDuration ?? 0
+        // Get duration from estimatedDuration or audio player
+        let duration = (queueState.audio.getPlaybackProgress() > 0) ? 
+          (queueState.audio as { estimatedDuration?: number }).estimatedDuration ?? 0 : 0
+        
         if (!duration || duration < 5) {
-          // Try to get duration from VLC
+          // Try to get duration from the active audio player if it's VLC
           try {
-            const statusUrl = `http://localhost:8080/requests/status.xml`
-            const response = await fetch(statusUrl, {
-              headers: {
-                'Authorization': `Basic ${Buffer.from(`:jukebox`).toString('base64')}`
-              }
-            })
-            if (response.ok) {
-              const statusText = await response.text()
-              const lengthMatch = statusText.match(/<length>(\d+)<\/length>/)
-              if (lengthMatch) {
-                duration = parseInt(lengthMatch[1])
+            // Import audio factory to check the current type
+            const { AudioFactory } = await import('../../../audio-factory')
+            const audioFactory = AudioFactory.getInstance()
+            
+            if (audioFactory.getCurrentType() === 'vlc') {
+              // For VLC, try to get duration from VLC HTTP API
+              const statusUrl = `http://localhost:8080/requests/status.xml`
+              const response = await fetch(statusUrl, {
+                headers: {
+                  'Authorization': `Basic ${Buffer.from(`:jukebox`).toString('base64')}`
+                }
+              })
+              if (response.ok) {
+                const statusText = await response.text()
+                const lengthMatch = statusText.match(/<length>(\d+)<\/length>/)
+                if (lengthMatch) {
+                  duration = parseInt(lengthMatch[1])
+                }
               }
             }
           } catch (e) {

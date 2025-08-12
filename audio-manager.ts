@@ -83,6 +83,10 @@ class AudioManager implements AudioManagerInterface {
     this.onTrackComplete = null
   }
 
+  clearCallbackForStop(): void {
+    this.onTrackComplete = null
+  }
+
   setProgressCallback(callback: (progress: number) => void): void {
     this.vlcProgressCallback = callback
   }
@@ -441,6 +445,46 @@ class AudioManager implements AudioManagerInterface {
     }
   }
 
+  async forceStop(): Promise<boolean> {
+    try {
+      logger.info('Force stopping all audio', 'AudioManager')
+      
+      // Stop VLC progress polling immediately
+      this.stopVLCProgressPolling()
+      
+      // Clear all callbacks
+      this.onTrackComplete = null
+      this.vlcProgressCallback = null
+      
+      // Reset internal state
+      this.isPlaying = false
+      this.currentFile = null
+      this.playbackStartTime = null
+      
+      // Try to stop VLC normally first
+      const normalStop = await this.stop()
+      
+      // If normal stop didn't work, kill all processes
+      if (!normalStop) {
+        logger.info('Normal stop failed, killing all audio processes', 'AudioManager')
+        await this.killAllAudioProcesses()
+      }
+      
+      // Double-check that progress polling is stopped
+      if (this.vlcProgressInterval) {
+        clearInterval(this.vlcProgressInterval)
+        this.vlcProgressInterval = null
+        logger.info('Force stop: Cleared any remaining progress interval', 'AudioManager')
+      }
+      
+      logger.info('Force stop completed', 'AudioManager')
+      return true
+    } catch (error) {
+      logger.error('Error in force stop', 'AudioManager', { error: error instanceof Error ? error.message : String(error) })
+      return false
+    }
+  }
+
   async killAllAudioProcesses(): Promise<void> {
     return new Promise((resolve) => {
       let command: string
@@ -621,7 +665,7 @@ class AudioManager implements AudioManagerInterface {
       console.log('Audio Manager: Starting VLC with HTTP interface on port', this.vlcPort)
       
       // Start VLC with HTTP interface and audio output
-      const vlcCommand = `vlc --intf http --http-port ${this.vlcPort} --http-password ${this.vlcPassword} --no-video --quiet --aout=coreaudio --no-http-reconnect`
+      const vlcCommand = `vlc --intf http --http-port ${this.vlcPort} --http-password ${this.vlcPassword} --no-video --quiet`
       this.vlcProcess = exec(vlcCommand, (error, stdout, stderr) => {
         if (error) {
           console.error('Audio Manager: VLC process error:', error)

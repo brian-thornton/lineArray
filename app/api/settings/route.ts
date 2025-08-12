@@ -17,6 +17,7 @@ interface Settings {
   showPlaybackPosition: boolean
   enableAdminMode: boolean
   libraryLayout: 'modern' | 'classic' | 'large'
+  audioPlayer: 'vlc' | 'mpv' | 'ffplay'
   partyMode: {
     enabled: boolean
     allowPlay: boolean
@@ -56,6 +57,7 @@ function loadSettings(): Settings {
         showPlaybackPosition: existingSettings.showPlaybackPosition ?? true,
         enableAdminMode: existingSettings.enableAdminMode ?? false,
         libraryLayout: existingSettings.libraryLayout ?? 'modern',
+        audioPlayer: existingSettings.audioPlayer ?? 'vlc',
         partyMode: {
           enabled: false,
           allowPlay: true,
@@ -93,6 +95,7 @@ function loadSettings(): Settings {
     showPlaybackPosition: true,
     enableAdminMode: false,
     libraryLayout: 'modern',
+    audioPlayer: 'vlc',
     partyMode: {
       enabled: false,
       allowPlay: true,
@@ -165,6 +168,7 @@ export function GET(): Promise<NextResponse> {
       showPlaybackPosition: true,
       enableAdminMode: false,
       libraryLayout: 'modern',
+      audioPlayer: 'vlc',
       partyMode: {
         enabled: false,
         allowPlay: true,
@@ -198,6 +202,7 @@ export function GET(): Promise<NextResponse> {
       showPlaybackPosition: existingSettings.showPlaybackPosition ?? true,
       enableAdminMode: existingSettings.enableAdminMode ?? false,
       libraryLayout: existingSettings.libraryLayout ?? 'modern',
+      audioPlayer: existingSettings.audioPlayer ?? 'vlc',
       partyMode: {
         enabled: existingSettings.partyMode?.enabled ?? false,
         allowPlay: existingSettings.partyMode?.allowPlay ?? true,
@@ -242,6 +247,50 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     logger.error('Settings PUT error', 'SettingsAPI', error)
     return NextResponse.json(
       { error: 'Failed to update settings' },
+      { status: 500 }
+    )
+  }
+} 
+
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  try {
+    const body = await request.json() as Partial<Settings>
+    
+    // Load existing settings
+    const existingSettings = loadSettings()
+    
+    // Merge with new settings
+    const updatedSettings: Settings = {
+      ...existingSettings,
+      ...body,
+      // Ensure partyMode is properly merged
+      partyMode: {
+        ...existingSettings.partyMode,
+        ...body.partyMode
+      }
+    }
+    
+    // Save to file
+    const settingsPath = path.join(process.cwd(), 'data', 'settings.json')
+    const dataDir = path.dirname(settingsPath)
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true })
+    }
+    
+    fs.writeFileSync(settingsPath, JSON.stringify(updatedSettings, null, 2))
+    
+    logger.info('Settings saved successfully', 'SettingsAPI', updatedSettings)
+    
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Settings saved successfully',
+      settings: updatedSettings
+    })
+    
+  } catch (error) {
+    logger.error('Error saving settings', 'SettingsAPI', error)
+    return NextResponse.json(
+      { error: 'Failed to save settings' },
       { status: 500 }
     )
   }

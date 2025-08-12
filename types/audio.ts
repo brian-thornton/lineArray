@@ -55,11 +55,13 @@ export interface AudioManagerInterface {
   isTrackFinished(): boolean
   estimateDuration(filePath: string): number
   killAllAudioProcesses(): Promise<void>
+  forceStop(): Promise<boolean>
 
   muteSystemAudio(): void
   unmuteSystemAudio(): void
   setTrackCompleteCallback(callback: () => void): void
   clearTrackCompleteCallback(): void
+  clearCallbackForStop(): void
   setProgressCallback(callback: (progress: number) => void): void
   getLatestProgress(): number
   getVLCProgress(): Promise<number>
@@ -72,6 +74,7 @@ export interface QueueStateInterface {
   addToQueue(path: string): Promise<void>
   getIsPlaying(): boolean
   playNextInQueue(): Promise<boolean>
+  skipToNext(): Promise<boolean>
   clearCurrentTrack(): Promise<void>
   clearQueue(): Promise<void>
   removeFromQueue(index: number): void
@@ -81,6 +84,8 @@ export interface QueueStateInterface {
   loadState(): void
   getDebugInfo(): DebugInfo
   audio: AudioManagerInterface
+  switchAudioPlayer(playerType: 'vlc' | 'mpd'): Promise<void>
+  reloadAudioPlayerPreference(): void
   stopAllPlayback(): Promise<void>
   getProgress(): number
   getVolume(): number
