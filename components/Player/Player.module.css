@@ -3,7 +3,7 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(26, 26, 46, 0.95);
+  background: var(--jukebox-primary);
   backdrop-filter: blur(20px);
   border-top: 2px solid var(--jukebox-accent);
   padding: var(--spacing-md);
@@ -91,58 +91,7 @@
   margin: 0 var(--spacing-md);
 }
 
-.positionSlider {
-  width: 100%;
-  height: 6px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
-  outline: none;
-  cursor: pointer;
-  -webkit-appearance: none;
-  transition: all 0.2s ease;
-}
-
-.positionSlider:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.positionSlider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 16px;
-  height: 16px;
-  background: var(--jukebox-gold);
-  border-radius: 50%;
-  cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  transition: all 0.2s ease;
-}
-
-.positionSlider::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-}
-
-.positionSlider::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
-  background: var(--jukebox-gold);
-  border-radius: 50%;
-  cursor: pointer;
-  border: none;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  transition: all 0.2s ease;
-}
-
-.positionSlider::-moz-range-thumb:hover {
-  transform: scale(1.2);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-}
-
-.positionSlider:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+/* Equalizer component styles are now in Equalizer.module.css */
 
 .positionInfo {
   display: flex;
@@ -245,7 +194,7 @@
 .progressBar {
   flex: 1;
   height: 6px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--jukebox-surface);
   border-radius: 3px;
   outline: none;
   cursor: pointer;
@@ -294,7 +243,7 @@
 }
 
 .volumeButton:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--jukebox-surface);
   color: var(--jukebox-gold);
 }
 
@@ -321,7 +270,7 @@
 .volumeBar {
   width: 80px;
   height: 6px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--jukebox-surface);
   border-radius: 3px;
   outline: none;
   cursor: pointer;
@@ -578,7 +527,7 @@
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: rgba(20, 20, 40, 0.98);
+  background: var(--jukebox-background);
   display: flex;
   flex-direction: column;
   align-items: center;

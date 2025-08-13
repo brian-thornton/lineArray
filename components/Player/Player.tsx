@@ -10,6 +10,7 @@ import { useSearch } from '@/contexts/SearchContext'
 import { useToast } from '@/contexts/ToastContext'
 import type { QueueResponse, QueuePlayResponse, Track } from '@/types/api'
 import { createPortal } from 'react-dom'
+import Equalizer from './Equalizer'
 
 interface PlayerStatus {
   isPlaying: boolean
@@ -125,6 +126,8 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
       clearInterval(audioCheckInterval);
     }
   }, [hasLoaded, isMobile, showToast, isSeeking])
+
+
 
   // Add a function to immediately check status (for use after adding tracks)
   const checkStatusImmediately = useCallback(async (): Promise<void> => {
@@ -519,19 +522,12 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
           
           {settings.showPlaybackPosition && playerStatus.currentTrack && settings.audioPlayer !== 'afplay' && (
             <div className={styles.playbackPosition}>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={isSeeking ? (seekPreview ?? 0) : (playerStatus.progress ?? 0)}
-                onChange={(e) => { handleSeekDrag(parseFloat(e.target.value)); }}
-                onMouseUp={(e) => { void handleSeekEnd(parseFloat((e.target as HTMLInputElement).value)); }}
-                onPointerUp={(e) => { void handleSeekEnd(parseFloat((e.target as HTMLInputElement).value)); }}
-                onMouseDown={handleSeekStart}
-                onPointerDown={handleSeekStart}
-                className={styles.positionSlider}
-                aria-label="Playback position"
+              <Equalizer
+                isPlaying={playerStatus.isPlaying}
+                progress={isSeeking ? (seekPreview ?? 0) : (playerStatus.progress ?? 0)}
+                onSeekStart={handleSeekStart}
+                onSeekDrag={handleSeekDrag}
+                onSeekEnd={(position: number) => { void handleSeekEnd(position); }}
                 disabled={!canPerformAction('allowPlay') || !playerStatus.isPlaying}
               />
               <div className={styles.positionInfo}>

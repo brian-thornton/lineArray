@@ -31,6 +31,25 @@ export default function AlbumDetail(): JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const [selectedTracks, setSelectedTracks] = useState<Set<string>>(new Set())
   const [showPlaylistModal, setShowPlaylistModal] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Detect mobile devices
+  useEffect(() => {
+    const checkMobile = (): void => {
+      const isMobileDevice = window.innerWidth <= 768 || 
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      setIsMobile(isMobileDevice)
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  // Determine which layout to use - mobile always overrides user preferences
+  const effectiveLayout = isMobile ? 'mobile' : 
+    settings.useSideBySideAlbumLayout ? 'sideBySide' : 
+    settings.useMobileAlbumLayout ? 'mobile' : 'default'
 
   const loadAlbum = useCallback(async (): Promise<void> => {
     try {
@@ -342,7 +361,7 @@ export default function AlbumDetail(): JSX.Element {
           <ArrowLeft className={styles.backIcon} />
           Back to Library
         </button>
-        {settings.useMobileAlbumLayout && album && (
+        {effectiveLayout === 'mobile' && album && (
           <div className={styles.mobileHeaderInfo}>
             <div className={styles.mobileHeaderCover}>
               {album.coverPath ? (
@@ -376,7 +395,7 @@ export default function AlbumDetail(): JSX.Element {
         />
       )}
 
-            {!settings.useMobileAlbumLayout && !settings.useSideBySideAlbumLayout && (
+            {effectiveLayout === 'default' && (
         <div className={styles.albumInfo}>
           <div className={styles.coverSection}>
             <div className={styles.cover}>
@@ -432,7 +451,7 @@ export default function AlbumDetail(): JSX.Element {
         </div>
       )}
 
-      {settings.useSideBySideAlbumLayout && (
+      {effectiveLayout === 'sideBySide' && (
         <div className={styles.sideBySideLayout}>
           <div className={styles.sideBySideLeft}>
             <div className={styles.sideBySideCover}>
@@ -554,7 +573,7 @@ export default function AlbumDetail(): JSX.Element {
         </div>
       )}
 
-      {album.setlistInfo && settings.showConcertDetails && !settings.useSideBySideAlbumLayout && (
+      {album.setlistInfo && settings.showConcertDetails && effectiveLayout !== 'sideBySide' && (
         <div className={styles.setlistSection}>
           <h3 className={styles.setlistTitle}>Concert Setlist & Notes</h3>
           <div className={styles.setlistFilename}>{album.setlistInfo.filename}</div>
@@ -562,12 +581,12 @@ export default function AlbumDetail(): JSX.Element {
         </div>
       )}
 
-      {!settings.useSideBySideAlbumLayout && (
+      {effectiveLayout !== 'sideBySide' && (
         <div className={styles.tracksSection}>
           <div className={styles.tracksHeader}>
             <div className={styles.tracksHeaderLeft}>
               <h2 className={styles.tracksTitle}>Tracks</h2>
-              {settings.useMobileAlbumLayout && (
+              {effectiveLayout === 'mobile' && (
                 <div className={styles.mobileHeaderActions}>
                   <button 
                     onClick={() => { void handlePlayAlbum(); }}

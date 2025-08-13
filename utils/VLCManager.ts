@@ -14,6 +14,7 @@ export class VLCManager {
   private vlcProgressInterval: NodeJS.Timeout | null = null
   private vlcProgressCallback: ((progress: number) => void) | null = null
   private latestProgress: number = 0
+  private currentVolume: number = 1.0 // Store current volume (0.0 to 1.0)
 
   setProgressCallback(callback: (progress: number) => void): void {
     this.vlcProgressCallback = callback
@@ -21,6 +22,84 @@ export class VLCManager {
 
   getLatestProgress(): number {
     return this.latestProgress
+  }
+
+  // Volume control methods
+  async setVolume(volume: number): Promise<number> {
+    try {
+      // Clamp volume between 0 and 1
+      const clampedVolume = Math.max(0, Math.min(1, volume))
+      this.currentVolume = clampedVolume
+      
+      // Convert to VLC volume range (0-512)
+      const vlcVolume = Math.floor(clampedVolume * 512)
+      
+      const volumeUrl = `http://localhost:${this.vlcPort}/requests/status.xml?command=volume&val=${vlcVolume}`
+      const response = await fetch(volumeUrl, {
+        headers: {
+          'Authorization': `Basic ${Buffer.from(`:${this.vlcPassword}`).toString('base64')}`
+        }
+      })
+      
+      if (response.ok) {
+        console.log('VLC Manager: Volume set to', Math.round(clampedVolume * 100) + '%')
+        return clampedVolume
+      } else {
+        console.error('VLC Manager: Failed to set volume')
+        return this.currentVolume
+      }
+    } catch (error) {
+      console.error('VLC Manager: Error setting volume:', error)
+      return this.currentVolume
+    }
+  }
+
+  getVolume(): number {
+    return this.currentVolume
+  }
+
+  async toggleMute(): Promise<boolean> {
+    try {
+      // VLC doesn't have a direct mute toggle, so we implement it by setting volume to 0 or restoring previous volume
+      if (this.currentVolume > 0) {
+        // Mute: store current volume and set to 0
+        this.currentVolume = 0
+        const muteUrl = `http://localhost:${this.vlcPort}/requests/status.xml?command=volume&val=0`
+        const response = await fetch(muteUrl, {
+          headers: {
+            'Authorization': `Basic ${Buffer.from(`:${this.vlcPassword}`).toString('base64')}`
+          }
+        })
+        
+        if (response.ok) {
+          console.log('VLC Manager: Muted')
+          return true
+        }
+      } else {
+        // Unmute: restore to a reasonable volume (50%)
+        this.currentVolume = 0.5
+        const unmuteUrl = `http://localhost:${this.vlcPort}/requests/status.xml?command=volume&val=256`
+        const response = await fetch(unmuteUrl, {
+          headers: {
+            'Authorization': `Basic ${Buffer.from(`:${this.vlcPassword}`).toString('base64')}`
+          }
+        })
+        
+        if (response.ok) {
+          console.log('VLC Manager: Unmuted, volume set to 50%')
+          return false
+        }
+      }
+      
+      return this.currentVolume === 0
+    } catch (error) {
+      console.error('VLC Manager: Error toggling mute:', error)
+      return this.currentVolume === 0
+    }
+  }
+
+  isMuted(): boolean {
+    return this.currentVolume === 0
   }
 
   async startVLC(): Promise<boolean> {

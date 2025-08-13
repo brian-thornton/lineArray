@@ -50,7 +50,7 @@ export interface AudioManagerInterface {
   getCurrentSong(): CurrentSong
   setVolume(volume: number): Promise<number>
   getVolume(): number
-  toggleMute(): boolean
+  toggleMute(): Promise<boolean>
   isMuted(): boolean
   getPlaybackProgress(): number
   isTrackFinished(): boolean
@@ -63,6 +63,7 @@ export interface AudioManagerInterface {
   setTrackCompleteCallback(callback: () => void): void
   clearTrackCompleteCallback(): void
   clearCallbackForStop(): void
+  forceResetState(): void
   setProgressCallback(callback: (progress: number) => void): void
   getLatestProgress(): number
   getVLCProgress(): Promise<number>
@@ -88,12 +89,13 @@ export interface QueueStateInterface {
   audio: AudioManagerInterface
   switchAudioPlayer(playerType: 'vlc' | 'afplay'): Promise<void>
   reloadAudioPlayerPreference(): void
+  checkQueueAndStartPlayback(): void
   stopAllPlayback(): Promise<void>
   getProgress(): number
   getVolume(): number
   setVolume(volume: number): Promise<number>
   getIsMuted(): boolean
-  toggleMute(): boolean
+  toggleMute(): Promise<boolean>
   seekPlayback(position: number): Promise<boolean>
   getCurrentState(): Promise<{
     isPlaying: boolean

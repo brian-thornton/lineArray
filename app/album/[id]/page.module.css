@@ -831,11 +831,15 @@
 /* Make tracks section more compact in mobile layout */
 .mobileLayout + .tracksSection {
   margin-top: 0;
+  background: transparent;
+  border: none;
 }
 
 .mobileLayout + .tracksSection .tracksHeader {
   padding: 6px 0;
   margin-bottom: 6px;
+  background: transparent;
+  border-bottom: none;
 }
 
 .mobileLayout + .tracksSection .tracksTitle {
@@ -851,17 +855,65 @@
   padding: 6px 10px;
   border-radius: 4px;
   min-height: 36px;
+  border-bottom: none;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+.mobileLayout + .tracksSection .trackItem * {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* Override global mobile Safari background inheritance for track text */
+@media screen and (max-width: 768px) {
+  .mobileLayout + .tracksSection .trackItem,
+  .mobileLayout + .tracksSection .trackItem *,
+  .mobileLayout + .tracksSection .trackTitle,
+  .mobileLayout + .tracksSection .trackNumber,
+  .mobileLayout + .tracksSection .trackInfo,
+  .mobileLayout + .tracksSection .trackDetails {
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    background-clip: unset !important;
+    -webkit-background-clip: unset !important;
+  }
+}
+
+.mobileLayout + .tracksSection .trackItem:hover {
+  background: transparent;
 }
 
 .mobileLayout + .tracksSection .trackNumber {
   font-size: 0.75rem;
   min-width: 20px;
   font-weight: 500;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  background-clip: unset !important;
+  -webkit-background-clip: unset !important;
+}
+
+.mobileLayout + .tracksSection .trackInfo {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  background-clip: unset !important;
+  -webkit-background-clip: unset !important;
 }
 
 .mobileLayout + .tracksSection .trackTitle {
   font-size: 0.85rem;
   line-height: 1.2;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  background-clip: unset !important;
+  -webkit-background-clip: unset !important;
 }
 
 .mobileLayout + .tracksSection .playTrackButton {
@@ -1546,5 +1598,27 @@
   
   .sideBySideTracksActions {
     justify-content: center;
+  }
+} 
+
+/* Global mobile override for track elements to prevent background inheritance */
+@media screen and (max-width: 768px) {
+  .tracksSection .trackItem,
+  .tracksSection .trackItem *,
+  .tracksSection .trackTitle,
+  .tracksSection .trackNumber,
+  .tracksSection .trackInfo,
+  .tracksSection .trackDetails,
+  .sideBySideTrackItem,
+  .sideBySideTrackItem *,
+  .sideBySideTrackTitle,
+  .sideBySideTrackNumber,
+  .sideBySideTrackInfo,
+  .sideBySideTrackDetails {
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    background-clip: unset !important;
+    -webkit-background-clip: unset !important;
   }
 } 

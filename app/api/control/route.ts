@@ -128,7 +128,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         }
         break
       case 'toggleMute':
-        success = queueState.audio.toggleMute()
+        success = await queueState.audio.toggleMute()
         responseData.isMuted = queueState.audio.isMuted()
         responseData.volume = queueState.audio.getVolume()
         break
