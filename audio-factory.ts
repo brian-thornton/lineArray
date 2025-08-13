@@ -1,9 +1,9 @@
 import AudioManager from './audio-manager'
-import MPDManager from './mpd-manager'
+import { AFPLAYManager } from './afplay-manager'
 import type { AudioManagerInterface } from './types/audio'
 import { exec } from 'child_process'
 
-export type AudioPlayerType = 'vlc' | 'mpd'
+export type AudioPlayerType = 'vlc' | 'afplay'
 
 export class AudioFactory {
   private static instance: AudioFactory | null = null
@@ -36,10 +36,10 @@ export class AudioFactory {
 
     // Create new manager
     switch (type) {
-      case 'mpd':
-        console.log('🎵 Audio Factory: Creating new MPDManager')
-        this.currentManager = new MPDManager()
-        this.currentType = 'mpd'
+      case 'afplay':
+        console.log('🎵 Audio Factory: Creating new AFPLAYManager')
+        this.currentManager = new AFPLAYManager()
+        this.currentType = 'afplay'
         break
       case 'vlc':
       default:

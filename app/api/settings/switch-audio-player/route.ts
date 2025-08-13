@@ -4,11 +4,11 @@ import logger from '@/utils/serverLogger'
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const { playerType } = await request.json() as { playerType: 'vlc' | 'mpd' }
+    const { playerType } = await request.json() as { playerType: 'vlc' | 'afplay' }
     
-    if (!playerType || !['vlc', 'mpd'].includes(playerType)) {
+    if (!playerType || !['vlc', 'afplay'].includes(playerType)) {
       return NextResponse.json(
-        { error: 'Invalid player type. Must be "vlc" or "mpd"' },
+        { error: 'Invalid player type. Must be "vlc" or "afplay"' },
         { status: 400 }
       )
     }

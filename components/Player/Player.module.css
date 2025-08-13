@@ -157,6 +157,15 @@
   font-weight: 600;
 }
 
+.seekWarning {
+  font-family: var(--font-display);
+  font-size: 0.65rem;
+  color: var(--jukebox-gold);
+  font-weight: 500;
+  margin-left: var(--spacing-xs);
+  opacity: 0.8;
+}
+
 .mainControls {
   display: flex;
   justify-content: center;

@@ -70,13 +70,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Adding to queue is restricted in party mode' }, { status: 403 })
     }
 
-    const { path } = await request.json() as { path: string }
+    const { path, isAlbum } = await request.json() as { path: string; isAlbum?: boolean }
     
     if (!path) {
       return NextResponse.json({ error: 'Path is required' }, { status: 400 })
     }
 
-    await queueState.addToQueue(path)
+    await queueState.addToQueue(path, isAlbum)
     const state = await queueState.getCurrentState()
     return NextResponse.json({
       success: true,

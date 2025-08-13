@@ -274,14 +274,32 @@ function AdminSection(): JSX.Element {
           <select
             id="audioPlayer"
             value={audioPlayer}
-            onChange={(e) => setAudioPlayer(e.target.value as 'vlc' | 'mpd')}
+            onChange={(e) => setAudioPlayer(e.target.value as 'vlc' | 'afplay')}
             className={styles.input}
           >
             <option value="vlc">VLC Media Player</option>
-            <option value="mpd">Music Player Daemon (MPD)</option>
+            <option value="afplay">macOS AFPLAY</option>
           </select>
-          <p className={styles.description}>
-            Choose your preferred audio player. VLC is more feature-rich but can be unstable. MPD is more reliable and lightweight.
+          <p className={styles.settingDescription}>
+            Choose your preferred audio player. VLC supports seeking and more features but can be unstable. AFPLAY is built into macOS and more reliable but doesn&apos;t support seeking.
+          </p>
+        </div>
+        
+        <div className={styles.setting}>
+          <label htmlFor="playEntireQueue" className={styles.label}>
+            <input
+              type="checkbox"
+              id="playEntireQueue"
+              checked={settings.playEntireQueue}
+              onChange={(e) => {
+                void updateSettings({ playEntireQueue: e.target.checked })
+              }}
+              className={styles.checkbox}
+            />
+            Auto-advance to next track
+          </label>
+          <p className={styles.settingDescription}>
+            When enabled, the queue will automatically advance to the next track when a song ends. When disabled, playback will stop after each track.
           </p>
         </div>
       </div>

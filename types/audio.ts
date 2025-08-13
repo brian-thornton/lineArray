@@ -20,6 +20,7 @@ export interface QueueTrack {
   artist: string
   album: string
   duration: string
+  isAlbum?: boolean
 }
 
 export interface QueueState {
@@ -66,12 +67,13 @@ export interface AudioManagerInterface {
   getLatestProgress(): number
   getVLCProgress(): Promise<number>
   getVLCDuration(): Promise<number>
+  markAsSkipped(): void
 }
 
 export interface QueueStateInterface {
   getQueue(): QueueTrack[]
   getCurrentTrack(): QueueTrack | null
-  addToQueue(path: string): Promise<void>
+  addToQueue(path: string, isAlbum?: boolean): Promise<void>
   getIsPlaying(): boolean
   playNextInQueue(): Promise<boolean>
   skipToNext(): Promise<boolean>
@@ -84,7 +86,7 @@ export interface QueueStateInterface {
   loadState(): void
   getDebugInfo(): DebugInfo
   audio: AudioManagerInterface
-  switchAudioPlayer(playerType: 'vlc' | 'mpd'): Promise<void>
+  switchAudioPlayer(playerType: 'vlc' | 'afplay'): Promise<void>
   reloadAudioPlayerPreference(): void
   stopAllPlayback(): Promise<void>
   getProgress(): number

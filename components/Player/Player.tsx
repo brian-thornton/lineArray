@@ -381,16 +381,28 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
   }
 
   const handleSeekStart = (): void => {
+    if (settings.audioPlayer === 'afplay') {
+      showToast('Seeking not supported by afplay', 'warning', 3000)
+      return
+    }
     setIsSeeking(true)
     setSeekPreview(null)
   }
 
   const handleSeekDrag = (position: number): void => {
+    if (settings.audioPlayer === 'afplay') {
+      return
+    }
     // Show preview during drag, but don't update actual progress
     setSeekPreview(position)
   }
 
   const handleSeekEnd = async (position: number): Promise<void> => {
+    if (settings.audioPlayer === 'afplay') {
+      showToast('Seeking not supported by afplay', 'warning', 3000)
+      return
+    }
+
     if (!canPerformAction('allowPlay')) {
       showToast('Playback control is restricted in party mode', 'error', 3000)
       setIsSeeking(false)
@@ -505,7 +517,7 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
             </div>
           </div>
           
-          {settings.showPlaybackPosition && playerStatus.currentTrack && (
+          {settings.showPlaybackPosition && playerStatus.currentTrack && settings.audioPlayer !== 'afplay' && (
             <div className={styles.playbackPosition}>
               <input
                 type="range"
@@ -530,6 +542,22 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
                       ? `${Math.round((playerStatus.progress ?? 0) * 100)}%` 
                       : '0%'
                   }
+                </span>
+              </div>
+            </div>
+          )}
+          
+          {settings.showPlaybackPosition && playerStatus.currentTrack && settings.audioPlayer === 'afplay' && (
+            <div className={styles.playbackPosition}>
+              <div className={styles.positionInfo}>
+                <span className={styles.positionText}>
+                  {playerStatus.progress 
+                    ? `${Math.round((playerStatus.progress ?? 0) * 100)}%` 
+                    : '0%'
+                  }
+                </span>
+                <span className={styles.seekWarning} title="Seeking not supported by afplay">
+                  (No seek)
                 </span>
               </div>
             </div>

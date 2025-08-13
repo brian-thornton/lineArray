@@ -71,12 +71,15 @@ export default function AlbumDetail(): JSX.Element {
 
     if (album && album.tracks.length > 0) {
       try {
-        // Add all tracks to queue
+        // Add all tracks to queue with album flag
         for (const track of album.tracks) {
           const response = await fetch('/api/queue', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ path: track.path }),
+            body: JSON.stringify({ 
+              path: track.path,
+              isAlbum: true 
+            }),
           })
           
           if (!response.ok) {
@@ -88,7 +91,10 @@ export default function AlbumDetail(): JSX.Element {
         const response = await fetch('/api/queue', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ path: album.tracks[0].path }),
+          body: JSON.stringify({ 
+            path: album.tracks[0].path,
+            isAlbum: true 
+          }),
         })
         
         if (response.ok) {
@@ -122,7 +128,10 @@ export default function AlbumDetail(): JSX.Element {
       const response = await fetch('/api/queue', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: track.path }),
+        body: JSON.stringify({ 
+          path: track.path,
+          isAlbum: false 
+        }),
       })
       
       if (response.ok) {
