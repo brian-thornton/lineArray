@@ -77,20 +77,24 @@ setInterval(checkAndReloadAudioPlayerPreference, 30000)
 // Queue monitoring function - continuously checks for new tracks and starts playback
 function monitorQueueForNewTracks(): void {
   const state = getStateSnapshot()
-  console.log('🎯 Queue State: Queue monitor running - currentTrack:', state.currentTrack?.path || 'null', ', isPlaying:', state.isPlaying, ', queue length:', state.queueLength)
   
   // Only start playback if there's no current track and no playback happening
   if (!state.currentTrack && !state.isPlaying && state.queueLength > 0) {
     console.log('🎯 Queue State: Queue monitor detected new tracks, starting playback...')
     logger.info('Queue monitor detected new tracks, starting playback', 'QueueState')
     void playNextInQueue()
-  } else if (!state.currentTrack && !state.isPlaying && state.queueLength === 0) {
-    console.log('🎯 Queue State: Queue monitor - idle state, waiting for tracks')
   } else if (state.currentTrack && state.isPlaying) {
-    console.log('🎯 Queue State: Queue monitor - track currently playing:', state.currentTrack.path)
+    // Only log playing state occasionally to avoid spam (10% chance)
+    if (Math.random() < 0.1) {
+      console.log('🎯 Queue State: Queue monitor - track currently playing:', state.currentTrack.path)
+    }
   } else if (state.currentTrack && !state.isPlaying) {
-    console.log('🎯 Queue State: Queue monitor - track paused:', state.currentTrack.path)
+    // Only log paused state occasionally to avoid spam (10% chance)
+    if (Math.random() < 0.1) {
+      console.log('🎯 Queue State: Queue monitor - track paused:', state.currentTrack.path)
+    }
   }
+  // Don't log idle state - it's the most common and creates noise
 }
 
 // Manual queue check function that can be called to force a check
@@ -120,8 +124,8 @@ function checkQueueAndStartPlayback(): void {
   }
 }
 
-// Monitor queue every 2 seconds for new tracks
-setInterval(monitorQueueForNewTracks, 2000)
+// Monitor queue every 5 seconds for new tracks (reduced frequency to reduce log noise)
+setInterval(monitorQueueForNewTracks, 5000)
 
 // Function to reload audio player preference and update manager
 function reloadAudioPlayerPreference(): void {
@@ -934,10 +938,21 @@ const queueState: QueueStateInterface = {
     // Set stopping flag to prevent race conditions
     isStopping = true
     
-    // Use the proper audio manager stop method instead of killing processes
+    // Use the aggressive force stop method to ensure VLC actually stops
     try {
-      await audio.stop()
-      logger.info('stopAllPlayback: Audio manager stop completed', 'QueueState')
+      await audio.forceStop()
+      logger.info('stopAllPlayback: Audio manager force stop completed', 'QueueState')
+      
+      // Verify that VLC actually stopped
+      try {
+        const audioStatus = audio.getStatus()
+        console.log('🎯 Queue State: VLC status after stop:', audioStatus)
+        if (audioStatus.isPlaying) {
+          console.log('⚠️ Queue State: WARNING - VLC still reports as playing after stop!')
+        }
+      } catch (error) {
+        console.log('🎯 Queue State: Could not verify VLC status after stop')
+      }
     } catch (error) {
       logger.error('stopAllPlayback: Error stopping audio manager', 'QueueState', error)
     }

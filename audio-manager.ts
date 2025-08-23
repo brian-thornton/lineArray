@@ -96,7 +96,7 @@ class AudioManager implements AudioManagerInterface {
         } else {
           // Only log once when conditions change, not every second
           if (!this.isPlaying && this.lastLoggedNotPlaying !== true) {
-            this.lastLoggedNoCallback = true
+            this.lastLoggedNotPlaying = true
             console.log('🎬 VLC Audio Manager: Not playing, skipping completion check')
           }
           if (!this.onTrackComplete && this.lastLoggedNoCallback !== true) {
@@ -107,7 +107,7 @@ class AudioManager implements AudioManagerInterface {
       } catch (error) {
         console.error('🎬 VLC Audio Manager: Error in completion checking:', error)
       }
-    }, 1000)
+    }, 2000) // Reduced from 1 second to 2 seconds to reduce log spam
 
     console.log('🎬 VLC Audio Manager: Completion checking started')
   }
@@ -196,6 +196,7 @@ class AudioManager implements AudioManagerInterface {
         this.currentFile = filePath
         this.isPlaying = true
         this.lastLoggedNotPlaying = null
+        this.lastLoggedNoCallback = null
         this.startProgressPolling()
         this.startFrequencyAnalysis()
         console.log('🎬 VLC Audio Manager: File loaded and playback started:', filePath)
@@ -230,9 +231,18 @@ class AudioManager implements AudioManagerInterface {
         }
       })
 
+      // Force stop any remaining playback
+      const forceStopUrl = `http://localhost:${this.vlcPort}/requests/status.xml?command=pl_stop`
+      await fetch(forceStopUrl, {
+        headers: {
+          'Authorization': `Basic ${Buffer.from(`:${this.vlcPassword}`).toString('base64')}`
+        }
+      })
+
       this.isPlaying = false
       this.currentFile = null
       this.lastLoggedNotPlaying = null
+      this.lastLoggedNoCallback = null
       this.stopProgressPolling()
       this.stopFrequencyAnalysis()
       
@@ -441,9 +451,7 @@ class AudioManager implements AudioManagerInterface {
     }
   }
 
-  async forceStop(): Promise<boolean> {
-    return this.stop()
-  }
+
 
   muteSystemAudio(): void {
     // System audio muting would go here
@@ -475,6 +483,49 @@ class AudioManager implements AudioManagerInterface {
     this.currentFile = null
     this.lastLoggedNotPlaying = null
     this.lastLoggedNoCallback = null
+  }
+
+  // Force stop VLC completely - more aggressive than regular stop
+  async forceStop(): Promise<boolean> {
+    try {
+      console.log('🛑 VLC Audio Manager: forceStop called - aggressive stop')
+      
+      // First try the normal stop
+      await this.stop()
+      
+      // Wait a moment for VLC to process the stop
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
+      // Check if VLC is still playing
+      try {
+        const status = await this.getVLCStatus()
+        if (status && status.state !== 'stopped') {
+          console.log('🛑 VLC Audio Manager: Normal stop failed, killing VLC process')
+          
+          // Kill the VLC process if it's still playing
+          if (this.vlcProcess) {
+            this.vlcProcess.kill('SIGKILL')
+            this.vlcProcess = null
+          }
+          
+          // Restart VLC to ensure clean state
+          await this.startVLC()
+        }
+      } catch (error) {
+        console.log('🛑 VLC Audio Manager: Could not check VLC status, assuming stopped')
+      }
+      
+      this.isPlaying = false
+      this.currentFile = null
+      this.lastLoggedNotPlaying = null
+      this.lastLoggedNoCallback = null
+      
+      console.log('🎬 VLC Audio Manager: Force stop completed')
+      return true
+    } catch (error) {
+      console.error('🎬 VLC Audio Manager: Error in force stop:', error)
+      return false
+    }
   }
 
   setProgressCallback(callback: (progress: number) => void): void {

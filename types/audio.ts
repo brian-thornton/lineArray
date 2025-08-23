@@ -64,6 +64,7 @@ export interface AudioManagerInterface {
   clearTrackCompleteCallback(): void
   clearCallbackForStop(): void
   forceResetState(): void
+  forceStop(): Promise<boolean>
   setProgressCallback(callback: (progress: number) => void): void
   getLatestProgress(): number
   getVLCProgress(): Promise<number>

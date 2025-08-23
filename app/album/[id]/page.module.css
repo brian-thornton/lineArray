@@ -30,6 +30,7 @@
 .header {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   padding: 16px 20px;
   background: var(--surface-color);
   border-bottom: 1px solid var(--border-color);
@@ -269,45 +270,62 @@
 .tracksActions {
   display: flex;
   gap: var(--spacing-sm);
+  align-items: center;
+  flex-wrap: wrap;
 }
 
+/* CLEAN BUTTON STYLES - All buttons are identical */
 .selectAllButton,
 .addSelectedButton {
   display: flex;
   align-items: center;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-radius: var(--radius-sm);
-  font-size: 0.9rem;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  min-height: 32px;
+  height: 32px;
+  font-size: 0.875rem;
   font-weight: 600;
-  transition: all 0.2s ease;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   cursor: pointer;
-  border: none;
-  min-height: 40px;
-}
-
-.selectAllButton {
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   background: rgba(255, 255, 255, 0.1);
   color: var(--jukebox-white);
-  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.selectAllButton:hover {
+.selectAllButton:hover,
+.addSelectedButton:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.addSelectedButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .addToPlaylistButton {
   background: var(--accent-color);
   color: white;
   border: none;
-  padding: 8px 16px;
+  padding: var(--spacing-md) var(--spacing-lg);
   border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 1rem;
+  min-height: 44px;
   display: flex;
   align-items: center;
-  gap: 6px;
-  transition: background-color 0.2s;
+  gap: 8px;
+  transition: all 0.2s ease;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: var(--shadow-md);
 }
 
 .addToPlaylistButton:hover {
@@ -315,30 +333,6 @@
 }
 
 .addToPlaylistButton:disabled {
-  background: var(--disabled-color);
-  cursor: not-allowed;
-}
-
-.addSelectedButton {
-  background: var(--accent-color);
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: background-color 0.2s;
-  margin-left: 8px;
-}
-
-.addSelectedButton:hover {
-  background: var(--accent-hover);
-}
-
-.addSelectedButton:disabled {
   background: var(--disabled-color);
   cursor: not-allowed;
 }
@@ -847,98 +841,11 @@
   margin: 0;
 }
 
-.mobileLayout + .tracksSection .trackList {
-  gap: 2px;
-}
+/* Mobile tracks actions - using force rules below */
 
-.mobileLayout + .tracksSection .trackItem {
-  padding: 6px 10px;
-  border-radius: 4px;
-  min-height: 36px;
-  border-bottom: none;
-  background: transparent !important;
-  background-color: transparent !important;
-  background-image: none !important;
-}
+/* Button styling - using force rules below */
 
-.mobileLayout + .tracksSection .trackItem * {
-  background: transparent !important;
-  background-color: transparent !important;
-  background-image: none !important;
-}
-
-/* Override global mobile Safari background inheritance for track text */
-@media screen and (max-width: 768px) {
-  .mobileLayout + .tracksSection .trackItem,
-  .mobileLayout + .tracksSection .trackItem *,
-  .mobileLayout + .tracksSection .trackTitle,
-  .mobileLayout + .tracksSection .trackNumber,
-  .mobileLayout + .tracksSection .trackInfo,
-  .mobileLayout + .tracksSection .trackDetails {
-    background: transparent !important;
-    background-color: transparent !important;
-    background-image: none !important;
-    background-clip: unset !important;
-    -webkit-background-clip: unset !important;
-  }
-}
-
-.mobileLayout + .tracksSection .trackItem:hover {
-  background: transparent;
-}
-
-.mobileLayout + .tracksSection .trackNumber {
-  font-size: 0.75rem;
-  min-width: 20px;
-  font-weight: 500;
-  background: transparent !important;
-  background-color: transparent !important;
-  background-image: none !important;
-  background-clip: unset !important;
-  -webkit-background-clip: unset !important;
-}
-
-.mobileLayout + .tracksSection .trackInfo {
-  background: transparent !important;
-  background-color: transparent !important;
-  background-image: none !important;
-  background-clip: unset !important;
-  -webkit-background-clip: unset !important;
-}
-
-.mobileLayout + .tracksSection .trackTitle {
-  font-size: 0.85rem;
-  line-height: 1.2;
-  background: transparent !important;
-  background-color: transparent !important;
-  background-image: none !important;
-  background-clip: unset !important;
-  -webkit-background-clip: unset !important;
-}
-
-.mobileLayout + .tracksSection .playTrackButton {
-  padding: 4px;
-  border-radius: 3px;
-  min-width: 28px;
-  min-height: 28px;
-}
-
-.mobileLayout + .tracksSection .playIcon {
-  width: 12px;
-  height: 12px;
-}
-
-.mobileLayout + .tracksSection .trackCheckbox {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.mobileLayout + .tracksSection .checkbox {
-  width: 14px;
-  height: 14px;
-  margin: 0;
-}
+/* OLD RULES REMOVED - See new clean rules above */
 
 /* Responsive adjustments for mobile layout */
 @media (max-width: 768px) {
@@ -1064,44 +971,38 @@
 
 .mobileHeaderActions {
   display: flex;
-  gap: 8px;
+  gap: 12px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
+/* CLEAN MOBILE HEADER BUTTON STYLES - All buttons are identical */
 .mobileHeaderPlayButton,
 .mobileHeaderPlaylistButton {
-  padding: 6px 10px;
-  font-size: 0.75rem;
-  border-radius: 4px;
-  border: none;
-  cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 4px;
-  transition: all 0.2s;
-  font-weight: 500;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  min-height: 32px;
+  height: 32px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: all 0.2s ease;
   white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--jukebox-white);
 }
 
-.mobileHeaderPlayButton {
-  background: var(--accent-color);
-  color: white;
-}
-
-.mobileHeaderPlayButton:hover:not(:disabled) {
-  background: var(--accent-hover);
-  transform: translateY(-1px);
-}
-
-.mobileHeaderPlaylistButton {
-  background: var(--surface-color);
-  color: var(--text-color);
-  border: 1px solid var(--border-color);
-}
-
+.mobileHeaderPlayButton:hover:not(:disabled),
 .mobileHeaderPlaylistButton:hover:not(:disabled) {
-  background: var(--background-color);
+  background: rgba(255, 255, 255, 0.2);
   transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .mobileHeaderPlayButton:disabled,
@@ -1109,12 +1010,14 @@
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
 }
 
 .mobileHeaderPlayIcon,
 .mobileHeaderPlusIcon {
-  width: 12px;
-  height: 12px;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
 }
 
 /* Responsive adjustments for mobile header */
@@ -1129,13 +1032,79 @@
   }
   
   .mobileHeaderActions {
-    gap: 6px;
+    gap: 8px;
+    width: 100%;
+    justify-content: flex-start;
   }
   
   .mobileHeaderPlayButton,
   .mobileHeaderPlaylistButton {
-    padding: 5px 8px;
-    font-size: 0.7rem;
+    padding: 10px 14px;
+    font-size: 0.8rem;
+    min-height: 32px;
+    flex: 1;
+    min-width: auto;
+    justify-content: center;
+  }
+  
+  .mobileHeaderPlayIcon,
+  .mobileHeaderPlusIcon {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .mobileHeaderActions {
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+  
+  .mobileHeaderPlayButton,
+  .mobileHeaderPlaylistButton {
+    width: 100%;
+    justify-content: center;
+    padding: 10px 14px;
+    min-height: 32px;
+  }
+  
+  .tracksActions {
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    justify-content: flex-start;
+  }
+  
+  .selectAllButton,
+  .addSelectedButton {
+    width: 100%;
+    justify-content: center;
+    padding: 10px 14px;
+    min-height: 32px;
+    margin-left: 0;
+  }
+  
+  .mobileLayout + .tracksSection .tracksActions {
+    gap: 8px;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+  }
+  
+  .mobileLayout + .tracksSection .tracksActions > * {
+    flex-shrink: 0;
+  }
+  
+  .mobileLayout + .tracksSection .mobileHeaderPlayButton,
+  .mobileLayout + .tracksSection .mobileHeaderPlaylistButton,
+  .mobileLayout + .tracksSection .selectAllButton,
+  .mobileLayout + .tracksSection .addSelectedButton {
+    padding: 10px 14px;
+    min-height: 32px;
+    flex-shrink: 0;
+    min-width: auto;
+    justify-content: center;
   }
 }
 
@@ -1599,6 +1568,16 @@
   .sideBySideTracksActions {
     justify-content: center;
   }
+  
+  /* Hide back button on mobile */
+  .backButton {
+    display: none;
+  }
+  
+  /* Hide select all tracks button on mobile */
+  .selectAllButton {
+    display: none;
+  }
 } 
 
 /* Global mobile override for track elements to prevent background inheritance */
@@ -1621,4 +1600,198 @@
     background-clip: unset !important;
     -webkit-background-clip: unset !important;
   }
+} 
+
+/* Force mobile tracks actions to stay in one row - ULTRA AGGRESSIVE */
+.mobileLayout + .tracksSection .tracksActions {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  gap: 12px !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  overflow: visible !important;
+  overflow-x: visible !important;
+  max-width: none !important;
+}
+
+/* Force all direct children to stay in one row */
+.mobileLayout + .tracksSection .tracksActions > * {
+  flex: 0 0 auto !important;
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+  flex-basis: auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  display: inline-flex !important;
+  white-space: nowrap !important;
+}
+
+/* Specific button overrides */
+.mobileLayout + .tracksSection .mobileHeaderPlayButton,
+.mobileLayout + .tracksSection .mobileHeaderPlaylistButton,
+.mobileLayout + .tracksSection .selectAllButton,
+.mobileLayout + .tracksSection .addSelectedButton {
+  flex: 0 0 auto !important;
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+  flex-basis: auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  white-space: nowrap !important;
+  min-height: 28px !important;
+  height: 28px !important;
+  padding: 8px 12px !important;
+}
+
+/* NUCLEAR OPTION: Force the red button to be short */
+.mobileLayout + .tracksSection .tracksActions .addSelectedButton {
+  min-height: 24px !important;
+  height: 24px !important;
+  padding: 6px 10px !important;
+  font-size: 0.875rem !important;
+}
+
+/* ULTRA NUCLEAR: Target the button by its exact location and text content */
+.mobileLayout + .tracksSection .tracksActions button[title*="Enqueue"] {
+  min-height: 20px !important;
+  height: 20px !important;
+  padding: 4px 8px !important;
+  font-size: 0.75rem !important;
+  line-height: 1 !important;
+}
+
+/* Media query override to force single row on all screen sizes */
+@media (max-width: 768px) {
+  .mobileLayout + .tracksSection .tracksActions {
+    flex-wrap: nowrap !important;
+    flex-direction: row !important;
+    gap: 8px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .mobileLayout + .tracksSection .tracksActions {
+    flex-wrap: nowrap !important;
+    flex-direction: row !important;
+    gap: 6px !important;
+  }
+} 
+
+/* Mobile Tracks Section - Clean Button Styling */
+.mobileLayout + .tracksSection .tracksActions {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 12px;
+  justify-content: flex-start;
+  align-items: center;
+  width: 100%;
+  overflow-x: auto;
+}
+
+.mobileLayout + .tracksSection .tracksActions > * {
+  flex-shrink: 0;
+  flex-grow: 0;
+  flex-basis: auto;
+}
+
+/* ALL MOBILE TRACKS BUTTONS ARE IDENTICAL */
+.mobileLayout + .tracksSection .mobileHeaderPlayButton,
+.mobileLayout + .tracksSection .mobileHeaderPlaylistButton,
+.mobileLayout + .tracksSection .selectAllButton,
+.mobileLayout + .tracksSection .addSelectedButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  min-height: 32px;
+  height: 32px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--jukebox-white);
+  flex-shrink: 0;
+  min-width: auto;
+}
+
+/* Play Album Button - Gradient style */
+.mobileLayout + .tracksSection .mobileHeaderPlayButton {
+  background: linear-gradient(135deg, var(--jukebox-accent) 0%, #ff5252 100%);
+  color: var(--jukebox-white);
+}
+
+.mobileLayout + .tracksSection .mobileHeaderPlayButton:hover:not(:disabled) {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Add to Playlist Button - Semi-transparent style */
+.mobileLayout + .tracksSection .mobileHeaderPlaylistButton {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--jukebox-white);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.mobileLayout + .tracksSection .mobileHeaderPlaylistButton:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Select All Button - Semi-transparent style */
+.mobileLayout + .tracksSection .selectAllButton {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--jukebox-white);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.mobileLayout + .tracksSection .selectAllButton:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Enqueue Button - Semi-transparent style (same as Add to Playlist) */
+.mobileLayout + .tracksSection .addSelectedButton {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--jukebox-white);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.mobileLayout + .tracksSection .addSelectedButton:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Disabled state for all buttons */
+.mobileLayout + .tracksSection .mobileHeaderPlayButton:disabled,
+.mobileLayout + .tracksSection .mobileHeaderPlaylistButton:disabled,
+.mobileLayout + .tracksSection .addSelectedButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Button icons */
+.mobileLayout + .tracksSection .mobileHeaderPlayIcon,
+.mobileLayout + .tracksSection .mobileHeaderPlusIcon,
+.mobileLayout + .tracksSection .playIcon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
 } 

@@ -522,10 +522,10 @@ export default function AlbumDetail(): JSX.Element {
                     onClick={() => { void handleAddSelectedToQueue(); }}
                     className={styles.sideBySideAddSelectedButton}
                     disabled={!canPerformAction('allowAddToQueue')}
-                    title={!canPerformAction('allowAddToQueue') ? 'Adding to queue is restricted in party mode' : 'Add Selected to Queue'}
+                    title={!canPerformAction('allowAddToQueue') ? 'Adding to queue is restricted in party mode' : 'Enqueue'}
                   >
                     <Play className={styles.sideBySidePlayIcon} />
-                    Add Selected to Queue
+                    Enqueue
                   </button>
                 )}
               </div>
@@ -582,34 +582,34 @@ export default function AlbumDetail(): JSX.Element {
       )}
 
       {effectiveLayout !== 'sideBySide' && (
-        <div className={styles.tracksSection}>
+        <div className={`${styles.tracksSection} ${effectiveLayout === 'mobile' ? styles.mobileLayout : ''}`}>
           <div className={styles.tracksHeader}>
             <div className={styles.tracksHeaderLeft}>
               <h2 className={styles.tracksTitle}>Tracks</h2>
-              {effectiveLayout === 'mobile' && (
-                <div className={styles.mobileHeaderActions}>
-                  <button 
-                    onClick={() => { void handlePlayAlbum(); }}
-                    className={styles.mobileHeaderPlayButton}
-                    disabled={!canPerformAction('allowAddToQueue')}
-                    title={!canPerformAction('allowAddToQueue') ? 'Adding to queue is restricted in party mode' : 'Play Album'}
-                  >
-                    <Play className={styles.mobileHeaderPlayIcon} />
-                    Play Album
-                  </button>
-                  <button 
-                    onClick={() => { handleAddToPlaylist(); }}
-                    className={styles.mobileHeaderPlaylistButton}
-                    disabled={!canPerformAction('allowCreatePlaylists')}
-                    title={!canPerformAction('allowCreatePlaylists') ? 'Creating playlists is restricted in party mode' : 'Add to Playlist'}
-                  >
-                    <Plus className={styles.mobileHeaderPlusIcon} />
-                    Add to Playlist
-                  </button>
-                </div>
-              )}
             </div>
             <div className={styles.tracksActions}>
+              {effectiveLayout === 'mobile' && selectedTracks.size === 0 && (
+                <button 
+                  onClick={() => { void handlePlayAlbum(); }}
+                  className={styles.mobileHeaderPlayButton}
+                  disabled={!canPerformAction('allowAddToQueue')}
+                  title={!canPerformAction('allowAddToQueue') ? 'Adding to queue is restricted in party mode' : 'Play Album'}
+                >
+                  <Play className={styles.mobileHeaderPlayIcon} />
+                  Play Album
+                </button>
+              )}
+              {effectiveLayout === 'mobile' && (
+                <button 
+                  onClick={() => { handleAddToPlaylist(); }}
+                  className={styles.mobileHeaderPlaylistButton}
+                  disabled={!canPerformAction('allowCreatePlaylists')}
+                  title={!canPerformAction('allowCreatePlaylists') ? 'Creating playlists is restricted in party mode' : 'Add to Playlist'}
+                >
+                  <Plus className={styles.mobileHeaderPlusIcon} />
+                  Add to Playlist
+                </button>
+              )}
               {selectedTracks.size === 0 ? (
                 <button onClick={() => { handleSelectAllTracks(); }} className={styles.selectAllButton}>
                   Select All Tracks
@@ -624,10 +624,10 @@ export default function AlbumDetail(): JSX.Element {
                   onClick={() => { void handleAddSelectedToQueue(); }}
                   className={styles.addSelectedButton}
                   disabled={!canPerformAction('allowAddToQueue')}
-                  title={!canPerformAction('allowAddToQueue') ? 'Adding to queue is restricted in party mode' : 'Add Selected to Queue'}
+                  title={!canPerformAction('allowAddToQueue') ? 'Adding to queue is restricted in party mode' : 'Enqueue'}
                 >
                   <Play className={styles.playIcon} />
-                  Add Selected to Queue
+                  Enqueue
                 </button>
               )}
             </div>
