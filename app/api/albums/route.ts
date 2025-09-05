@@ -39,13 +39,90 @@ export function GET(): Promise<NextResponse> {
     const totalAlbums = libraryData.totalAlbums ?? albums.length
     const scanResults = libraryData.scanResults ?? {}
 
+    // Check directory accessibility and update scan results
+    const updatedScanResults = { ...scanResults }
+    const accessibleDirectories = new Set<string>()
+    
+    // Filter out tracks from unavailable directories (removable media)
+    const filteredAlbums = albums.map(album => {
+      // Check if album folder is still accessible
+      const isAlbumAccessible = fs.existsSync(album.folderPath)
+      
+      if (!isAlbumAccessible) {
+        // Mark directory as unavailable in scan results
+        const directory = album.folderPath
+        updatedScanResults[directory] = {
+          albums: 0,
+          files: 0,
+          lastScanned: new Date().toISOString(),
+          status: 'unavailable',
+          reason: 'Directory not found or not accessible'
+        }
+        // Return album with no tracks if folder is not accessible
+        return {
+          ...album,
+          tracks: []
+        }
+      }
+      
+      // Directory is accessible, add to accessible set
+      accessibleDirectories.add(album.folderPath)
+      
+      // Filter tracks to only include those with accessible files and exclude macOS metadata files
+      const accessibleTracks = album.tracks.filter(track => {
+        try {
+          // Skip macOS metadata files (resource forks)
+          const fileName = path.basename(track.path)
+          if (fileName.startsWith('._')) {
+            return false
+          }
+          
+          return fs.existsSync(track.path)
+        } catch {
+          return false
+        }
+      })
+      
+      return {
+        ...album,
+        tracks: accessibleTracks
+      }
+    }).filter(album => album.tracks.length > 0) // Remove albums with no accessible tracks
+
+    // Update scan results for accessible directories
+    for (const directory of accessibleDirectories) {
+      if (updatedScanResults[directory]) {
+        updatedScanResults[directory] = {
+          ...updatedScanResults[directory],
+          status: 'available'
+        }
+      }
+    }
+
+    // Check all scan paths and mark unavailable ones
+    for (const scanPath of scanPaths) {
+      if (!accessibleDirectories.has(scanPath)) {
+        // Check if this path exists at all
+        const pathExists = fs.existsSync(scanPath)
+        if (!pathExists) {
+          updatedScanResults[scanPath] = {
+            albums: 0,
+            files: 0,
+            lastScanned: new Date().toISOString(),
+            status: 'unavailable',
+            reason: 'Directory not found or not accessible'
+          }
+        }
+      }
+    }
+
     return Promise.resolve(NextResponse.json({
-      albums,
+      albums: filteredAlbums,
       scanPaths,
       lastScanned,
       totalFiles,
-      totalAlbums,
-      scanResults
+      totalAlbums: filteredAlbums.length,
+      scanResults: updatedScanResults
     }))
 
   } catch (error) {

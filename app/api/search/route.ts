@@ -56,6 +56,17 @@ export function GET(request: NextRequest): Promise<NextResponse> {
 
     // Search albums
     library.albums.forEach(album => {
+      // Check if album folder is still accessible
+      try {
+        const isAlbumAccessible = fs.existsSync(album.folderPath)
+        
+        if (!isAlbumAccessible) {
+          return // Skip albums from unavailable directories
+        }
+      } catch {
+        return // Skip albums from inaccessible directories
+      }
+      
       const albumTitle = album.title.toLowerCase()
       const albumArtist = album.artist.toLowerCase()
 
@@ -70,6 +81,21 @@ export function GET(request: NextRequest): Promise<NextResponse> {
 
       // Search tracks within this album
       album.tracks.forEach(track => {
+        // Check if track file is still accessible
+        try {
+          // Skip macOS metadata files (resource forks)
+          const fileName = path.basename(track.path)
+          if (fileName.startsWith('._')) {
+            return // Skip macOS metadata files
+          }
+          
+          if (!fs.existsSync(track.path)) {
+            return // Skip tracks with unavailable files
+          }
+        } catch {
+          return // Skip tracks with inaccessible files
+        }
+        
         const trackTitle = track.title.toLowerCase()
         const trackArtist = track.artist.toLowerCase()
         const trackAlbum = track.album.toLowerCase()

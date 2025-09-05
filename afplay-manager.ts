@@ -113,13 +113,30 @@ export class AFPLAYManager implements AudioManagerInterface {
       this.currentProcess = exec(afplayCommand, (error, stdout, stderr) => {
         if (error) {
           console.log('💥 AFPLAY Manager: Error playing file:', error.message)
+          console.log('💥 AFPLAY Manager: Error code:', error.code)
+          console.log('💥 AFPLAY Manager: Error signal:', error.signal)
           if (stderr) {
             console.log('💥 AFPLAY Manager: stderr:', stderr)
           }
-          logger.error('AFPLAY Manager: Error playing file: ' + error.message, 'AFPLAYManager')
+          if (stdout) {
+            console.log('💥 AFPLAY Manager: stdout:', stdout)
+          }
+          logger.error('AFPLAY Manager: Error playing file: ' + error.message, 'AFPLAYManager', {
+            code: error.code,
+            signal: error.signal,
+            stderr: stderr,
+            stdout: stdout,
+            command: afplayCommand
+          })
           // Don't resolve here as this callback only fires when playback completes
         } else {
           console.log('✅ AFPLAY Manager: File completed playing via exec callback')
+          if (stdout) {
+            console.log('✅ AFPLAY Manager: stdout:', stdout)
+          }
+          if (stderr) {
+            console.log('✅ AFPLAY Manager: stderr:', stderr)
+          }
           logger.info('AFPLAY Manager: File completed playing', 'AFPLAYManager')
           
           // Track completed naturally - call the completion callback
@@ -305,7 +322,7 @@ export class AFPLAYManager implements AudioManagerInterface {
     return this.muted
   }
 
-  toggleMute(): boolean {
+  async toggleMute(): Promise<boolean> {
     try {
       this.muted = !this.muted
       
@@ -357,6 +374,18 @@ export class AFPLAYManager implements AudioManagerInterface {
     } catch (error) {
       logger.error('AFPLAY Manager: Error unmuting system audio', 'AFPLAYManager', error)
     }
+  }
+
+  // Force reset the AFPLAY manager state to match queue state
+  forceResetState(): void {
+    console.log('🎵 AFPLAY Manager: Force resetting state')
+    this.isPlaying = false
+    this.currentFile = null
+    this.playbackStartTime = null
+    this.trackCompleted = false
+    this.completionInProgress = false
+    this.justSkipped = false
+    this.latestProgressPercentage = 0
   }
 
   async forceStop(): Promise<boolean> {
@@ -633,5 +662,10 @@ export class AFPLAYManager implements AudioManagerInterface {
       this.completionInProgress = false
       console.log('🔄 AFPLAY Manager: Completion lock reset')
     }, 1000)
+  }
+
+  async resetVLCState(): Promise<void> {
+    // AFPLAY doesn't need VLC state reset, but we implement it for interface compatibility
+    console.log('🎵 AFPLAY Manager: resetVLCState called (no-op for AFPLAY)')
   }
 }

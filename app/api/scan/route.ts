@@ -29,6 +29,15 @@ interface MusicLibrary {
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const { directories } = await request.json() as { directories: string[] }
+    
+    // Create AbortController to handle cancellation
+    const abortController = new AbortController()
+    const signal = abortController.signal
+    
+    // Handle request cancellation
+    request.signal?.addEventListener('abort', () => {
+      abortController.abort()
+    })
 
     if (!directories || !Array.isArray(directories) || directories.length === 0) {
       return NextResponse.json({ error: 'At least one directory is required' }, { status: 400 })
@@ -49,8 +58,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const countFiles = async (dir: string): Promise<number> => {
       let count = 0
       try {
+        // Check for cancellation
+        if (signal.aborted) {
+          throw new Error('Scan cancelled')
+        }
+        
         const items = await readdir(dir)
         for (const item of items) {
+          // Check for cancellation in loop
+          if (signal.aborted) {
+            throw new Error('Scan cancelled')
+          }
+          
           const fullPath = path.join(dir, item)
           const stats = await stat(fullPath)
           
@@ -64,6 +83,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           }
         }
       } catch (error) {
+        if (signal.aborted) {
+          throw error // Re-throw cancellation errors
+        }
         logger.error(`Error counting files in ${dir}`, 'ScanAPI', error)
       }
       return count
@@ -79,18 +101,33 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       const albums: Album[] = []
       
       try {
+        // Check for cancellation
+        if (signal.aborted) {
+          throw new Error('Scan cancelled')
+        }
+        
         const items = await readdir(dir)
         const musicFiles: string[] = []
         const subdirectories: string[] = []
 
         // Separate files and directories
         for (const item of items) {
+          // Check for cancellation in loop
+          if (signal.aborted) {
+            throw new Error('Scan cancelled')
+          }
+          
           const fullPath = path.join(dir, item)
           const stats = await stat(fullPath)
           
           if (stats.isDirectory()) {
             subdirectories.push(fullPath)
           } else if (stats.isFile()) {
+            // Skip macOS metadata files (resource forks)
+            if (item.startsWith('._')) {
+              continue
+            }
+            
             const ext = path.extname(item).toLowerCase()
             if (MUSIC_EXTENSIONS.includes(ext)) {
               musicFiles.push(fullPath)
@@ -150,6 +187,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
           // Process music files
           for (const filePath of musicFiles) {
+            // Check for cancellation in file processing loop
+            if (signal.aborted) {
+              throw new Error('Scan cancelled')
+            }
+            
             totalScannedFiles++
             
             const fileName = path.basename(filePath, path.extname(filePath))
@@ -214,10 +256,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
         // Recursively scan subdirectories
         for (const subdir of subdirectories) {
+          // Check for cancellation before each subdirectory
+          if (signal.aborted) {
+            throw new Error('Scan cancelled')
+          }
+          
           const subAlbums = await scanDirectory(subdir, path.basename(dir))
           albums.push(...subAlbums)
         }
       } catch (error) {
+        if (signal.aborted) {
+          throw error // Re-throw cancellation errors
+        }
         logger.error(`Error scanning directory ${dir}`, 'ScanAPI', error)
       }
       
@@ -226,6 +276,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Scan each directory and collect results
     for (const directory of directories) {
+      // Check for cancellation before each directory
+      if (signal.aborted) {
+        throw new Error('Scan cancelled')
+      }
+      
       const directoryAlbums = await scanDirectory(directory)
       const directoryFiles = directoryAlbums.reduce((sum, album) => sum + album.tracks.length, 0)
       
@@ -261,6 +316,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     })
 
   } catch (error) {
+    if (error instanceof Error && error.message === 'Scan cancelled') {
+      logger.info('Scan cancelled by user', 'ScanAPI')
+      return NextResponse.json(
+        { error: 'Scan cancelled' },
+        { status: 499 } // Client Closed Request status code
+      )
+    }
+    
     logger.error('Scan error', 'ScanAPI', error)
     return NextResponse.json(
       { error: 'Failed to scan directories' },

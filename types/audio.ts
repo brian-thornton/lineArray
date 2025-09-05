@@ -57,6 +57,7 @@ export interface AudioManagerInterface {
   estimateDuration(filePath: string): number
   killAllAudioProcesses(): Promise<void>
   forceStop(): Promise<boolean>
+  resetVLCState(): Promise<void>
 
   muteSystemAudio(): void
   unmuteSystemAudio(): void
@@ -64,7 +65,6 @@ export interface AudioManagerInterface {
   clearTrackCompleteCallback(): void
   clearCallbackForStop(): void
   forceResetState(): void
-  forceStop(): Promise<boolean>
   setProgressCallback(callback: (progress: number) => void): void
   getLatestProgress(): number
   getVLCProgress(): Promise<number>

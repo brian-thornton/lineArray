@@ -1,19 +1,21 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { Folder, X, Plus, FolderOpen } from 'lucide-react'
+import { Folder, X, Plus, FolderOpen, RotateCcw, AlertTriangle } from 'lucide-react'
 import FileBrowser from '../FileBrowser/FileBrowser'
 import styles from './MusicFoldersManager.module.css'
 
 interface MusicFoldersManagerProps {
   onScan: (directories: string[]) => void
+  onRescanSingle: (directory: string) => void
   isScanning: boolean
   currentPaths: string[]
-  scanResults: { [path: string]: { albums: number; files: number; lastScanned: string } }
+  scanResults: { [path: string]: { albums: number; files: number; lastScanned: string; status?: string; reason?: string } }
 }
 
 export default function MusicFoldersManager({ 
   onScan, 
+  onRescanSingle,
   isScanning, 
   currentPaths, 
   scanResults 
@@ -43,6 +45,10 @@ export default function MusicFoldersManager({
     if (folders.length > 0) {
       onScan(folders)
     }
+  }
+
+  const handleRescanSingle = (folder: string): void => {
+    onRescanSingle(folder)
   }
 
   const handleKeyPress = (e: React.KeyboardEvent): void => {
@@ -124,31 +130,66 @@ export default function MusicFoldersManager({
         ) : (
           folders.map((folder) => {
             const result = scanResults[folder]
+            const isUnavailable = result?.status === 'unavailable'
+            const folderItemClass = isUnavailable ? `${styles.folderItem} ${styles.folderItemUnavailable}` : styles.folderItem
+            
             return (
-              <div key={folder} className={styles.folderItem}>
+              <div key={folder} className={folderItemClass}>
                 <div className={styles.folderInfo}>
-                  <Folder size={20} className={styles.folderIcon} />
+                  <div className={styles.folderIconContainer}>
+                    <Folder size={20} className={`${styles.folderIcon} ${isUnavailable ? styles.folderIconUnavailable : ''}`} />
+                    {isUnavailable && (
+                      <AlertTriangle size={12} className={styles.warningIcon} />
+                    )}
+                  </div>
                   <div className={styles.folderDetails}>
-                    <span className={styles.folderPath}>{folder}</span>
+                    <span className={`${styles.folderPath} ${isUnavailable ? styles.folderPathUnavailable : ''}`}>
+                      {folder}
+                    </span>
                     {result && (
-                      <div className={styles.folderStats}>
-                        <span>{result.albums} albums</span>
-                        <span>•</span>
-                        <span>{result.files} tracks</span>
-                        <span>•</span>
-                        <span>Last scanned: {formatDate(result.lastScanned)}</span>
+                      <div className={`${styles.folderStats} ${isUnavailable ? styles.folderStatsUnavailable : ''}`}>
+                        {isUnavailable ? (
+                          <>
+                            <span>Unavailable</span>
+                            {result.reason && (
+                              <>
+                                <span>•</span>
+                                <span>{result.reason}</span>
+                              </>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <span>{result.albums} albums</span>
+                            <span>•</span>
+                            <span>{result.files} tracks</span>
+                            <span>•</span>
+                            <span>Last scanned: {formatDate(result.lastScanned)}</span>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
                 </div>
-                <button
-                  onClick={() => handleRemoveFolder(folders.indexOf(folder))}
-                  disabled={isScanning}
-                  className={styles.removeButton}
-                  aria-label="Remove folder"
-                >
-                  <X size={16} />
-                </button>
+                <div className={styles.folderActions}>
+                  <button
+                    onClick={() => handleRescanSingle(folder)}
+                    disabled={isScanning || isUnavailable}
+                    className={`${styles.rescanButton} ${isUnavailable ? styles.rescanButtonDisabled : ''}`}
+                    aria-label={isUnavailable ? "Cannot rescan unavailable folder" : "Rescan this folder"}
+                    title={isUnavailable ? "Cannot rescan unavailable folder" : "Rescan this folder"}
+                  >
+                    <RotateCcw size={16} />
+                  </button>
+                  <button
+                    onClick={() => handleRemoveFolder(folders.indexOf(folder))}
+                    disabled={isScanning}
+                    className={styles.removeButton}
+                    aria-label="Remove folder"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
               </div>
             )
           })

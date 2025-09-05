@@ -1,118 +1,76 @@
 import { exec, type ChildProcess } from 'child_process'
-import fs from 'fs'
-import logger from './utils/serverLogger'
 import type { AudioStatus, CurrentSong, AudioManagerInterface } from './types/audio'
+import { NetworkPathHandler } from './utils/networkPathHandler'
 
 class AudioManager implements AudioManagerInterface {
   private vlcProcess: ChildProcess | null = null
-  private vlcPort: number = 8080
+  private vlcPort: number = 8081
   private vlcPassword: string = 'jukebox'
-  private vlcProgressInterval: NodeJS.Timeout | null = null
-  private vlcProgressCallback: ((progress: number) => void) | null = null
-  private latestProgress: number = 0
   private onTrackComplete: (() => void) | null = null
   private currentFile: string | null = null
   private isPlaying = false
   private volume = 1.0
   private muted = false
   private platform: string = process.platform
-  private wasPlayingBeforeKill = false
   private completionCheckInterval: NodeJS.Timeout | null = null
-  private lastLoggedNotPlaying: boolean | null = null
-  private lastLoggedNoCallback: boolean | null = null
-  private frequencyDataCallback: ((frequencies: number[]) => void) | null = null
-  private frequencyAnalysisInterval: NodeJS.Timeout | null = null
 
   constructor() {
-    console.log('🎬 VLC Audio Manager: Initialized for platform:', this.platform)
+    console.log('🎬 Simple VLC Audio Manager: Initialized')
     this.startVLC()
   }
 
   private async startVLC(): Promise<void> {
     if (this.vlcProcess) {
-      console.log('🎬 VLC Audio Manager: VLC already running')
+      console.log('🎬 Simple VLC Audio Manager: VLC already running')
       return
     }
 
-    const platform = this.platform
-    let command: string
-
-    if (platform === 'win32') {
-      command = `vlc --intf http --http-port ${this.vlcPort} --http-password ${this.vlcPassword} --no-video --no-qt-error-dialogs --no-qt-system-tray`
-    } else {
-      command = `vlc --intf http --http-port ${this.vlcPort} --http-password ${this.vlcPassword} --no-video --quiet`
-    }
-
-    console.log('🎬 VLC Audio Manager: Starting VLC with command:', command)
-
-    this.vlcProcess = exec(command, (error) => {
-      if (error) {
-        console.error('🎬 VLC Audio Manager: VLC process error:', error)
-      }
-    })
-
-    this.vlcProcess.on('exit', (code) => {
-      console.log('🎬 VLC Audio Manager: VLC process exited with code:', code)
-      this.vlcProcess = null
-    })
-
-    // Wait for VLC to start and then start completion checking
-    setTimeout(() => {
-      this.startCompletionChecking()
-    }, 3000)
-  }
-
-  private async startCompletionChecking(): Promise<void> {
-    if (this.completionCheckInterval) {
-      clearInterval(this.completionCheckInterval)
-    }
-
-    console.log('🎬 VLC Audio Manager: Starting completion checking...')
+    const command = `vlc --intf http --http-port ${this.vlcPort} --http-password ${this.vlcPassword} --no-video --quiet --network-caching=1000 --live-caching=1000 --file-caching=1000 --sout-keep --sout-all --extraintf http`
     
-    this.completionCheckInterval = setInterval(async () => {
-      try {
-        if (this.isPlaying && this.onTrackComplete) {
-          const status = await this.getVLCStatus()
-          if (status) {
-            console.log('🎬 VLC Audio Manager: Checking completion - status:', status)
-            // Check if track has completed (either stopped or reached the end)
-            if (status.state === 'stopped' || 
-                (status.totalLength > 0 && status.currentTime >= status.totalLength - 2)) {
-              console.log('🎬 VLC Audio Manager: Track completion detected!')
-              console.log('🎬 VLC Audio Manager: Final status:', status)
-              
-              // Don't modify state here - let the queue state handle it
-              // Just call the completion callback
-              if (this.onTrackComplete) {
-                console.log('🎬 VLC Audio Manager: Calling track completion callback')
-                this.onTrackComplete()
-              } else {
-                console.log('🎬 VLC Audio Manager: No completion callback set!')
-              }
-            }
-          } else {
-            console.log('🎬 VLC Audio Manager: Could not get VLC status')
-          }
-        } else {
-          // Only log once when conditions change, not every second
-          if (!this.isPlaying && this.lastLoggedNotPlaying !== true) {
-            this.lastLoggedNotPlaying = true
-            console.log('🎬 VLC Audio Manager: Not playing, skipping completion check')
-          }
-          if (!this.onTrackComplete && this.lastLoggedNoCallback !== true) {
-            this.lastLoggedNoCallback = true
-            console.log('🎬 VLC Audio Manager: No completion callback set, skipping completion check')
-          }
-        }
-      } catch (error) {
-        console.error('🎬 VLC Audio Manager: Error in completion checking:', error)
+    console.log('🎬 Simple VLC Audio Manager: Starting VLC...')
+    console.log('🎬 Simple VLC Audio Manager: Command:', command)
+    
+    try {
+      this.vlcProcess = exec(command)
+      
+      if (!this.vlcProcess) {
+        console.error('🎬 Simple VLC Audio Manager: Failed to create VLC process')
+        return
       }
-    }, 2000) // Reduced from 1 second to 2 seconds to reduce log spam
+      
+      this.vlcProcess.on('exit', (code, signal) => {
+        console.log('🎬 Simple VLC Audio Manager: VLC exited with code:', code, 'signal:', signal)
+        this.vlcProcess = null
+        // Restart VLC if it was killed
+        if (signal === 'SIGKILL' || signal === 'SIGTERM') {
+          console.log('🎬 Simple VLC Audio Manager: VLC was killed, restarting...')
+          setTimeout(() => this.startVLC(), 2000)
+        }
+      })
 
-    console.log('🎬 VLC Audio Manager: Completion checking started')
+      // Wait for VLC to start
+      console.log('🎬 Simple VLC Audio Manager: Waiting for VLC to start...')
+      await new Promise(resolve => setTimeout(resolve, 3000))
+      
+      // Verify VLC is working
+      console.log('🎬 Simple VLC Audio Manager: Verifying VLC is working...')
+      const isWorking = await this.verifyVLCRunning()
+      if (isWorking) {
+        console.log('🎬 Simple VLC Audio Manager: VLC started successfully')
+      } else {
+        console.error('🎬 Simple VLC Audio Manager: VLC failed to start - not responding to HTTP requests')
+        if (this.vlcProcess) {
+          this.vlcProcess.kill('SIGKILL')
+        }
+        this.vlcProcess = null
+      }
+    } catch (error) {
+      console.error('🎬 Simple VLC Audio Manager: Error starting VLC:', error)
+      this.vlcProcess = null
+    }
   }
 
-  private async getVLCStatus(): Promise<any> {
+  private async verifyVLCRunning(): Promise<boolean> {
     try {
       const statusUrl = `http://localhost:${this.vlcPort}/requests/status.xml`
       const response = await fetch(statusUrl, {
@@ -120,69 +78,121 @@ class AudioManager implements AudioManagerInterface {
           'Authorization': `Basic ${Buffer.from(`:${this.vlcPassword}`).toString('base64')}`
         }
       })
-
-      if (!response.ok) {
-        return null
-      }
-
-      const statusText = await response.text()
-      const timeMatch = statusText.match(/<time>(\d+)<\/time>/)
-      const lengthMatch = statusText.match(/<length>(\d+)<\/length>/)
-      const stateMatch = statusText.match(/<state>(\w+)<\/state>/)
-
-      if (timeMatch && lengthMatch && stateMatch) {
-        const currentTime = parseInt(timeMatch[1])
-        const totalLength = parseInt(lengthMatch[1])
-        const state = stateMatch[1]
-        const progress = totalLength > 0 ? currentTime / totalLength : 0
-
-        return {
-          currentTime,
-          totalLength,
-          state,
-          progress
-        }
-      }
-
-      return null
+      return response.ok
     } catch (error) {
-      return null
+      return false
     }
   }
 
   async playFile(filePath: string): Promise<boolean> {
     try {
-      console.log('🎬 VLC Audio Manager: playFile called with path:', filePath)
+      console.log('🎬 Simple VLC Audio Manager: playFile called with path:', filePath)
       
-      // Ensure VLC is running and completion checking is active
+      // Ensure VLC is running
       if (!this.vlcProcess) {
-        console.log('🎬 VLC Audio Manager: VLC not running, starting it...')
+        console.log('🎬 Simple VLC Audio Manager: VLC not running, starting...')
         await this.startVLC()
-        // Wait a bit for VLC to fully start
         await new Promise(resolve => setTimeout(resolve, 2000))
       }
-      
-      // Ensure completion checking is running
-      this.startCompletionChecking()
-      
+
+      // Verify VLC is responding
+      const isWorking = await this.verifyVLCRunning()
+      if (!isWorking) {
+        console.error('🎬 Simple VLC Audio Manager: VLC is not responding, trying to restart...')
+        this.vlcProcess = null
+        await this.startVLC()
+        await new Promise(resolve => setTimeout(resolve, 3000))
+        
+        const retryWorking = await this.verifyVLCRunning()
+        if (!retryWorking) {
+          console.error('🎬 Simple VLC Audio Manager: VLC still not responding after restart')
+          return false
+        }
+      }
+
       // Stop any current playback
       await this.stop()
+
+      // Set up completion checking
+      this.setupCompletionChecking()
+
+      // Load and play the file
+      const success = await this.loadAndPlayFile(filePath)
       
-      // Load the file into VLC
-      const addUrl = `http://localhost:${this.vlcPort}/requests/playlist.xml?command=in_play&input=${encodeURIComponent(filePath)}`
-      const response = await fetch(addUrl, {
+      if (success) {
+        this.isPlaying = true
+        this.currentFile = filePath
+        console.log('🎬 Simple VLC Audio Manager: Successfully started playback')
+      }
+      
+      return success
+    } catch (error) {
+      console.error('🎬 Simple VLC Audio Manager: Error in playFile:', error)
+      return false
+    }
+  }
+
+  private async loadAndPlayFile(filePath: string): Promise<boolean> {
+    try {
+      // Handle network share paths
+      if (NetworkPathHandler.isNetworkSharePath(filePath)) {
+        return await this.playNetworkShareFile(filePath)
+      } else {
+        return await this.loadLocalFile(filePath)
+      }
+    } catch (error) {
+      console.error('🎬 Simple VLC Audio Manager: Error loading file:', error)
+      return false
+    }
+  }
+
+  private async playNetworkShareFile(filePath: string): Promise<boolean> {
+    console.log('🌐 Simple VLC Audio Manager: Playing network share file:', filePath)
+    
+    const pathOptions = NetworkPathHandler.getNetworkSharePathOptions(filePath)
+    console.log('🌐 Simple VLC Audio Manager: Path options:', pathOptions)
+    
+    for (let i = 0; i < pathOptions.length; i++) {
+      const path = pathOptions[i]
+      console.log(`🌐 Simple VLC Audio Manager: Trying path ${i + 1}/${pathOptions.length}: ${path}`)
+      
+      try {
+        const success = await this.loadLocalFile(path)
+        if (success) {
+          console.log(`🌐 Simple VLC Audio Manager: Successfully loaded with path: ${path}`)
+          return true
+        }
+      } catch (error) {
+        console.log(`🌐 Simple VLC Audio Manager: Path ${i + 1} failed:`, error)
+      }
+    }
+    
+    console.error('🌐 Simple VLC Audio Manager: All path options failed')
+    return false
+  }
+
+  private async loadLocalFile(filePath: string): Promise<boolean> {
+    try {
+      // Clear playlist
+      const clearUrl = `http://localhost:${this.vlcPort}/requests/playlist.xml?command=pl_empty`
+      await fetch(clearUrl, {
         headers: {
           'Authorization': `Basic ${Buffer.from(`:${this.vlcPassword}`).toString('base64')}`
         }
       })
 
-      if (!response.ok) {
-        console.error('🎬 VLC Audio Manager: Failed to load file:', filePath)
+      // Load file
+      const loadUrl = `http://localhost:${this.vlcPort}/requests/status.xml?command=in_play&input=${encodeURIComponent(filePath)}`
+      const loadResponse = await fetch(loadUrl, {
+        headers: {
+          'Authorization': `Basic ${Buffer.from(`:${this.vlcPassword}`).toString('base64')}`
+        }
+      })
+
+      if (!loadResponse.ok) {
+        console.error('🎬 Simple VLC Audio Manager: Failed to load file')
         return false
       }
-
-      // Wait for file to be loaded
-      await new Promise(resolve => setTimeout(resolve, 500))
 
       // Start playback
       const playUrl = `http://localhost:${this.vlcPort}/requests/status.xml?command=pl_play`
@@ -192,28 +202,64 @@ class AudioManager implements AudioManagerInterface {
         }
       })
 
-      if (playResponse.ok) {
-        this.currentFile = filePath
-        this.isPlaying = true
-        this.lastLoggedNotPlaying = null
-        this.lastLoggedNoCallback = null
-        this.startProgressPolling()
-        this.startFrequencyAnalysis()
-        console.log('🎬 VLC Audio Manager: File loaded and playback started:', filePath)
-        return true
-      } else {
-        console.error('🎬 VLC Audio Manager: Failed to start playback')
+      if (!playResponse.ok) {
+        console.error('🎬 Simple VLC Audio Manager: Failed to start playback')
         return false
       }
+
+      console.log('🎬 Simple VLC Audio Manager: File loaded and playback started')
+      return true
     } catch (error) {
-      console.error('🎬 VLC Audio Manager: Error in playFile:', error)
+      console.error('🎬 Simple VLC Audio Manager: Error loading local file:', error)
       return false
+    }
+  }
+
+  private setupCompletionChecking(): void {
+    // Clear any existing interval
+    if (this.completionCheckInterval) {
+      clearInterval(this.completionCheckInterval)
+    }
+
+    console.log('🎬 Simple VLC Audio Manager: Setting up completion checking...')
+    
+    this.completionCheckInterval = setInterval(async () => {
+      if (!this.isPlaying || !this.onTrackComplete) {
+        return
+      }
+
+      try {
+        const status = await this.getVLCStatus()
+        if (status) {
+          // Check if track has completed
+          if (status.state === 'stopped' && status.totalLength > 0) {
+            console.log('🎬 Simple VLC Audio Manager: Track completed')
+            this.stopCompletionChecking()
+            this.isPlaying = false
+            this.currentFile = null
+            this.onTrackComplete()
+          }
+        }
+      } catch (error) {
+        console.error('🎬 Simple VLC Audio Manager: Error in completion checking:', error)
+      }
+    }, 2000) // Check every 2 seconds
+  }
+
+  private stopCompletionChecking(): void {
+    if (this.completionCheckInterval) {
+      clearInterval(this.completionCheckInterval)
+      this.completionCheckInterval = null
+      console.log('🎬 Simple VLC Audio Manager: Completion checking stopped')
     }
   }
 
   async stop(): Promise<boolean> {
     try {
-      console.log('🛑 VLC Audio Manager: stop called')
+      console.log('🛑 Simple VLC Audio Manager: stop called')
+      
+      // Stop completion checking
+      this.stopCompletionChecking()
       
       // Send stop command to VLC
       const stopUrl = `http://localhost:${this.vlcPort}/requests/status.xml?command=pl_stop`
@@ -231,40 +277,133 @@ class AudioManager implements AudioManagerInterface {
         }
       })
 
-      // Force stop any remaining playback
-      const forceStopUrl = `http://localhost:${this.vlcPort}/requests/status.xml?command=pl_stop`
-      await fetch(forceStopUrl, {
-        headers: {
-          'Authorization': `Basic ${Buffer.from(`:${this.vlcPassword}`).toString('base64')}`
-        }
-      })
-
       this.isPlaying = false
       this.currentFile = null
-      this.lastLoggedNotPlaying = null
-      this.lastLoggedNoCallback = null
-      this.stopProgressPolling()
-      this.stopFrequencyAnalysis()
       
-      console.log('🎬 VLC Audio Manager: Playback stopped and playlist cleared')
+      console.log('🎬 Simple VLC Audio Manager: Playback stopped')
       return true
     } catch (error) {
-      console.error('🎬 VLC Audio Manager: Error stopping playback:', error)
+      console.error('🎬 Simple VLC Audio Manager: Error stopping playback:', error)
       return false
     }
   }
 
-  async pause(): Promise<boolean> {
+  async getVLCStatus(): Promise<any> {
     try {
-      const pauseUrl = `http://localhost:${this.vlcPort}/requests/status.xml?command=pl_pause`
-      const response = await fetch(pauseUrl, {
+      const statusUrl = `http://localhost:${this.vlcPort}/requests/status.xml`
+      const response = await fetch(statusUrl, {
         headers: {
           'Authorization': `Basic ${Buffer.from(`:${this.vlcPassword}`).toString('base64')}`
         }
       })
-      return response.ok
+
+      if (!response.ok) {
+        return null
+      }
+
+      const text = await response.text()
+      
+      // Simple XML parsing without DOMParser (server-side compatible)
+      const stateMatch = text.match(/<state>([^<]*)<\/state>/)
+      const timeMatch = text.match(/<time>([^<]*)<\/time>/)
+      const lengthMatch = text.match(/<length>([^<]*)<\/length>/)
+      
+      const state = stateMatch ? stateMatch[1] : 'stopped'
+      const currentTime = timeMatch ? parseFloat(timeMatch[1]) : 0
+      const totalLength = lengthMatch ? parseFloat(lengthMatch[1]) : 0
+      const progress = totalLength > 0 ? (currentTime / totalLength) * 100 : 0
+
+      return {
+        state,
+        currentTime,
+        totalLength,
+        progress
+      }
     } catch (error) {
-      console.error('🎬 VLC Audio Manager: Error pausing playback:', error)
+      console.error('🎬 Simple VLC Audio Manager: Error getting VLC status:', error)
+      return null
+    }
+  }
+
+  // Stub methods for interface compatibility
+  async resetVLCState(): Promise<void> {
+    // No-op for simple implementation
+  }
+
+  setTrackCompleteCallback(callback: (() => void) | null): void {
+    this.onTrackComplete = callback
+  }
+
+  async setVolume(volume: number): Promise<number> {
+    this.volume = Math.max(0, Math.min(1, volume))
+    // TODO: Implement VLC volume control
+    return this.volume
+  }
+
+  getVolume(): number {
+    return this.volume
+  }
+
+  setMuted(muted: boolean): void {
+    this.muted = muted
+    // TODO: Implement VLC mute control
+  }
+
+  isMuted(): boolean {
+    return this.muted
+  }
+
+  getCurrentSong(): CurrentSong {
+    if (!this.isPlaying || !this.currentFile) {
+      return {
+        file: null,
+        title: 'No track playing'
+      }
+    }
+
+    return {
+      file: this.currentFile,
+      title: this.currentFile.split('/').pop() || 'Unknown'
+    }
+  }
+
+  getAudioStatus(): AudioStatus {
+    // Check if VLC process is actually running
+    const hasValidProcess = this.vlcProcess !== null && !this.vlcProcess.killed
+    
+    return {
+      isPlaying: this.isPlaying,
+      currentFile: this.currentFile,
+      hasProcess: hasValidProcess,
+      platform: this.platform,
+      wasPlayingBeforeKill: false
+    }
+  }
+
+  setProgressCallback(callback: ((progress: number) => void) | null): void {
+    // TODO: Implement progress tracking
+  }
+
+  setFrequencyDataCallback(callback: (frequencies: number[]) => void): void {
+    // TODO: Implement frequency analysis
+  }
+
+  async forceStop(): Promise<boolean> {
+    return await this.stop()
+  }
+
+  // Additional required methods for interface compatibility
+  async pause(): Promise<boolean> {
+    try {
+      const pauseUrl = `http://localhost:${this.vlcPort}/requests/status.xml?command=pl_pause`
+      await fetch(pauseUrl, {
+        headers: {
+          'Authorization': `Basic ${Buffer.from(`:${this.vlcPassword}`).toString('base64')}`
+        }
+      })
+      return true
+    } catch (error) {
+      console.error('🎬 Simple VLC Audio Manager: Error pausing:', error)
       return false
     }
   }
@@ -272,470 +411,120 @@ class AudioManager implements AudioManagerInterface {
   async resume(): Promise<boolean> {
     try {
       const resumeUrl = `http://localhost:${this.vlcPort}/requests/status.xml?command=pl_play`
-      const response = await fetch(resumeUrl, {
+      await fetch(resumeUrl, {
         headers: {
           'Authorization': `Basic ${Buffer.from(`:${this.vlcPassword}`).toString('base64')}`
         }
       })
-      return response.ok
+      return true
     } catch (error) {
-      console.error('🎬 VLC Audio Manager: Error resuming playback:', error)
+      console.error('🎬 Simple VLC Audio Manager: Error resuming:', error)
       return false
     }
   }
 
   async seek(position: number): Promise<boolean> {
     try {
-      const seekUrl = `http://localhost:${this.vlcPort}/requests/status.xml?command=seek&val=${Math.floor(position)}`
-      const response = await fetch(seekUrl, {
+      const seekUrl = `http://localhost:${this.vlcPort}/requests/status.xml?command=seek&val=${position}`
+      await fetch(seekUrl, {
         headers: {
           'Authorization': `Basic ${Buffer.from(`:${this.vlcPassword}`).toString('base64')}`
         }
       })
-      return response.ok
+      return true
     } catch (error) {
-      console.error('🎬 VLC Audio Manager: Error seeking:', error)
+      console.error('🎬 Simple VLC Audio Manager: Error seeking:', error)
       return false
     }
   }
 
   getStatus(): AudioStatus {
-    return {
-      isPlaying: this.isPlaying,
-      currentFile: this.currentFile,
-      hasProcess: this.vlcProcess !== null,
-      platform: this.platform,
-      wasPlayingBeforeKill: this.wasPlayingBeforeKill
-    }
+    return this.getAudioStatus()
   }
 
   resetState(): void {
     this.isPlaying = false
     this.currentFile = null
-    this.wasPlayingBeforeKill = false
-    this.lastLoggedNotPlaying = null
+    this.stopCompletionChecking()
   }
 
   async checkAndRestart(): Promise<boolean> {
-    if (!this.vlcProcess) {
+    const isWorking = await this.verifyVLCRunning()
+    if (!isWorking) {
       await this.startVLC()
-      return true
+      return await this.verifyVLCRunning()
     }
-    return false
+    return true
   }
 
   setCurrentFile(filePath: string): void {
     this.currentFile = filePath
   }
 
-  getCurrentSong(): CurrentSong {
-    return {
-      file: this.currentFile,
-      title: this.currentFile ? this.currentFile.split('/').pop() || null : null
-    }
-  }
-
-  async setVolume(newVolume: number): Promise<number> {
-    try {
-      // Clamp volume between 0 and 1
-      const clampedVolume = Math.max(0, Math.min(1, newVolume))
-      this.volume = clampedVolume
-      
-      // Convert to VLC volume range (0-512)
-      const vlcVolume = Math.floor(clampedVolume * 512)
-      
-      const volumeUrl = `http://localhost:${this.vlcPort}/requests/status.xml?command=volume&val=${vlcVolume}`
-      const response = await fetch(volumeUrl, {
-        headers: {
-          'Authorization': `Basic ${Buffer.from(`:${this.vlcPassword}`).toString('base64')}`
-        }
-      })
-      
-      if (response.ok) {
-        console.log('🎬 VLC Audio Manager: Volume set to', Math.round(clampedVolume * 100) + '%')
-        return clampedVolume * 100
-      } else {
-        console.error('🎬 VLC Audio Manager: Failed to set volume')
-        return this.volume * 100
-      }
-    } catch (error) {
-      console.error('🎬 VLC Audio Manager: Error setting volume:', error)
-      return this.volume * 100
-    }
-  }
-
-  getVolume(): number {
-    return this.volume
-  }
-
   async toggleMute(): Promise<boolean> {
-    try {
-      // VLC doesn't have a direct mute toggle, so we implement it by setting volume to 0 or restoring previous volume
-      if (this.volume > 0) {
-        // Mute: store current volume and set to 0
-        this.muted = true
-        this.volume = 0
-        const muteUrl = `http://localhost:${this.vlcPort}/requests/status.xml?command=volume&val=0`
-        const response = await fetch(muteUrl, {
-          headers: {
-            'Authorization': `Basic ${Buffer.from(`:${this.vlcPassword}`).toString('base64')}`
-          }
-        })
-        
-        if (response.ok) {
-          console.log('🎬 VLC Audio Manager: Muted')
-          return true
-        }
-      } else {
-        // Unmute: restore to a reasonable volume (50%)
-        this.muted = false
-        this.volume = 0.5
-        const unmuteUrl = `http://localhost:${this.vlcPort}/requests/status.xml?command=volume&val=256`
-        const response = await fetch(unmuteUrl, {
-          headers: {
-            'Authorization': `Basic ${Buffer.from(`:${this.vlcPassword}`).toString('base64')}`
-          }
-        })
-        
-        if (response.ok) {
-          console.log('🎬 VLC Audio Manager: Unmuted, volume set to 50%')
-          return false
-        }
-      }
-      
-      return this.muted
-    } catch (error) {
-      console.error('🎬 VLC Audio Manager: Error toggling mute:', error)
-      return this.muted
-    }
-  }
-
-  isMuted(): boolean {
-    return this.muted
+    this.muted = !this.muted
+    // TODO: Implement VLC mute control
+    return true
   }
 
   getPlaybackProgress(): number {
-    return this.latestProgress
+    // TODO: Implement progress tracking
+    return 0
   }
 
   isTrackFinished(): boolean {
-    return !this.isPlaying && this.currentFile !== null
+    return !this.isPlaying
   }
 
   estimateDuration(filePath: string): number {
-    // Simple estimation based on file size
-    try {
-      const stats = fs.statSync(filePath)
-      const sizeInMB = stats.size / (1024 * 1024)
-      // Rough estimate: 1MB ≈ 1 minute for compressed audio
-      return Math.floor(sizeInMB * 60)
-    } catch {
-      return 0
-    }
+    // TODO: Implement duration estimation
+    return 0
   }
 
   async killAllAudioProcesses(): Promise<void> {
-    try {
-      if (this.vlcProcess) {
-        this.vlcProcess.kill('SIGKILL')
-        this.vlcProcess = null
-      }
-      
-      if (process.platform === 'win32') {
-        exec('taskkill /f /im vlc.exe', () => {})
-      } else {
-        exec('pkill -f vlc', () => {})
-      }
-    } catch (error) {
-      console.error('🎬 VLC Audio Manager: Error killing processes:', error)
+    if (this.vlcProcess) {
+      this.vlcProcess.kill('SIGKILL')
+      this.vlcProcess = null
     }
   }
 
-
-
   muteSystemAudio(): void {
-    // System audio muting would go here
+    // TODO: Implement system audio muting
   }
 
   unmuteSystemAudio(): void {
-    // System audio unmuting would go here
-  }
-
-  setTrackCompleteCallback(callback: () => void): void {
-    this.onTrackComplete = callback
-    this.lastLoggedNoCallback = null
+    // TODO: Implement system audio unmuting
   }
 
   clearTrackCompleteCallback(): void {
     this.onTrackComplete = null
-    this.lastLoggedNoCallback = null
   }
 
   clearCallbackForStop(): void {
     this.onTrackComplete = null
-    this.lastLoggedNoCallback = null
   }
 
-  // Force reset the VLC manager state to match queue state
   forceResetState(): void {
-    console.log('🎬 VLC Audio Manager: Force resetting state')
-    this.isPlaying = false
-    this.currentFile = null
-    this.lastLoggedNotPlaying = null
-    this.lastLoggedNoCallback = null
-  }
-
-  // Force stop VLC completely - more aggressive than regular stop
-  async forceStop(): Promise<boolean> {
-    try {
-      console.log('🛑 VLC Audio Manager: forceStop called - aggressive stop')
-      
-      // First try the normal stop
-      await this.stop()
-      
-      // Wait a moment for VLC to process the stop
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
-      // Check if VLC is still playing
-      try {
-        const status = await this.getVLCStatus()
-        if (status && status.state !== 'stopped') {
-          console.log('🛑 VLC Audio Manager: Normal stop failed, killing VLC process')
-          
-          // Kill the VLC process if it's still playing
-          if (this.vlcProcess) {
-            this.vlcProcess.kill('SIGKILL')
-            this.vlcProcess = null
-          }
-          
-          // Restart VLC to ensure clean state
-          await this.startVLC()
-        }
-      } catch (error) {
-        console.log('🛑 VLC Audio Manager: Could not check VLC status, assuming stopped')
-      }
-      
-      this.isPlaying = false
-      this.currentFile = null
-      this.lastLoggedNotPlaying = null
-      this.lastLoggedNoCallback = null
-      
-      console.log('🎬 VLC Audio Manager: Force stop completed')
-      return true
-    } catch (error) {
-      console.error('🎬 VLC Audio Manager: Error in force stop:', error)
-      return false
-    }
-  }
-
-  setProgressCallback(callback: (progress: number) => void): void {
-    this.vlcProgressCallback = callback
+    this.resetState()
   }
 
   getLatestProgress(): number {
-    return this.latestProgress
+    return this.getPlaybackProgress()
   }
 
-  getVLCProgress(): Promise<number> {
-    return this.getVLCStatus().then(status => status?.progress || 0)
+  async getVLCProgress(): Promise<number> {
+    const status = await this.getVLCStatus()
+    return status ? status.currentTime : 0
   }
 
-  getVLCDuration(): Promise<number> {
-    return this.getVLCStatus().then(status => status?.totalLength || 0)
-  }
-
-  // Getters for external access
-  get isPlayingState(): boolean {
-    return this.isPlaying
-  }
-
-  get currentFilePath(): string | null {
-    return this.currentFile
+  async getVLCDuration(): Promise<number> {
+    const status = await this.getVLCStatus()
+    return status ? status.totalLength : 0
   }
 
   markAsSkipped(): void {
-    // Mark that we just skipped to this track
-  }
-
-  private startProgressPolling(): void {
-    if (this.vlcProgressInterval) {
-      clearInterval(this.vlcProgressInterval)
-    }
-
-    this.vlcProgressInterval = setInterval(async () => {
-      try {
-        const status = await this.getVLCStatus()
-        if (status) {
-          this.latestProgress = status.progress || 0
-          if (this.vlcProgressCallback) {
-            this.vlcProgressCallback(this.latestProgress)
-          }
-        }
-      } catch (error) {
-        console.error('🎬 VLC Audio Manager: Progress polling error:', error)
-      }
-    }, 1000)
-
-    console.log('🎬 VLC Audio Manager: Progress polling started')
-  }
-
-  private stopProgressPolling(): void {
-    if (this.vlcProgressInterval) {
-      clearInterval(this.vlcProgressInterval)
-      this.vlcProgressInterval = null
-      console.log('🎬 VLC Audio Manager: Progress polling stopped')
-    }
-  }
-
-  // Frequency Analysis Methods
-  setFrequencyDataCallback(callback: (frequencies: number[]) => void): void {
-    this.frequencyDataCallback = callback
-    if (this.isPlaying) {
-      this.startFrequencyAnalysis()
-    }
-  }
-
-  clearFrequencyDataCallback(): void {
-    this.frequencyDataCallback = null
-    this.stopFrequencyAnalysis()
-  }
-
-  private startFrequencyAnalysis(): void {
-    if (this.frequencyAnalysisInterval) {
-      clearInterval(this.frequencyAnalysisInterval)
-    }
-
-    console.log('🎵 VLC Audio Manager: Starting frequency analysis...')
-    
-    this.frequencyAnalysisInterval = setInterval(async () => {
-      try {
-        if (this.isPlaying && this.frequencyDataCallback) {
-          const frequencies = await this.getAudioFrequencies()
-          if (frequencies.length > 0) {
-            this.frequencyDataCallback(frequencies)
-          }
-        }
-      } catch (error) {
-        console.error('🎵 VLC Audio Manager: Frequency analysis error:', error)
-      }
-    }, 50) // 20 FPS for smooth visualization
-
-    console.log('🎵 VLC Audio Manager: Frequency analysis started')
-  }
-
-  private stopFrequencyAnalysis(): void {
-    if (this.frequencyAnalysisInterval) {
-      clearInterval(this.frequencyAnalysisInterval)
-      this.frequencyAnalysisInterval = null
-      console.log('🎵 VLC Audio Manager: Frequency analysis stopped')
-    }
-  }
-
-  private async getAudioFrequencies(): Promise<number[]> {
-    try {
-      // Method 1: Try to get frequency data from VLC's audio filter output
-      const filterUrl = `http://localhost:${this.vlcPort}/requests/status.xml?command=filter`
-      const response = await fetch(filterUrl, {
-        headers: {
-          'Authorization': `Basic ${Buffer.from(`:${this.vlcPassword}`).toString('base64')}`
-        }
-      })
-
-      if (response.ok) {
-        const filterText = await response.text()
-        // Parse filter output for frequency data
-        const frequencies = this.parseFilterOutput(filterText)
-        if (frequencies.length > 0) {
-          return frequencies
-        }
-      }
-
-      // Method 2: Fallback to audio properties analysis
-      return this.getAudioPropertiesAnalysis()
-    } catch (error) {
-      console.error('🎵 VLC Audio Manager: Error getting frequencies:', error)
-      return this.getAudioPropertiesAnalysis()
-    }
-  }
-
-  private parseFilterOutput(filterText: string): number[] {
-    try {
-      // Parse VLC filter output for frequency data
-      // This is a simplified parser - VLC's actual output may vary
-      const lines = filterText.split('\n')
-      const frequencies: number[] = []
-      
-      for (const line of lines) {
-        // Look for frequency-related data in filter output
-        if (line.includes('freq') || line.includes('spectrum') || line.includes('fft')) {
-          const match = line.match(/(\d+(?:\.\d+)?)/g)
-          if (match) {
-            frequencies.push(...match.map(Number).filter(n => n > 0 && n < 20000))
-          }
-        }
-      }
-
-      // If we found frequencies, normalize them to 20 bands (0-1 range)
-      if (frequencies.length > 0) {
-        return this.normalizeFrequencies(frequencies)
-      }
-
-      return []
-    } catch (error) {
-      console.error('🎵 VLC Audio Manager: Error parsing filter output:', error)
-      return []
-    }
-  }
-
-  private getAudioPropertiesAnalysis(): number[] {
-    // Fallback method: Generate realistic frequency data based on audio properties
-    // This creates a more dynamic visualization than static random bars
-    const bands = 20
-    const frequencies: number[] = []
-    
-    // Generate frequency data that responds to playback state
-    for (let i = 0; i < bands; i++) {
-      let amplitude = 0.1
-      
-      if (this.isPlaying) {
-        // Create a more realistic frequency response curve
-        const frequency = i / (bands - 1) // 0 to 1
-        const bassBoost = Math.sin(frequency * Math.PI) * 0.3 // Bass emphasis
-        const midRange = Math.sin(frequency * Math.PI * 2) * 0.2 // Mid-range variation
-        const treble = Math.cos(frequency * Math.PI * 0.5) * 0.15 // Treble variation
-        
-        // Add some randomness for realism
-        const random = (Math.random() - 0.5) * 0.1
-        amplitude = 0.1 + bassBoost + midRange + treble + random
-        
-        // Ensure amplitude stays in valid range
-        amplitude = Math.max(0.05, Math.min(0.9, amplitude))
-      }
-      
-      frequencies.push(amplitude)
-    }
-    
-    return frequencies
-  }
-
-  private normalizeFrequencies(frequencies: number[]): number[] {
-    // Normalize frequency data to 20 bands with values 0-1
-    const targetBands = 20
-    const normalized: number[] = []
-    
-    if (frequencies.length === 0) return new Array(targetBands).fill(0.1)
-    
-    // Simple downsampling/upsampling to get exactly 20 bands
-    for (let i = 0; i < targetBands; i++) {
-      const sourceIndex = Math.floor((i / targetBands) * frequencies.length)
-      const value = frequencies[sourceIndex] || 0
-      normalized.push(Math.max(0.05, Math.min(0.9, value / 1000))) // Normalize to 0-1 range
-    }
-    
-    return normalized
+    // TODO: Implement skip tracking
   }
 }
 
-export default AudioManager 
-
-
+export default AudioManager

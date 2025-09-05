@@ -357,10 +357,6 @@ export default function AlbumDetail(): JSX.Element {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <button onClick={() => router.push(getBackToLibraryUrl())} className={styles.backButton}>
-          <ArrowLeft className={styles.backIcon} />
-          Back to Library
-        </button>
         {effectiveLayout === 'mobile' && album && (
           <div className={styles.mobileHeaderInfo}>
             <div className={styles.mobileHeaderCover}>
@@ -428,6 +424,10 @@ export default function AlbumDetail(): JSX.Element {
             {album.year && <p className={styles.year}>{album.year}</p>}
 
             <div className={styles.actions}>
+              <button onClick={() => router.push(getBackToLibraryUrl())} className={styles.backButton}>
+                <ArrowLeft className={styles.backIcon} />
+                Back to Library
+              </button>
               <button 
                 onClick={() => { void handlePlayAlbum(); }}
                 className={styles.playButton}
@@ -483,6 +483,14 @@ export default function AlbumDetail(): JSX.Element {
 
               <div className={styles.sideBySideActions}>
                 <button 
+                  onClick={() => router.push(getBackToLibraryUrl())} 
+                  className={styles.sideBySideBackButton}
+                  title="Back"
+                >
+                  <ArrowLeft className={styles.sideBySideBackIcon} />
+                  Back
+                </button>
+                <button 
                   onClick={() => { void handlePlayAlbum(); }}
                   className={styles.sideBySidePlayButton}
                   disabled={!canPerformAction('allowAddToQueue')}
@@ -498,7 +506,7 @@ export default function AlbumDetail(): JSX.Element {
                   title={!canPerformAction('allowCreatePlaylists') ? 'Creating playlists is restricted in party mode' : 'Add to Playlist'}
                 >
                   <Plus className={styles.sideBySidePlusIcon} />
-                  Add to Playlist
+                  Playlist
                 </button>
               </div>
             </div>

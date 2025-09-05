@@ -174,9 +174,27 @@
   min-width: 0;
 }
 
+.folderIconContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
 .folderIcon {
   color: var(--jukebox-accent);
   flex-shrink: 0;
+}
+
+.warningIcon {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  color: #fbbf24;
+  background: var(--jukebox-darker);
+  border-radius: 50%;
+  padding: 1px;
 }
 
 .folderDetails {
@@ -233,6 +251,83 @@
   cursor: not-allowed;
 }
 
+.folderActions {
+  display: flex;
+  gap: var(--spacing-xs);
+  flex-shrink: 0;
+}
+
+.rescanButton {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: var(--radius-sm);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.rescanButton:hover:not(:disabled) {
+  background: rgba(34, 197, 94, 0.3);
+  color: #16a34a;
+  border-color: rgba(34, 197, 94, 0.4);
+  transform: scale(1.05);
+}
+
+.rescanButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.rescanButtonDisabled {
+  background: rgba(107, 114, 128, 0.2) !important;
+  color: #6b7280 !important;
+  border-color: rgba(107, 114, 128, 0.3) !important;
+  cursor: not-allowed !important;
+}
+
+.rescanButtonDisabled:hover {
+  background: rgba(107, 114, 128, 0.2) !important;
+  color: #6b7280 !important;
+  border-color: rgba(107, 114, 128, 0.3) !important;
+  transform: none !important;
+}
+
+/* Unavailable folder styles */
+.folderItemUnavailable {
+  opacity: 0.6;
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.folderItemUnavailable:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.folderIconUnavailable {
+  color: var(--jukebox-gray);
+}
+
+.folderPathUnavailable {
+  color: var(--jukebox-gray);
+  text-decoration: line-through;
+}
+
+.folderStatsUnavailable {
+  color: #fbbf24;
+}
+
+.folderStatsUnavailable span:nth-child(even) {
+  color: #f59e0b;
+}
+
 /* Mobile responsive */
 @media (max-width: 768px) {
   .container {
@@ -269,7 +364,14 @@
     justify-content: space-between;
   }
   
-  .removeButton {
+  .folderActions {
     align-self: flex-end;
+    flex-direction: row;
+  }
+  
+  .removeButton,
+  .rescanButton {
+    width: 36px;
+    height: 36px;
   }
 } 

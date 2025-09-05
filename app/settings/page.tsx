@@ -856,7 +856,7 @@ function StatisticsSection(): JSX.Element {
 function MusicScanSection(): JSX.Element {
   const [isScanning, setIsScanning] = useState(false)
   const [currentPaths, setCurrentPaths] = useState<string[]>([])
-  const [scanResults, setScanResults] = useState<{ [path: string]: { albums: number; files: number; lastScanned: string } }>({})
+  const [scanResults, setScanResults] = useState<{ [path: string]: { albums: number; files: number; lastScanned: string; status?: string; reason?: string } }>({})
   const [scanProgress, setScanProgress] = useState({
     isVisible: false,
     currentFile: '',
@@ -864,6 +864,12 @@ function MusicScanSection(): JSX.Element {
     totalFiles: 0,
     currentAlbum: ''
   })
+  const [abortController, setAbortController] = useState<AbortController | null>(null)
+  const [consoleMessages, setConsoleMessages] = useState<Array<{
+    type: string
+    message: string
+    timestamp: number
+  }>>([])
 
   // Load current paths on component mount
   useEffect(() => {
@@ -874,7 +880,7 @@ function MusicScanSection(): JSX.Element {
     try {
       const response = await fetch('/api/albums')
       if (response.ok) {
-        const data = await response.json() as { scanPaths?: string[]; scanResults?: { [path: string]: { albums: number; files: number; lastScanned: string } } }
+        const data = await response.json() as { scanPaths?: string[]; scanResults?: { [path: string]: { albums: number; files: number; lastScanned: string; status?: string; reason?: string } } }
         setCurrentPaths(data.scanPaths ?? [])
         setScanResults(data.scanResults ?? {})
       }
@@ -883,9 +889,20 @@ function MusicScanSection(): JSX.Element {
     }
   }
 
-  const handleScan = async (directories: string[]): Promise<void> => {
+  const handleCancelScan = (): void => {
+    if (abortController) {
+      abortController.abort()
+      setAbortController(null)
+    }
+  }
+
+  const handleRescanSingle = async (directory: string): Promise<void> => {
+    // Create new AbortController for this scan
+    const controller = new AbortController()
+    setAbortController(controller)
+    
     setIsScanning(true)
-    setCurrentPaths(directories)
+    setConsoleMessages([]) // Clear previous console messages
     setScanProgress({
       isVisible: true,
       currentFile: '',
@@ -895,36 +912,262 @@ function MusicScanSection(): JSX.Element {
     })
     
     try {
-      const response = await fetch('/api/scan', {
+      const response = await fetch('/api/scan/single', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ directories }),
+        body: JSON.stringify({ directory }),
+        signal: controller.signal
       })
       
-      if (response.ok) {
-        const result = await response.json() as { scanResults?: { [path: string]: { albums: number; files: number; lastScanned: string } }; totalFiles?: number; totalAlbums?: number }
-        setScanResults(result.scanResults ?? {})
-        setCurrentPaths(directories) // Update current paths with the scanned directories
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const reader = response.body?.getReader()
+      if (!reader) {
+        throw new Error('No response body reader available')
+      }
+      
+      const decoder = new TextDecoder()
+      let buffer = ''
+      
+      while (true) {
+        const { done, value } = await reader.read()
+        
+        if (done) break
+        
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6))
+              
+              // Add message to console
+              setConsoleMessages(prev => [...prev, {
+                type: data.type,
+                message: data.message,
+                timestamp: Date.now()
+              }])
+              
+              // Update progress
+              setScanProgress(prev => ({
+                ...prev,
+                currentFile: data.currentDirectory || prev.currentFile,
+                scannedFiles: data.scannedFiles || prev.scannedFiles,
+                totalFiles: data.totalFiles || prev.totalFiles,
+                currentAlbum: data.currentAlbum || prev.currentAlbum
+              }))
+              
+              // Handle completion
+              if (data.type === 'complete') {
+                // Reload current paths to get updated scan results
+                await loadCurrentPaths()
+                setScanProgress(prev => ({
+                  ...prev,
+                  currentFile: 'Single directory scan completed!',
+                  scannedFiles: data.result.totalFiles ?? 0,
+                  totalFiles: data.result.totalFiles ?? 0,
+                  currentAlbum: `Found ${data.result.totalAlbums ?? 0} albums in ${data.result.directory}`
+                }))
+                setTimeout(() => {
+                  setScanProgress(prev => ({ ...prev, isVisible: false }))
+                }, 3000)
+              }
+              
+              // Handle cancellation
+              if (data.type === 'cancelled') {
+                setScanProgress(prev => ({
+                  ...prev,
+                  currentFile: 'Scan cancelled',
+                  currentAlbum: 'Operation was cancelled by user'
+                }))
+                setTimeout(() => {
+                  setScanProgress(prev => ({ ...prev, isVisible: false }))
+                }, 2000)
+              }
+              
+              // Handle errors
+              if (data.type === 'error') {
+                console.error(`Single scan failed: ${data.error}`)
+                setScanProgress(prev => ({ ...prev, isVisible: false }))
+              }
+              
+            } catch (parseError) {
+              console.error('Error parsing SSE data:', parseError)
+            }
+          }
+        }
+      }
+      
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        // Scan was cancelled
+        setConsoleMessages(prev => [...prev, {
+          type: 'cancelled',
+          message: 'Single directory scan cancelled by user',
+          timestamp: Date.now()
+        }])
         setScanProgress(prev => ({
           ...prev,
-          currentFile: 'Scan completed!',
-          scannedFiles: result.totalFiles ?? 0,
-          totalFiles: result.totalFiles ?? 0,
-          currentAlbum: `Found ${result.totalAlbums ?? 0} albums across ${directories.length} folders`
+          currentFile: 'Scan cancelled',
+          currentAlbum: 'Operation was cancelled by user'
         }))
         setTimeout(() => {
           setScanProgress(prev => ({ ...prev, isVisible: false }))
         }, 2000)
       } else {
-        const error = await response.json() as { error?: string }
-        console.error(`Scan failed: ${error.error}`)
+        console.error('Single directory scan failed. Please try again.')
+        setConsoleMessages(prev => [...prev, {
+          type: 'error',
+          message: 'Single directory scan failed. Please try again.',
+          timestamp: Date.now()
+        }])
         setScanProgress(prev => ({ ...prev, isVisible: false }))
       }
-    } catch (error) {
-      console.error('Scan failed. Please try again.')
-      setScanProgress(prev => ({ ...prev, isVisible: false }))
     } finally {
       setIsScanning(false)
+      setAbortController(null)
+    }
+  }
+
+  const handleScan = async (directories: string[]): Promise<void> => {
+    // Create new AbortController for this scan
+    const controller = new AbortController()
+    setAbortController(controller)
+    
+    setIsScanning(true)
+    setCurrentPaths(directories)
+    setConsoleMessages([]) // Clear previous console messages
+    setScanProgress({
+      isVisible: true,
+      currentFile: '',
+      scannedFiles: 0,
+      totalFiles: 0,
+      currentAlbum: ''
+    })
+    
+    try {
+      const response = await fetch('/api/scan/progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ directories }),
+        signal: controller.signal
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const reader = response.body?.getReader()
+      if (!reader) {
+        throw new Error('No response body reader available')
+      }
+      
+      const decoder = new TextDecoder()
+      let buffer = ''
+      
+      while (true) {
+        const { done, value } = await reader.read()
+        
+        if (done) break
+        
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || '' // Keep the last incomplete line in buffer
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6))
+              
+              // Add message to console
+              setConsoleMessages(prev => [...prev, {
+                type: data.type,
+                message: data.message,
+                timestamp: Date.now()
+              }])
+              
+              // Update progress
+              setScanProgress(prev => ({
+                ...prev,
+                currentFile: data.currentDirectory || prev.currentFile,
+                scannedFiles: data.scannedFiles || prev.scannedFiles,
+                totalFiles: data.totalFiles || prev.totalFiles,
+                currentAlbum: data.currentAlbum || prev.currentAlbum
+              }))
+              
+              // Handle completion
+              if (data.type === 'complete') {
+                setScanResults(data.result.scanResults ?? {})
+                setCurrentPaths(directories)
+                setScanProgress(prev => ({
+                  ...prev,
+                  currentFile: 'Scan completed!',
+                  scannedFiles: data.result.totalFiles ?? 0,
+                  totalFiles: data.result.totalFiles ?? 0,
+                  currentAlbum: `Found ${data.result.totalAlbums ?? 0} albums across ${directories.length} folders`
+                }))
+                setTimeout(() => {
+                  setScanProgress(prev => ({ ...prev, isVisible: false }))
+                }, 3000) // Give more time to see the completion message
+              }
+              
+              // Handle cancellation
+              if (data.type === 'cancelled') {
+                setScanProgress(prev => ({
+                  ...prev,
+                  currentFile: 'Scan cancelled',
+                  currentAlbum: 'Operation was cancelled by user'
+                }))
+                setTimeout(() => {
+                  setScanProgress(prev => ({ ...prev, isVisible: false }))
+                }, 2000)
+              }
+              
+              // Handle errors
+              if (data.type === 'error') {
+                console.error(`Scan failed: ${data.error}`)
+                setScanProgress(prev => ({ ...prev, isVisible: false }))
+              }
+              
+            } catch (parseError) {
+              console.error('Error parsing SSE data:', parseError)
+            }
+          }
+        }
+      }
+      
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        // Scan was cancelled
+        setConsoleMessages(prev => [...prev, {
+          type: 'cancelled',
+          message: 'Scan cancelled by user',
+          timestamp: Date.now()
+        }])
+        setScanProgress(prev => ({
+          ...prev,
+          currentFile: 'Scan cancelled',
+          currentAlbum: 'Operation was cancelled by user'
+        }))
+        setTimeout(() => {
+          setScanProgress(prev => ({ ...prev, isVisible: false }))
+        }, 2000)
+      } else {
+        console.error('Scan failed. Please try again.')
+        setConsoleMessages(prev => [...prev, {
+          type: 'error',
+          message: 'Scan failed. Please try again.',
+          timestamp: Date.now()
+        }])
+        setScanProgress(prev => ({ ...prev, isVisible: false }))
+      }
+    } finally {
+      setIsScanning(false)
+      setAbortController(null)
     }
   }
 
@@ -935,6 +1178,7 @@ function MusicScanSection(): JSX.Element {
       </p>
       <MusicFoldersManager 
         onScan={(directories) => { void handleScan(directories); }}
+        onRescanSingle={(directory) => { void handleRescanSingle(directory); }}
         isScanning={isScanning}
         currentPaths={currentPaths}
         scanResults={scanResults}
@@ -945,6 +1189,8 @@ function MusicScanSection(): JSX.Element {
         scannedFiles={scanProgress.scannedFiles}
         totalFiles={scanProgress.totalFiles}
         currentAlbum={scanProgress.currentAlbum}
+        onCancel={isScanning ? handleCancelScan : undefined}
+        consoleMessages={consoleMessages}
       />
     </div>
   )

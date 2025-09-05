@@ -21,7 +21,8 @@ export function getFrequencyData(): number[] {
     
     let amplitude = 0.1 // Base amplitude
     
-    if (manager.isPlayingState && manager.currentFilePath) {
+    const audioStatus = manager.getAudioStatus()
+    if (audioStatus.isPlaying && audioStatus.currentFile) {
       // When playing: create realistic frequency response
       
       // Bass frequencies (lower bands) have more energy

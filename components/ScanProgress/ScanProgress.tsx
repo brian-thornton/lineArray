@@ -1,5 +1,5 @@
 import React from 'react'
-import { Loader, Music, Folder } from 'lucide-react'
+import { Loader, Music, Folder, X } from 'lucide-react'
 import styles from './ScanProgress.module.css'
 
 interface ScanProgressProps {
@@ -8,6 +8,12 @@ interface ScanProgressProps {
   scannedFiles: number
   totalFiles?: number
   currentAlbum?: string
+  onCancel?: () => void
+  consoleMessages?: Array<{
+    type: string
+    message: string
+    timestamp: number
+  }>
 }
 
 export default function ScanProgress({
@@ -15,7 +21,9 @@ export default function ScanProgress({
   currentFile,
   scannedFiles,
   totalFiles,
-  currentAlbum
+  currentAlbum,
+  onCancel,
+  consoleMessages = []
 }: ScanProgressProps): JSX.Element | null {
   if (!isVisible) return null
 
@@ -25,6 +33,15 @@ export default function ScanProgress({
     <div className={styles.overlay}>
       <div className={styles.modal}>
         <div className={styles.header}>
+          {onCancel && (
+            <button
+              onClick={onCancel}
+              className={styles.cancelButton}
+              aria-label="Cancel scan"
+            >
+              <X size={20} />
+            </button>
+          )}
           <div className={styles.spinnerContainer}>
             <Loader className={styles.spinner} />
           </div>
@@ -74,6 +91,22 @@ export default function ScanProgress({
             💡 Tip: The scan will automatically detect album folders and extract metadata from your music files.
           </p>
         </div>
+
+        {consoleMessages.length > 0 && (
+          <div className={styles.console}>
+            <h3 className={styles.consoleTitle}>Scan Console</h3>
+            <div className={styles.consoleContent}>
+              {consoleMessages.slice(-10).map((msg, index) => (
+                <div key={index} className={`${styles.consoleLine} ${styles[`consoleLine_${msg.type}`]}`}>
+                  <span className={styles.consoleTimestamp}>
+                    {new Date(msg.timestamp).toLocaleTimeString()}
+                  </span>
+                  <span className={styles.consoleMessage}>{msg.message}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
