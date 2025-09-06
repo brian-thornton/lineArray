@@ -366,6 +366,10 @@ async function playNextInQueue(): Promise<boolean> {
     return false
   }
   
+  // Remove the current track from the queue before playing it
+  queue.shift() // Remove the first track from the queue
+  console.log('📊 Queue State: Removed track from queue, remaining length:', queue.length)
+  
   // Don't call stopPlayback() here - just update the state
   // This preserves the callback for the next track
   console.log('🎯 Queue State: Setting current track:', nextTrack)
@@ -380,21 +384,21 @@ async function playNextInQueue(): Promise<boolean> {
   updateLocalAudioReference() // Ensure we have the current audio manager
   console.log('🎯 Queue State: Setting up track completion callback for next track')
   
-  // Check if this track is part of an album to determine auto-advance behavior
-  const shouldAutoAdvance = nextTrack.isAlbum ?? false
+  // Check if there are more tracks in the queue to determine auto-advance behavior
+  const shouldAutoAdvance = queue.length > 0 // Check remaining tracks after removing current one
   if (shouldAutoAdvance) {
     audio.setTrackCompleteCallback(() => {
-      console.log('🎯 Queue State: Track completion callback triggered - auto-advancing to next track (album mode)')
-      logger.info('Queue state: Track completed, auto-advancing to next track (album mode)', 'QueueState')
+      console.log('🎯 Queue State: Track completion callback triggered - auto-advancing to next track')
+      logger.info('Queue state: Track completed, auto-advancing to next track', 'QueueState')
       void playNextInQueue()
     })
   } else {
-    console.log('🎯 Queue State: Setting up completion callback for single track to reset state')
-    // For single tracks, set a callback that resets the state when complete
+    console.log('🎯 Queue State: Setting up completion callback for last track to reset state')
+    // For the last track in queue, set a callback that resets the state when complete
     audio.setTrackCompleteCallback(() => {
-      console.log('🎯 Queue State: Single track completed, resetting state')
-      logger.info('Single track completed, resetting state', 'QueueState')
-      // Reset state for single track completion
+      console.log('🎯 Queue State: Last track completed, resetting state')
+      logger.info('Last track completed, resetting state', 'QueueState')
+      // Reset state for last track completion
       currentTrack = null
       isPlaying = false
       progress = 0
@@ -453,12 +457,12 @@ async function playNextInQueue(): Promise<boolean> {
 
 async function startPlayback(): Promise<boolean> {
   if (currentTrack) {
-    // Check if this track is part of an album to determine auto-advance behavior
-    const shouldAutoAdvance = currentTrack.isAlbum ?? false
+    // Check if there are more tracks in the queue to determine auto-advance behavior
+    const shouldAutoAdvance = queue.length > 0
     if (shouldAutoAdvance) {
       // Re-enable the track completion callback when starting playback
       audio.setTrackCompleteCallback(() => {
-        logger.info('Queue state: Track completed, auto-advancing to next track (album mode)', 'QueueState')
+        logger.info('Queue state: Track completed, auto-advancing to next track', 'QueueState')
         void playNextInQueue()
       })
     } else {
@@ -578,7 +582,7 @@ async function seekPlayback(position: number): Promise<boolean> {
       if (audioFactory.getCurrentType() === 'vlc') {
         // For VLC, poll VLC for latest state
         try {
-          const statusUrl = `http://localhost:8080/requests/status.xml`;
+          const statusUrl = `http://localhost:8081/requests/status.xml`;
           const response = await fetch(statusUrl, {
             headers: {
               'Authorization': `Basic ${Buffer.from(':jukebox').toString('base64')}`
@@ -800,7 +804,7 @@ async function getCurrentFileFromAudioPlayer(): Promise<string | null> {
   if (audioFactory.getCurrentType() === 'vlc') {
     // For VLC, use the HTTP API
     try {
-      const statusUrl = `http://localhost:8080/requests/status.xml`;
+      const statusUrl = `http://localhost:8081/requests/status.xml`;
       const response = await fetch(statusUrl, {
         headers: {
           'Authorization': `Basic ${Buffer.from(':jukebox').toString('base64')}`
@@ -849,7 +853,7 @@ async function getCurrentState(): Promise<{
   // Only sync with VLC if VLC is the active audio player
   if (currentTrack && audioFactory.getCurrentType() === 'vlc') {
     try {
-      const statusUrl = `http://localhost:8080/requests/status.xml`;
+      const statusUrl = `http://localhost:8081/requests/status.xml`;
       const response = await fetch(statusUrl, {
         headers: {
           'Authorization': `Basic ${Buffer.from(':jukebox').toString('base64')}`

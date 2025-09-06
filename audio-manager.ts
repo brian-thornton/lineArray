@@ -231,9 +231,15 @@ class AudioManager implements AudioManagerInterface {
       try {
         const status = await this.getVLCStatus()
         if (status) {
-          // Check if track has completed
-          if (status.state === 'stopped' && status.totalLength > 0) {
-            console.log('🎬 Simple VLC Audio Manager: Track completed')
+          console.log('🎬 Simple VLC Audio Manager: Completion check - state:', status.state, 'currentTime:', status.currentTime, 'totalLength:', status.totalLength, 'progress:', status.progress)
+          
+          // Check if track has completed - multiple conditions to catch different completion scenarios
+          const isStopped = status.state === 'stopped'
+          const isNearEnd = status.totalLength > 0 && status.currentTime >= status.totalLength - 1
+          const isProgressComplete = status.progress >= 99.9 // 99.9% complete
+          
+          if (isStopped || isNearEnd || isProgressComplete) {
+            console.log('🎬 Simple VLC Audio Manager: Track completed - isStopped:', isStopped, 'isNearEnd:', isNearEnd, 'isProgressComplete:', isProgressComplete)
             this.stopCompletionChecking()
             this.isPlaying = false
             this.currentFile = null
