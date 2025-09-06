@@ -399,75 +399,6 @@ function UserInterfaceSection(): JSX.Element {
       <h2 className={styles.sectionTitle}>User Interface Settings</h2>
       
       <div className={styles.settingGroup}>
-        <h3 className={styles.subsectionTitle}>Theme</h3>
-        <div className={styles.themeSelection}>
-          <div className={styles.themeGrid}>
-            {themes && themes.length > 0 ? themes.map((theme) => {
-              // Skip themes with missing color data
-              if (!theme.colors?.primary || !theme.colors?.secondary || !theme.colors?.accent) {
-                return null
-              }
-              
-              return (
-                <button
-                  key={theme.id}
-                  type="button"
-                  className={`${styles.themeCard} ${selectedTheme === theme.id ? styles.themeCardActive : ''}`}
-                  onClick={() => {
-                    setSelectedTheme(theme.id)
-                    void handleSaveTheme(theme.id)
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault()
-                      setSelectedTheme(theme.id)
-                      void handleSaveTheme(theme.id)
-                    }
-                  }}
-                >
-                  <div className={styles.themePreview}>
-                    <div 
-                      className={styles.themeColors}
-                      style={{
-                        background: `linear-gradient(135deg, ${theme.colors.primary || '#1a1a2e'} 0%, ${theme.colors.secondary || '#16213e'} 100%)`
-                      }}
-                    >
-                      <div 
-                        className={styles.themeAccent}
-                        style={{ backgroundColor: theme.colors.accent || '#ffd700' }}
-                      />
-                      <div 
-                        className={styles.themeSurface}
-                        style={{ backgroundColor: theme.colors.surface || 'rgba(255, 255, 255, 0.05)' }}
-                      />
-                    </div>
-                  </div>
-                  <div className={styles.themeInfo}>
-                    <h4 className={styles.themeName}>{theme.name}</h4>
-                    <p className={styles.themeDescription}>{theme.description}</p>
-                  </div>
-                  {selectedTheme === theme.id && (
-                    <div className={styles.themeSelected}>
-                      <div className={styles.selectedIndicator} />
-                    </div>
-                  )}
-                </button>
-              )
-            }) : (
-              <div className={styles.themeLoading}>
-                <p>Loading themes...</p>
-              </div>
-            )}
-          </div>
-          {isSaving && (
-            <div className={styles.themeSaving}>
-              <p>Saving theme...</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className={styles.settingGroup}>
         <h3 className={styles.subsectionTitle}>UI Features</h3>
         <p className={styles.description}>
           Enable or disable various UI features for a better user experience.
@@ -614,6 +545,75 @@ function UserInterfaceSection(): JSX.Element {
         >
           {isSaving ? 'Saving...' : 'Save UI Features'}
         </button>
+      </div>
+
+      <div className={styles.settingGroup}>
+        <h3 className={styles.subsectionTitle}>Theme</h3>
+        <div className={styles.themeSelection}>
+          <div className={styles.themeGrid}>
+            {themes && themes.length > 0 ? themes.map((theme) => {
+              // Skip themes with missing color data
+              if (!theme.colors?.primary || !theme.colors?.secondary || !theme.colors?.accent) {
+                return null
+              }
+              
+              return (
+                <button
+                  key={theme.id}
+                  type="button"
+                  className={`${styles.themeCard} ${selectedTheme === theme.id ? styles.themeCardActive : ''}`}
+                  onClick={() => {
+                    setSelectedTheme(theme.id)
+                    void handleSaveTheme(theme.id)
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      setSelectedTheme(theme.id)
+                      void handleSaveTheme(theme.id)
+                    }
+                  }}
+                >
+                  <div className={styles.themePreview}>
+                    <div 
+                      className={styles.themeColors}
+                      style={{
+                        background: `linear-gradient(135deg, ${theme.colors.primary || '#1a1a2e'} 0%, ${theme.colors.secondary || '#16213e'} 100%)`
+                      }}
+                    >
+                      <div 
+                        className={styles.themeAccent}
+                        style={{ backgroundColor: theme.colors.accent || '#ffd700' }}
+                      />
+                      <div 
+                        className={styles.themeSurface}
+                        style={{ backgroundColor: theme.colors.surface || 'rgba(255, 255, 255, 0.05)' }}
+                      />
+                    </div>
+                  </div>
+                  <div className={styles.themeInfo}>
+                    <h4 className={styles.themeName}>{theme.name}</h4>
+                    <p className={styles.themeDescription}>{theme.description}</p>
+                  </div>
+                  {selectedTheme === theme.id && (
+                    <div className={styles.themeSelected}>
+                      <div className={styles.selectedIndicator} />
+                    </div>
+                  )}
+                </button>
+              )
+            }) : (
+              <div className={styles.themeLoading}>
+                <p>Loading themes...</p>
+              </div>
+            )}
+          </div>
+          {isSaving && (
+            <div className={styles.themeSaving}>
+              <p>Saving theme...</p>
+            </div>
+          )}
+        </div>
       </div>
       
       {saveMessage && (
