@@ -26,6 +26,12 @@ A modern, responsive jukebox application built with React and Next.js, designed 
 ## System Architecture
 
 ```mermaid
+---
+config:
+  theme: redux
+  look: classic
+  layout: elk
+---
 graph TB
     %% User Interface Layer
     subgraph "Frontend Layer"
