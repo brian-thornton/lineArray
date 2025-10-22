@@ -395,7 +395,45 @@ class AudioManager implements AudioManagerInterface {
   }
 
   async forceStop(): Promise<boolean> {
-    return await this.stop()
+    try {
+      console.log('🛑 Simple VLC Audio Manager: forceStop called')
+      
+      // Stop completion checking first
+      this.stopCompletionChecking()
+      
+      // Try the normal stop first
+      await this.stop()
+      
+      // Force kill the VLC process to ensure it actually stops
+      if (this.vlcProcess) {
+        console.log('🛑 Simple VLC Audio Manager: Force killing VLC process')
+        this.vlcProcess.kill('SIGKILL')
+        this.vlcProcess = null
+      }
+      
+      // Also kill any remaining VLC processes as a safety measure
+      try {
+        if (this.platform === 'win32') {
+          exec('taskkill /f /im vlc.exe', () => {})
+        } else {
+          exec('pkill -f vlc', () => {})
+          exec('pkill -f "vlc --intf http"', () => {})
+        }
+        console.log('🛑 Simple VLC Audio Manager: Killed all VLC processes')
+      } catch (error) {
+        console.log('🛑 Simple VLC Audio Manager: Error killing VLC processes:', error)
+      }
+      
+      // Reset state
+      this.isPlaying = false
+      this.currentFile = null
+      
+      console.log('🛑 Simple VLC Audio Manager: Force stop completed')
+      return true
+    } catch (error) {
+      console.error('🛑 Simple VLC Audio Manager: Error in forceStop:', error)
+      return false
+    }
   }
 
   // Additional required methods for interface compatibility

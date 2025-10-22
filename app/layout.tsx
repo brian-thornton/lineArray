@@ -37,7 +37,9 @@ export default function RootLayout({
             <SearchProvider>
               <ToastProvider>
                 <LibraryProvider>
-                  <AppShell>{children}</AppShell>
+                  <AppShell>
+                    {children}
+                  </AppShell>
                 </LibraryProvider>
               </ToastProvider>
             </SearchProvider>

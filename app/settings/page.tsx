@@ -833,6 +833,7 @@ function PartyModeSection(): JSX.Element {
   )
 }
 
+
 // Statistics Section Component
 function StatisticsSection(): JSX.Element {
   return (

@@ -63,6 +63,7 @@ export interface Theme {
   }
 }
 
+
 export interface Settings {
   scanPath: string
   jukeboxName: string

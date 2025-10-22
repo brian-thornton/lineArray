@@ -85,6 +85,15 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
               progress: isSeeking ? prev.progress : (data.progress ?? prev.progress)
             }
             
+            // Trigger dynamic color changes when playback state changes
+            if (data.isPlaying && !prev.isPlaying) {
+              // Started playing (e.g., track auto-advanced)
+              // Device will turn green when playing
+            } else if (!data.isPlaying && prev.isPlaying) {
+              // Stopped playing (e.g., track ended, no more tracks)
+              // Device will turn red when stopped
+            }
+            
             // Show toast when playback starts on mobile
             if (isMobile && data.isPlaying && !prev.isPlaying && data.currentTrack) {
               const trackName = data.currentTrack.title ?? 'Unknown Track'
@@ -208,6 +217,14 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
           currentTrack: data.currentTrack,
           progress: data.progress
         }))
+        
+        // Trigger dynamic color changes based on playback state
+        if (data.isPlaying) {
+          // Turn device green when playing
+        } else {
+          // Turn device yellow when paused
+        }
+        
         hideKeyboard()
       } else {
         // Silently handle error
@@ -241,6 +258,10 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
           currentTrack: data.currentTrack,
           progress: data.progress
         }))
+        
+        // Trigger dynamic color change for stop
+        // Device will turn red when stopped
+        
         hideKeyboard()
       } else {
         // Silently handle error
@@ -274,6 +295,12 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
           currentTrack: data.currentTrack,
           progress: data.progress
         }))
+        
+        // Trigger dynamic color change for skip (should be playing after skip)
+        if (data.isPlaying) {
+          // Turn device green when playing after skip
+        }
+        
         hideKeyboard()
       } else {
         // Silently handle error

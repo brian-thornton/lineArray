@@ -392,9 +392,16 @@ export class AFPLAYManager implements AudioManagerInterface {
     try {
       logger.info('AFPLAY Manager: Force stopping all playback', 'AFPLAYManager')
       
-      // Kill all AFPLAY processes
-      if (this.platform === 'darwin') {
-        exec('pkill -f afplay', () => {})
+      // Kill all AFPLAY processes on all platforms
+      try {
+        if (this.platform === 'win32') {
+          exec('taskkill /f /im afplay.exe', () => {})
+        } else {
+          exec('pkill -f afplay', () => {})
+        }
+        logger.info('AFPLAY Manager: Killed all afplay processes', 'AFPLAYManager')
+      } catch (error) {
+        logger.info('AFPLAY Manager: No afplay processes to kill', 'AFPLAYManager')
       }
       
       this.stopProgressPolling()

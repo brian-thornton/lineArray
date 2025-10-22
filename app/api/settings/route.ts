@@ -236,7 +236,12 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     
     const updatedSettings: Settings = {
       ...currentSettings,
-      ...body
+      ...body,
+      // Ensure partyMode is properly merged
+      partyMode: {
+        ...currentSettings.partyMode,
+        ...body.partyMode
+      }
     }
     logger.info('Updated settings to save', 'SettingsAPI', updatedSettings)
     

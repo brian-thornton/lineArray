@@ -96,16 +96,12 @@
   background: var(--jukebox-surface);
   border-radius: var(--radius-lg);
   border: 1px solid var(--jukebox-border);
-  overflow: hidden;
   padding: var(--spacing-lg);
 }
 
 /* Sections */
 .section {
   padding: var(--spacing-xl);
-  background: var(--jukebox-surface);
-  border: 1px solid var(--jukebox-border);
-  border-radius: var(--radius-lg);
   margin-bottom: var(--spacing-lg);
 }
 
@@ -121,10 +117,10 @@
 
 .settingGroup {
   margin-bottom: var(--spacing-xl);
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid var(--jukebox-border);
-  border-radius: var(--radius-md);
   padding: var(--spacing-lg);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .subsectionTitle {
@@ -212,11 +208,10 @@
 }
 
 .featureSection {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--jukebox-border);
-  border-radius: var(--radius-md);
   padding: var(--spacing-md);
   margin-bottom: var(--spacing-md);
+  background: rgba(255, 255, 255, 0.01);
+  border-radius: var(--radius-sm);
 }
 
 .featureTitle {
@@ -596,33 +591,3 @@
     flex-direction: column;
   }
 }
-
-@media (max-width: 480px) {
-  .container {
-    padding: var(--spacing-sm);
-  }
-  
-  .title {
-    font-size: 1.8rem;
-  }
-  
-  .section {
-    padding: var(--spacing-md);
-  }
-  
-  .sectionTitle {
-    font-size: 1.3rem;
-  }
-  
-  .subsectionTitle {
-    font-size: 1.1rem;
-  }
-  
-  .navIcon {
-    font-size: 1.1rem;
-  }
-  
-  .navText {
-    font-size: 0.7rem;
-  }
-} 
