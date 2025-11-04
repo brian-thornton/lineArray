@@ -10,6 +10,7 @@
   justify-content: center;
   z-index: 1000;
   padding: 1rem;
+  padding-bottom: calc(1rem + 140px);
 }
 
 .modal {
@@ -17,8 +18,8 @@
   border: 2px solid var(--jukebox-blue);
   border-radius: var(--radius-lg);
   width: 100%;
-  max-width: 500px;
-  max-height: 80vh;
+  max-width: 700px;
+  max-height: calc(100vh - 160px);
   overflow: hidden;
   box-shadow: var(--shadow-glow);
   animation: slideIn 0.3s ease-out;
@@ -62,8 +63,10 @@
 
 .content {
   padding: var(--spacing-md) var(--spacing-lg) var(--spacing-lg);
-  max-height: 60vh;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 280px);
+  overflow: hidden;
 }
 
 .summary {
@@ -72,6 +75,7 @@
   background: linear-gradient(135deg, var(--jukebox-blue) 0%, var(--jukebox-purple) 100%);
   border-radius: var(--radius-md);
   text-align: center;
+  flex-shrink: 0;
 }
 
 .summary p {
@@ -105,12 +109,20 @@
   100% { transform: rotate(360deg); }
 }
 
+.existingPlaylists {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
 .existingPlaylists h4 {
   margin: 0 0 var(--spacing-md) 0;
   font-size: 1rem;
   font-weight: 600;
   color: var(--jukebox-white);
   font-family: var(--font-display);
+  flex-shrink: 0;
 }
 
 .emptyMessage {
@@ -124,8 +136,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-lg);
-  max-height: 200px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding-right: var(--spacing-xs);
 }
@@ -207,6 +219,7 @@
   margin: var(--spacing-lg) 0;
   color: var(--jukebox-gray);
   font-size: 0.875rem;
+  flex-shrink: 0;
 }
 
 .divider::before,
@@ -225,6 +238,7 @@
 
 .createSection {
   margin-top: var(--spacing-md);
+  flex-shrink: 0;
 }
 
 .createButton {
@@ -334,28 +348,27 @@
 @media (max-width: 640px) {
   .overlay {
     padding: 0.5rem;
+    padding-bottom: calc(0.5rem + 140px);
   }
   
   .modal {
-    max-height: 90vh;
+    max-height: calc(100vh - 160px);
   }
   
   .content {
-    max-height: 70vh;
+    max-height: calc(100vh - 240px);
+    padding: 0.75rem 1rem 1rem;
   }
   
   .header {
     padding: 1rem 1rem 0.75rem;
   }
-  
-  .content {
-    padding: 0.75rem 1rem 1rem;
-  }
 
-  /* On mobile, disable the playlist list scroll and use full height */
+  /* On mobile, keep the playlist list scrollable */
   .playlistList {
-    max-height: none;
-    overflow-y: visible;
-    padding-right: 0;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: var(--spacing-xs);
   }
 } 
