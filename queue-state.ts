@@ -748,10 +748,10 @@ function getVolume(): number {
 async function setVolume(newVolume: number): Promise<number> {
   volume = Math.max(0, Math.min(1, newVolume))
   isMuted = volume === 0
-  const actualVolumePercent = await audio.setVolume(volume)
-  // Update our local volume to match the actual system volume
-  volume = actualVolumePercent / 100
-  return actualVolumePercent
+  const actualVolume = await audio.setVolume(volume)
+  // Update our local volume to match the actual system volume (already in 0-1 range)
+  volume = actualVolume
+  return actualVolume
 }
 
 function getIsMuted(): boolean {

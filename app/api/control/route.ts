@@ -120,7 +120,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         try {
           const actualVolume = await queueState.audio.setVolume(volume)
           success = true
-          responseData.volume = actualVolume / 100 // Convert from percent to 0-1 range
+          responseData.volume = actualVolume // Audio manager already returns 0-1 range
           responseData.isMuted = actualVolume === 0
         } catch (error) {
           success = false

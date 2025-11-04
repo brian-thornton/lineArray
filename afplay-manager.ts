@@ -295,15 +295,19 @@ export class AFPLAYManager implements AudioManagerInterface {
       const percentage = Math.round(clampedVolume * 100)
       
       if (this.platform === 'darwin') {
-        // Use osascript to set system volume on macOS
-        exec(`osascript -e "set volume output volume ${percentage}"`, (error) => {
-          if (error) {
-            console.log('⚠️ AFPLAY Manager: Error setting system volume:', error.message)
-            logger.error('AFPLAY Manager: Error setting system volume: ' + error.message, 'AFPLAYManager')
-          } else {
-            console.log('✅ AFPLAY Manager: System volume set to:', percentage, '%')
-            logger.info('AFPLAY Manager: System volume set to ' + percentage + '%', 'AFPLAYManager')
-          }
+        // Use osascript to set system volume on macOS and wait for completion
+        await new Promise<void>((resolve, reject) => {
+          exec(`osascript -e "set volume output volume ${percentage}"`, (error) => {
+            if (error) {
+              console.log('⚠️ AFPLAY Manager: Error setting system volume:', error.message)
+              logger.error('AFPLAY Manager: Error setting system volume: ' + error.message, 'AFPLAYManager')
+              reject(error)
+            } else {
+              console.log('✅ AFPLAY Manager: System volume set to:', percentage, '%')
+              logger.info('AFPLAY Manager: System volume set to ' + percentage + '%', 'AFPLAYManager')
+              resolve()
+            }
+          })
         })
       }
       

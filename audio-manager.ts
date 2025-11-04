@@ -11,6 +11,7 @@ class AudioManager implements AudioManagerInterface {
   private isPlaying = false
   private volume = 1.0
   private muted = false
+  private volumeBeforeMute = 1.0 // Store volume before muting
   private platform: string = process.platform
   private completionCheckInterval: NodeJS.Timeout | null = null
 
@@ -341,9 +342,41 @@ class AudioManager implements AudioManagerInterface {
   }
 
   async setVolume(volume: number): Promise<number> {
-    this.volume = Math.max(0, Math.min(1, volume))
-    // TODO: Implement VLC volume control
-    return this.volume
+    try {
+      // Clamp volume between 0 and 1
+      const clampedVolume = Math.max(0, Math.min(1, volume))
+      this.volume = clampedVolume
+      
+      // Update muted state based on volume
+      if (clampedVolume === 0) {
+        this.muted = true
+      } else {
+        this.muted = false
+        // Update volumeBeforeMute if we're setting a non-zero volume
+        this.volumeBeforeMute = clampedVolume
+      }
+      
+      // Convert to VLC volume range (0-512)
+      const vlcVolume = Math.floor(clampedVolume * 512)
+      
+      const volumeUrl = `http://localhost:${this.vlcPort}/requests/status.xml?command=volume&val=${vlcVolume}`
+      const response = await fetch(volumeUrl, {
+        headers: {
+          'Authorization': `Basic ${Buffer.from(`:${this.vlcPassword}`).toString('base64')}`
+        }
+      })
+      
+      if (response.ok) {
+        console.log('🎬 Simple VLC Audio Manager: Volume set to', Math.round(clampedVolume * 100) + '%')
+        return clampedVolume
+      } else {
+        console.error('🎬 Simple VLC Audio Manager: Failed to set volume')
+        return this.volume
+      }
+    } catch (error) {
+      console.error('🎬 Simple VLC Audio Manager: Error setting volume:', error)
+      return this.volume
+    }
   }
 
   getVolume(): number {
@@ -351,12 +384,22 @@ class AudioManager implements AudioManagerInterface {
   }
 
   setMuted(muted: boolean): void {
+    if (muted === this.muted) return
+    
+    if (muted) {
+      // Store current volume before muting
+      this.volumeBeforeMute = this.volume > 0 ? this.volume : 0.5
+      void this.setVolume(0)
+    } else {
+      // Restore volume before mute
+      void this.setVolume(this.volumeBeforeMute)
+    }
     this.muted = muted
-    // TODO: Implement VLC mute control
   }
 
   isMuted(): boolean {
-    return this.muted
+    // Return true if muted flag is set or volume is 0
+    return this.muted || this.volume === 0
   }
 
   getCurrentSong(): CurrentSong {
@@ -506,9 +549,19 @@ class AudioManager implements AudioManagerInterface {
   }
 
   async toggleMute(): Promise<boolean> {
-    this.muted = !this.muted
-    // TODO: Implement VLC mute control
-    return true
+    if (!this.muted) {
+      // Mute: store current volume and set to 0
+      this.volumeBeforeMute = this.volume > 0 ? this.volume : 0.5
+      await this.setVolume(0)
+      this.muted = true
+      console.log('🎬 Simple VLC Audio Manager: Muted (volume was', Math.round(this.volumeBeforeMute * 100) + '%)')
+    } else {
+      // Unmute: restore volume before mute
+      await this.setVolume(this.volumeBeforeMute)
+      this.muted = false
+      console.log('🎬 Simple VLC Audio Manager: Unmuted (volume restored to', Math.round(this.volumeBeforeMute * 100) + '%)')
+    }
+    return this.muted
   }
 
   getPlaybackProgress(): number {
