@@ -3,17 +3,17 @@
   padding-bottom: calc(var(--spacing-lg) + 120px); /* Extra space for player */
   max-width: 1200px;
   margin: 0 auto;
+  padding-left: var(--spacing-lg);
+  padding-right: var(--spacing-lg);
 }
 
-/* Override for side-by-side layout to prevent vertical scroll */
+/* Use more screen space for side-by-side layout */
 .container:has(.sideBySideLayout) {
+  max-width: 95vw;
+  padding-left: var(--spacing-md);
+  padding-right: var(--spacing-md);
   min-height: auto;
   padding-bottom: 0;
-}
-
-/* Override html/body min-height for side-by-side layout */
-.container:has(.sideBySideLayout) {
-  min-height: auto !important;
 }
 
 /* Force the entire page to fit within viewport for side-by-side layout */
@@ -337,9 +337,7 @@
   cursor: not-allowed;
 }
 
-.trackList {
-  /* Removed max-height and overflow-y to allow the list to grow and use page scroll */
-}
+/* Track list - removed max-height and overflow-y to allow the list to grow and use page scroll */
 
 .trackItem {
   display: flex;
@@ -1111,18 +1109,21 @@
 /* Side-by-Side Layout Styles */
 .sideBySideLayout {
   display: flex;
-  gap: var(--spacing-md);
+  gap: var(--spacing-lg);
   height: calc(100vh - 280px);
   min-height: 200px;
   margin-bottom: 0;
+  width: 100%;
 }
 
 .sideBySideLeft {
-  flex: 0 0 450px;
+  flex: 0 1 35%;
+  min-width: 350px;
+  max-width: 500px;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-sm);
+  gap: var(--spacing-sm);
+  padding: var(--spacing-lg);
   background: rgba(255, 255, 255, 0.05);
   border-radius: var(--radius-lg);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1132,7 +1133,10 @@
 
 .sideBySideCover {
   width: 100%;
-  height: 400px;
+  height: auto;
+  aspect-ratio: 3 / 4;
+  min-height: 350px;
+  max-height: 500px;
   border-radius: var(--radius-lg);
   overflow: hidden;
   background: rgba(255, 255, 255, 0.1);
@@ -1304,6 +1308,7 @@
 
 .sideBySideRight {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   background: rgba(255, 255, 255, 0.05);
@@ -1379,15 +1384,15 @@
 .sideBySideTrackList {
   flex: 1;
   overflow-y: auto;
-  padding: 0;
+  padding: var(--spacing-xs) 0;
   max-height: 60vh;
 }
 
 .sideBySideTrackItem {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-lg);
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   transition: all 0.2s ease;
   cursor: pointer;
@@ -1491,7 +1496,8 @@
   }
   
   .sideBySideCover {
-    height: 400px;
+    min-height: 300px;
+    max-height: 400px;
   }
   
   .sideBySideTitle {
@@ -1543,16 +1549,23 @@
   .sideBySideLeft {
     flex: none;
     width: 100%;
+    max-width: none;
+    min-width: auto;
   }
   
   .sideBySideCover {
-    width: 250px;
-    height: 250px;
+    width: 300px;
+    max-width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+    min-height: auto;
+    max-height: none;
     align-self: center;
   }
   
   .sideBySideRight {
     height: 400px;
+    width: 100%;
   }
 }
 
@@ -1567,7 +1580,11 @@
   
   .sideBySideCover {
     width: 200px;
-    height: 200px;
+    max-width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+    min-height: auto;
+    max-height: none;
   }
   
   .sideBySideTitle {
