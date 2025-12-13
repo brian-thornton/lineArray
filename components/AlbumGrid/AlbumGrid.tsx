@@ -24,7 +24,8 @@ function AlbumGrid({ albums, onPlayTrack, isLoading }: AlbumGridProps): JSX.Elem
   const { currentPage, selectedLetter } = libraryState
   const [gridConfig, setGridConfig] = useState({
     columnsPerRow: 4,
-    itemsPerPage: 12
+    itemsPerPage: 12,
+    viewportWidth: 1024
   })
 
   // Calculate optimal grid layout based on viewport size
@@ -46,6 +47,9 @@ function AlbumGrid({ albums, onPlayTrack, isLoading }: AlbumGridProps): JSX.Elem
       if (viewportWidth <= 1024) { // Desktop
         columnsPerRow = 6
       }
+      if (viewportWidth <= 900) { // Thin desktop / wide tablet
+        columnsPerRow = 4
+      }
       if (viewportWidth <= 768) { // Tablet
         columnsPerRow = 4
       }
@@ -60,22 +64,23 @@ function AlbumGrid({ albums, onPlayTrack, isLoading }: AlbumGridProps): JSX.Elem
       let paginationHeight = 60 // Pagination height
       let albumCardHeight = 200 // Approximate height of album card + gap
       
-      // Adjust for mobile
-      if (viewportWidth <= 480) {
+      // Adjust for mobile - use stacked layout, calculate items per page based on height
+      if (viewportWidth <= 768) {
         headerHeight = 60 // Smaller header on mobile
         padding = 40 // Less padding on mobile
         paginationHeight = 40 // Smaller pagination on mobile
-        albumCardHeight = 140 // Adjusted for exactly 2 rows on mobile
-        // Force exactly 2 rows on mobile
-        const rowsPerPage = 2
-        const itemsPerPage = columnsPerRow * rowsPerPage
+        albumCardHeight = 100 // Height of horizontal card on mobile
+        
+        const availableHeight = viewportHeight - headerHeight - padding - paginationHeight
+        const itemsPerPage = Math.max(5, Math.floor(availableHeight / albumCardHeight)) // At least 5 items per page
         
         setGridConfig({
-          columnsPerRow,
-          itemsPerPage
+          columnsPerRow: 1, // Stacked layout = 1 column
+          itemsPerPage,
+          viewportWidth
         })
         return
-      } else if (viewportWidth <= 768) {
+      } else if (viewportWidth <= 900) {
         headerHeight = 70
         padding = 60
         paginationHeight = 50
@@ -89,7 +94,8 @@ function AlbumGrid({ albums, onPlayTrack, isLoading }: AlbumGridProps): JSX.Elem
       
       setGridConfig({
         columnsPerRow,
-        itemsPerPage
+        itemsPerPage,
+        viewportWidth
       })
     }
 
@@ -175,9 +181,23 @@ function AlbumGrid({ albums, onPlayTrack, isLoading }: AlbumGridProps): JSX.Elem
   }
 
   // Generate dynamic CSS for grid columns
-  const gridStyle = useMemo(() => ({
-    gridTemplateColumns: `repeat(${gridConfig.columnsPerRow}, 1fr)`,
-  }), [gridConfig.columnsPerRow])
+  // Use auto-fit with minmax for better responsiveness at thin widths
+  const gridStyle = useMemo(() => {
+    // For mobile (<=768px), use flexbox (handled by CSS)
+    if (gridConfig.viewportWidth <= 768) {
+      return {}
+    }
+    // For thin widths (768-900px), use auto-fit to allow cards to maintain their size
+    if (gridConfig.viewportWidth <= 900 && gridConfig.viewportWidth > 768) {
+      return {
+        gridTemplateColumns: `repeat(auto-fit, minmax(160px, 1fr))`,
+      }
+    }
+    // For other sizes, use fixed columns
+    return {
+      gridTemplateColumns: `repeat(${gridConfig.columnsPerRow}, 1fr)`,
+    }
+  }, [gridConfig.columnsPerRow, gridConfig.viewportWidth])
 
   if (isLoading) {
     return (
@@ -240,7 +260,7 @@ function AlbumGrid({ albums, onPlayTrack, isLoading }: AlbumGridProps): JSX.Elem
 
         <div 
           className={styles.gridContainer}
-          style={gridStyle}
+          style={gridConfig.viewportWidth > 768 ? gridStyle : undefined}
         >
           {currentAlbums.map((album) => (
             <AlbumCard

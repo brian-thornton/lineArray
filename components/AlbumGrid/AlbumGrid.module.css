@@ -57,6 +57,20 @@
   margin-bottom: 80px; /* Add space for letter navigation */
 }
 
+/* Mobile stacked layout - must override grid display */
+@media (max-width: 768px) {
+  .gridContainer {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    align-items: stretch !important;
+    justify-items: stretch !important;
+    height: auto;
+    overflow-y: visible;
+  }
+}
+
 .navArrow {
   position: fixed;
   top: 50%;
@@ -177,9 +191,11 @@
 }
 
 /* Responsive design */
-@media (max-width: 1024px) {
+@media (max-width: 1024px) and (min-width: 901px) {
   .gridContainer {
-    gap: var(--spacing-sm);
+    gap: var(--spacing-md);
+    padding-left: var(--spacing-md);
+    padding-right: var(--spacing-md);
   }
   
   .navArrow {
@@ -198,9 +214,41 @@
   }
 }
 
+/* Thin desktop / wide tablet - optimized for 768-900px */
+@media (max-width: 900px) and (min-width: 769px) {
+  .gridContainer {
+    gap: var(--spacing-md);
+    padding-left: var(--spacing-md);
+    padding-right: var(--spacing-md);
+    justify-items: center;
+  }
+  
+  .navArrow {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .navArrow.navArrowLeft {
+    left: 12px !important;
+    right: auto !important;
+  }
+  
+  .navArrow.navArrowRight {
+    right: 12px !important;
+    left: auto !important;
+  }
+}
+
 @media (max-width: 768px) {
   .gridContainer {
-    gap: var(--spacing-sm);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    align-items: stretch;
+    justify-items: stretch;
+    height: auto;
+    overflow-y: visible;
   }
   
   .loadingContainer,
@@ -213,8 +261,6 @@
   .navArrow {
     display: none !important;
   }
-
-
 }
 
 @media (max-width: 480px) {
@@ -225,9 +271,12 @@
   }
   
   .gridContainer {
-    gap: 8px; /* Reduced gap for mobile to fit more rows */
-    align-items: start;
-    justify-items: center;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    align-items: stretch;
+    justify-items: stretch;
   }
   
   .loadingContainer,
@@ -237,17 +286,6 @@
   }
   
   .navArrow {
-    width: 44px;
-    height: 44px;
-  }
-  
-  .navArrow.navArrowLeft {
-    left: 8px !important;
-    right: auto !important;
-  }
-  
-  .navArrow.navArrowRight {
-    right: 8px !important;
-    left: auto !important;
+    display: none !important;
   }
 } 

@@ -34,7 +34,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     
     // Create AbortController to handle cancellation
     const abortController = new AbortController()
-    const signal = abortController.signal
+    const {signal} = abortController
     
     // Handle request cancellation
     request.signal?.addEventListener('abort', () => {

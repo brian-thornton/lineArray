@@ -102,6 +102,16 @@ body#library-no-scroll, body#library-no-scroll main {
   height: 100vh !important;
 }
 
+/* Allow scrolling on mobile for library */
+@media (max-width: 768px) {
+  body#library-no-scroll, body#library-no-scroll main {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    height: auto !important;
+    min-height: 100vh !important;
+  }
+}
+
 a {
   color: inherit;
   text-decoration: none;

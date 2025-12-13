@@ -11,12 +11,19 @@
   width: 100%;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* Responsive design */
 @media (max-width: 768px) {
   .main {
-    padding: calc(var(--spacing-md) / 2) var(--spacing-md) var(--spacing-md) var(--spacing-md);
+    padding: 0 !important;
+    padding-top: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    height: auto !important;
+    min-height: 100vh !important;
   }
 }
 
