@@ -1,9 +1,9 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Settings, Smartphone } from 'lucide-react'
+import { Settings, Smartphone, Library, Clock, ListMusic, Menu, X } from 'lucide-react'
 import styles from './AppHeader.module.css'
 import JukeboxHeader from '@/components/JukeboxHeader/JukeboxHeader'
 import SearchBox from '@/components/SearchBox/SearchBox'
@@ -17,6 +17,7 @@ export default function AppHeader(): JSX.Element {
   const { clearSearch, hideKeyboard, searchBoxRef } = useSearch()
   const { settings } = useSettings()
   const [showQR, setShowQR] = useState(false)
+  const [showMobileMenu, setShowMobileMenu] = useState(false)
 
   const handleLibraryClick = (): void => {
     clearSearch()
@@ -35,6 +36,20 @@ export default function AppHeader(): JSX.Element {
       setShowQR(false)
     }
   }
+
+  const handleMenuOverlayClick = (): void => {
+    setShowMobileMenu(false)
+  }
+
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape' && showMobileMenu) {
+        setShowMobileMenu(false)
+      }
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [showMobileMenu])
   
   return (
     <header className={`${styles.header} ${isAlbumPage ? styles.albumPage : ''}`}>
@@ -55,12 +70,57 @@ export default function AppHeader(): JSX.Element {
       <div className={styles.searchSection}>
         <SearchBox ref={searchBoxRef} />
       </div>
-      <nav className={styles.nav}>
-        <Link href="/" onClick={handleLibraryClick}>Library</Link>
-        <Link href="/recent">Recent</Link>
-        <Link href="/playlists">Playlists</Link>
-        <Link href="/settings" className={styles.settingsButton} aria-label="Settings">
-          <Settings size={20} />
+      <button
+        className={styles.mobileMenuButton}
+        onClick={() => setShowMobileMenu(!showMobileMenu)}
+        aria-label="Toggle menu"
+        aria-expanded={showMobileMenu}
+      >
+        {showMobileMenu ? <X size={24} /> : <Menu size={24} />}
+      </button>
+      {showMobileMenu && (
+        <div 
+          className={styles.menuOverlay}
+          onClick={handleMenuOverlayClick}
+          aria-hidden="true"
+        />
+      )}
+      <nav className={`${styles.nav} ${showMobileMenu ? styles.mobileMenuOpen : ''}`}>
+        <Link 
+          href="/" 
+          onClick={() => {
+            handleLibraryClick()
+            setShowMobileMenu(false)
+          }} 
+          className={`${styles.navLink} ${pathname === '/' ? styles.active : ''}`}
+        >
+          <Library size={20} className={styles.navIcon} />
+          <span className={styles.navText}>Library</span>
+        </Link>
+        <Link 
+          href="/recent" 
+          onClick={() => setShowMobileMenu(false)}
+          className={`${styles.navLink} ${pathname === '/recent' ? styles.active : ''}`}
+        >
+          <Clock size={20} className={styles.navIcon} />
+          <span className={styles.navText}>Recent</span>
+        </Link>
+        <Link 
+          href="/playlists" 
+          onClick={() => setShowMobileMenu(false)}
+          className={`${styles.navLink} ${pathname === '/playlists' ? styles.active : ''}`}
+        >
+          <ListMusic size={20} className={styles.navIcon} />
+          <span className={styles.navText}>Playlists</span>
+        </Link>
+        <Link 
+          href="/settings" 
+          onClick={() => setShowMobileMenu(false)}
+          className={`${styles.navLink} ${styles.settingsButton} ${pathname === '/settings' ? styles.active : ''}`} 
+          aria-label="Settings"
+        >
+          <Settings size={20} className={styles.navIcon} />
+          <span className={styles.navText}>Settings</span>
         </Link>
       </nav>
       {showQR && (

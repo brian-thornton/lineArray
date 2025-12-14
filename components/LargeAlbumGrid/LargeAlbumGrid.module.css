@@ -341,7 +341,9 @@
   .gridContainer {
     display: flex !important;
     flex-direction: column !important;
-    padding: var(--spacing-md) !important;
+    padding-left: var(--spacing-md) !important;
+    padding-right: var(--spacing-md) !important;
+    padding-bottom: var(--spacing-md) !important;
     padding-top: var(--spacing-md) !important;
     gap: 0 !important;
     align-items: stretch;
@@ -362,6 +364,7 @@
     grid-template-columns: none;
     grid-template-rows: none;
     margin-top: 0 !important;
+    height: auto;
   }
   
   .navArrow {
