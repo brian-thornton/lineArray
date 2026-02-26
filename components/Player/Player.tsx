@@ -7,6 +7,7 @@ import styles from './Player.module.css'
 import { useSettings } from '@/contexts/SettingsContext'
 import { useSearch } from '@/contexts/SearchContext'
 import { useToast } from '@/contexts/ToastContext'
+import { usePlayer } from '@/contexts/PlayerContext'
 import type { QueueResponse, QueuePlayResponse, Track } from '@/types/api'
 import { createPortal } from 'react-dom'
 import Equalizer from './Equalizer'
@@ -35,6 +36,7 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
   const { canPerformAction, settings } = useSettings()
   const { hideKeyboard } = useSearch()
   const { showToast } = useToast()
+  const { setCurrentTrackPath } = usePlayer()
   const [loading, setLoading] = useState(false)
   const [hasLoaded, setHasLoaded] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
@@ -42,6 +44,7 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
   // const [showVolumeModal, setShowVolumeModal] = useState(false)
   const [showVolumeOverlay, setShowVolumeOverlay] = useState(false)
   const [showNowPlaying, setShowNowPlaying] = useState(false)
+  const [coverPulsing, setCoverPulsing] = useState(false)
   const [playerStatus, setPlayerStatus] = useState<PlayerStatus>({
     isPlaying: false,
     currentTrack: null,
@@ -188,11 +191,28 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
     }
   }, [checkStatusImmediately])
 
+  // Pulse the cover art whenever a track is added (queue grows)
+  const queueLength = playerStatus.queue.length
+  const prevQueueLengthRef = React.useRef(queueLength)
+  useEffect(() => {
+    if (queueLength > prevQueueLengthRef.current) {
+      setCoverPulsing(true)
+      setTimeout(() => setCoverPulsing(false), 600)
+    }
+    prevQueueLengthRef.current = queueLength
+  }, [queueLength])
+
   // Auto-show Now Playing overlay after 20s of user inactivity while playing.
   // Use primitive deps (isPlaying + path string) so the 500ms status poll doesn't
   // reset the effect — and the timer — on every tick.
   const isPlaying = playerStatus.isPlaying
   const currentTrackPath = playerStatus.currentTrack?.path ?? null
+
+  // Keep PlayerContext in sync so album cards can highlight the playing album
+  useEffect(() => {
+    setCurrentTrackPath(currentTrackPath)
+  }, [currentTrackPath, setCurrentTrackPath])
+
   useEffect(() => {
     if (!isPlaying || !currentTrackPath) return
 
@@ -567,7 +587,7 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
         <div className={styles.content}>
           <div className={styles.trackInfo}>
             <button
-              className={styles.coverButton}
+              className={`${styles.coverButton} ${coverPulsing ? styles.coverPulsing : ''}`}
               onClick={() => { if (playerStatus.currentTrack) setShowNowPlaying(true) }}
               aria-label="Open now playing view"
               title={playerStatus.currentTrack ? 'Open now playing view' : undefined}
@@ -591,9 +611,11 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
               </div>
             </button>
             <div className={styles.info}>
-              <p className={styles.nowPlayingLabel}>
-                {playerStatus.isPlaying ? '▶ Now Playing' : playerStatus.currentTrack ? '⏸ Paused' : 'Jukebox'}
-              </p>
+              {playerStatus.currentTrack && (
+                <p className={styles.nowPlayingLabel}>
+                  {playerStatus.isPlaying ? '▶ Now Playing' : '⏸ Paused'}
+                </p>
+              )}
               <h3 className={styles.title}>
                 {playerStatus.currentTrack
                   ? getCurrentTrackName()
@@ -602,9 +624,14 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
               <p className={styles.artist}>
                 {playerStatus.currentTrack?.artist ?? getTrackStatus()}
               </p>
-              <p className={styles.album}>
-                {getTrackInfo()} {playerStatus.queue.length > 0 && `· ${playerStatus.queue.length} in queue`}
-              </p>
+              {playerStatus.queue.length > 0 ? (
+                <p className={styles.upNext} title={playerStatus.queue[0].title ?? undefined}>
+                  <span className={styles.upNextLabel}>Next</span>
+                  {playerStatus.queue[0].title ?? 'Unknown Track'}
+                </p>
+              ) : (
+                <p className={styles.album}>{getTrackInfo()}</p>
+              )}
             </div>
           </div>
           

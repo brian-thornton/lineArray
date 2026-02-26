@@ -89,13 +89,29 @@
   min-width: 0;
 }
 
-.trackNumber {
+.coverThumb {
   flex-shrink: 0;
-  width: 25px;
-  text-align: center;
-  font-size: 0.8rem;
-  color: var(--jukebox-accent);
-  font-weight: 600;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--jukebox-accent) 0%, var(--jukebox-purple) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.coverImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.coverFallback {
+  width: 22px;
+  height: 22px;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .trackDetails {
@@ -215,11 +231,6 @@
   
   .trackInfo {
     gap: var(--spacing-sm);
-  }
-  
-  .trackNumber {
-    width: 20px;
-    font-size: 0.75rem;
   }
   
   .trackTitle {

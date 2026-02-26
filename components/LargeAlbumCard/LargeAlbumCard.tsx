@@ -1,6 +1,7 @@
 import React from 'react'
 import { useRouter } from 'next/navigation'
 import { Album, Track } from '@/types/music'
+import { usePlayer } from '@/contexts/PlayerContext'
 import styles from './LargeAlbumCard.module.css'
 
 interface LargeAlbumCardProps {
@@ -11,6 +12,9 @@ interface LargeAlbumCardProps {
 
 function LargeAlbumCard({ album, onPlayTrack: _onPlayTrack, isSelected }: LargeAlbumCardProps): JSX.Element {
   const router = useRouter()
+  const { currentTrackPath } = usePlayer()
+  const isNowPlaying = currentTrackPath !== null &&
+    album.tracks.some(t => t.path === currentTrackPath)
 
   const handleClick = (): void => {
     router.push(`/album/${album.id}`)
@@ -25,7 +29,7 @@ function LargeAlbumCard({ album, onPlayTrack: _onPlayTrack, isSelected }: LargeA
 
   return (
     <div 
-      className={`${styles.card} ${isSelected ? styles.selected : ''}`}
+      className={`${styles.card} ${isSelected ? styles.selected : ''} ${isNowPlaying ? styles.nowPlaying : ''}`}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
       tabIndex={0}

@@ -52,11 +52,11 @@
   transition: all 0.2s ease;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 200px;
+  max-width: 240px;
   cursor: pointer;
   border-radius: var(--radius-md);
   padding: var(--spacing-xs);
+  flex-shrink: 0;
 }
 
 .logo:hover {
@@ -67,6 +67,22 @@
 
 .logo:active {
   transform: translateY(0);
+}
+
+.logoIcon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 6px var(--jukebox-accent));
+}
+
+.logoText {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 12px var(--jukebox-accent), 0 0 24px color-mix(in srgb, var(--jukebox-accent) 40%, transparent);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Responsive design */
@@ -85,7 +101,7 @@
   
   .logo {
     font-size: 1.2rem;
-    max-width: 150px;
+    max-width: 180px;
   }
 }
 
@@ -104,6 +120,6 @@
   
   .logo {
     font-size: 1rem;
-    max-width: 120px;
+    max-width: 140px;
   }
 } 

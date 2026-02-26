@@ -32,6 +32,7 @@ export default function AlbumDetail(): JSX.Element {
   const [selectedTracks, setSelectedTracks] = useState<Set<string>>(new Set())
   const [showPlaylistModal, setShowPlaylistModal] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const [flashingTrackId, setFlashingTrackId] = useState<string | null>(null)
 
   // Detect mobile devices
   useEffect(() => {
@@ -155,12 +156,16 @@ export default function AlbumDetail(): JSX.Element {
       
       if (response.ok) {
         hideKeyboard()
-        
+
+        // Flash the tapped track row
+        setFlashingTrackId(track.id)
+        setTimeout(() => setFlashingTrackId(null), 600)
+
         // Set flag to show player controls
         if (typeof window !== 'undefined') {
           (window as WindowWithPlayer).hasAddedTrackToQueue = true
         }
-        
+
         // Immediately check player status to show controls faster
         if (typeof window !== 'undefined' && (window as WindowWithPlayer).checkPlayerStatusImmediately) {
           setTimeout(() => {
@@ -541,9 +546,9 @@ export default function AlbumDetail(): JSX.Element {
 
             <div className={styles.sideBySideTrackList}>
               {album.tracks.map((track: Track, index: number) => (
-                <div 
-                  key={track.id} 
-                  className={`${styles.sideBySideTrackItem} ${selectedTracks.has(track.id) ? styles.selected : ''}`}
+                <div
+                  key={track.id}
+                  className={`${styles.sideBySideTrackItem} ${selectedTracks.has(track.id) ? styles.selected : ''} ${flashingTrackId === track.id ? styles.trackFlash : ''}`}
                 >
                   <div className={styles.sideBySideTrackCheckbox}>
                     <input
@@ -643,9 +648,9 @@ export default function AlbumDetail(): JSX.Element {
 
           <div className={styles.trackList}>
             {album.tracks.map((track: Track, index: number) => (
-              <div 
-                key={track.id} 
-                className={`${styles.trackItem} ${selectedTracks.has(track.id) ? styles.selected : ''}`}
+              <div
+                key={track.id}
+                className={`${styles.trackItem} ${selectedTracks.has(track.id) ? styles.selected : ''} ${flashingTrackId === track.id ? styles.trackFlash : ''}`}
               >
                 <div className={styles.trackCheckbox}>
                   <input

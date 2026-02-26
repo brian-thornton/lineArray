@@ -6,6 +6,7 @@ import { SettingsProvider } from '@/contexts/SettingsContext'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import { ToastProvider } from '@/contexts/ToastContext'
 import { LibraryProvider } from '@/contexts/LibraryContext'
+import { PlayerProvider } from '@/contexts/PlayerContext'
 import AppShell from '@/components/AppShell'
 
 export const metadata: Metadata = {
@@ -37,9 +38,11 @@ export default function RootLayout({
             <SearchProvider>
               <ToastProvider>
                 <LibraryProvider>
-                  <AppShell>
-                    {children}
-                  </AppShell>
+                  <PlayerProvider>
+                    <AppShell>
+                      {children}
+                    </AppShell>
+                  </PlayerProvider>
                 </LibraryProvider>
               </ToastProvider>
             </SearchProvider>

@@ -31,6 +31,7 @@ export default function RecentlyPlayed({ limit = 10, showTitle = true }: Recentl
   const { hideKeyboard } = useSearch()
   const [recentTracks, setRecentTracks] = useState<RecentlyPlayedTrack[]>([])
   const [loading, setLoading] = useState(true)
+  const [coverErrors, setCoverErrors] = useState<Set<string>>(new Set())
 
   const loadRecentlyPlayed = useCallback(async (): Promise<void> => {
     try {
@@ -152,8 +153,18 @@ export default function RecentlyPlayed({ limit = 10, showTitle = true }: Recentl
         {recentTracks.map((track, index) => (
           <div key={track.id} className={styles.trackItem}>
             <div className={styles.trackInfo}>
-              <div className={styles.trackNumber}>
-                {index + 1}
+              <div className={styles.coverThumb}>
+                {!coverErrors.has(track.path) ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={`/api/cover-for-track?path=${encodeURIComponent(track.path)}`}
+                    alt=""
+                    className={styles.coverImg}
+                    onError={() => setCoverErrors(prev => new Set(prev).add(track.path))}
+                  />
+                ) : (
+                  <Music className={styles.coverFallback} />
+                )}
               </div>
               <div className={styles.trackDetails}>
                 <div className={styles.trackTitle}>

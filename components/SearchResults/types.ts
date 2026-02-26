@@ -5,4 +5,5 @@ export interface SearchResult {
   artist: string
   album?: string
   path?: string
+  coverPath?: string
 } 

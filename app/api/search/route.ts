@@ -75,7 +75,8 @@ export function GET(request: NextRequest): Promise<NextResponse> {
           type: 'album',
           id: album.id,
           title: album.title,
-          artist: album.artist
+          artist: album.artist,
+          coverPath: album.coverPath
         })
       }
 
