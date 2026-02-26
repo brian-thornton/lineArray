@@ -1,16 +1,16 @@
 "use client"
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { Play, Pause, SkipForward, Square, Trash2, Volume2, VolumeX, List, Plus, Minus, X } from 'lucide-react'
+import { Play, Pause, SkipForward, Square, Trash2, Volume2, VolumeX, List, Plus, Minus, X, Music } from 'lucide-react'
+import Image from 'next/image'
 import styles from './Player.module.css'
-// Remove VolumeModal import
-// import VolumeModal from '../VolumeModal'
 import { useSettings } from '@/contexts/SettingsContext'
 import { useSearch } from '@/contexts/SearchContext'
 import { useToast } from '@/contexts/ToastContext'
 import type { QueueResponse, QueuePlayResponse, Track } from '@/types/api'
 import { createPortal } from 'react-dom'
 import Equalizer from './Equalizer'
+import NowPlayingOverlay from './NowPlayingOverlay'
 
 interface PlayerStatus {
   isPlaying: boolean
@@ -41,6 +41,7 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
   // Remove VolumeModal import and state
   // const [showVolumeModal, setShowVolumeModal] = useState(false)
   const [showVolumeOverlay, setShowVolumeOverlay] = useState(false)
+  const [showNowPlaying, setShowNowPlaying] = useState(false)
   const [playerStatus, setPlayerStatus] = useState<PlayerStatus>({
     isPlaying: false,
     currentTrack: null,
@@ -52,6 +53,17 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
   const [seekPreview, setSeekPreview] = useState<number | null>(null)
   const [showConfirmClear, setShowConfirmClear] = useState(false)
   const [volumeLoading, setVolumeLoading] = useState(false)
+  const [coverUrl, setCoverUrl] = useState<string | null>(null)
+
+  // Fetch cover art when current track changes
+  useEffect(() => {
+    if (!playerStatus.currentTrack?.path) {
+      setCoverUrl(null)
+      return
+    }
+    const url = `/api/cover-for-track?path=${encodeURIComponent(playerStatus.currentTrack.path)}`
+    setCoverUrl(url)
+  }, [playerStatus.currentTrack?.path])
 
   // Detect mobile devices
   useEffect(() => {
@@ -175,6 +187,32 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
       (window as WindowWithPlayer).checkPlayerStatusImmediately = checkStatusImmediately
     }
   }, [checkStatusImmediately])
+
+  // Auto-show Now Playing overlay after 20s of user inactivity while playing.
+  // Use primitive deps (isPlaying + path string) so the 500ms status poll doesn't
+  // reset the effect — and the timer — on every tick.
+  const isPlaying = playerStatus.isPlaying
+  const currentTrackPath = playerStatus.currentTrack?.path ?? null
+  useEffect(() => {
+    if (!isPlaying || !currentTrackPath) return
+
+    const INACTIVITY_MS = 3 * 60 * 1000
+    let timer: ReturnType<typeof setTimeout>
+
+    const resetTimer = (): void => {
+      clearTimeout(timer)
+      timer = setTimeout(() => { setShowNowPlaying(true) }, INACTIVITY_MS)
+    }
+
+    const activityEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click']
+    activityEvents.forEach(event => window.addEventListener(event, resetTimer))
+    resetTimer()
+
+    return () => {
+      clearTimeout(timer)
+      activityEvents.forEach(event => window.removeEventListener(event, resetTimer))
+    }
+  }, [isPlaying, currentTrackPath])
 
 
 
@@ -528,21 +566,44 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
       <div className={styles.player}>
         <div className={styles.content}>
           <div className={styles.trackInfo}>
-            <div className={styles.cover}>
-              <div className={styles.coverPlaceholder}>🎵</div>
-            </div>
+            <button
+              className={styles.coverButton}
+              onClick={() => { if (playerStatus.currentTrack) setShowNowPlaying(true) }}
+              aria-label="Open now playing view"
+              title={playerStatus.currentTrack ? 'Open now playing view' : undefined}
+            >
+              <div className={styles.cover}>
+                {coverUrl ? (
+                  <Image
+                    src={coverUrl}
+                    alt={playerStatus.currentTrack?.album ?? 'Album art'}
+                    width={80}
+                    height={80}
+                    className={styles.coverImage}
+                    onError={() => setCoverUrl(null)}
+                    unoptimized
+                  />
+                ) : (
+                  <div className={styles.coverPlaceholder}>
+                    <Music size={28} />
+                  </div>
+                )}
+              </div>
+            </button>
             <div className={styles.info}>
+              <p className={styles.nowPlayingLabel}>
+                {playerStatus.isPlaying ? '▶ Now Playing' : playerStatus.currentTrack ? '⏸ Paused' : 'Jukebox'}
+              </p>
               <h3 className={styles.title}>
                 {playerStatus.currentTrack
                   ? getCurrentTrackName()
                   : (typeof playerStatus.volume === 'number' ? 'Ready' : 'No track playing')}
               </h3>
               <p className={styles.artist}>
-                {getTrackStatus()} •
-                Queue: {playerStatus.queue.length} tracks
+                {playerStatus.currentTrack?.artist ?? getTrackStatus()}
               </p>
               <p className={styles.album}>
-                {getTrackInfo()}
+                {getTrackInfo()} {playerStatus.queue.length > 0 && `· ${playerStatus.queue.length} in queue`}
               </p>
             </div>
           </div>
@@ -720,6 +781,26 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
           document.body
         )}
       </div>
+      {showNowPlaying && typeof window !== 'undefined' && (
+        <NowPlayingOverlay
+          coverUrl={coverUrl}
+          currentTrack={playerStatus.currentTrack}
+          isPlaying={playerStatus.isPlaying}
+          progress={playerStatus.progress ?? 0}
+          isSeeking={isSeeking}
+          seekPreview={seekPreview}
+          queue={playerStatus.queue}
+          onClose={() => setShowNowPlaying(false)}
+          onPlayPause={() => { void handlePlayPause() }}
+          onSkip={() => { void handleSkip() }}
+          onStop={() => { void handleStop() }}
+          onSeekStart={handleSeekStart}
+          onSeekDrag={handleSeekDrag}
+          onSeekEnd={(pos) => { void handleSeekEnd(pos) }}
+          showSeekBar={settings.audioPlayer !== 'afplay'}
+          seekDisabled={!canPerformAction('allowPlay') || !playerStatus.isPlaying}
+        />
+      )}
       {showConfirmClear && (
         <div className={styles.confirmModal} role="dialog" aria-modal="true" aria-labelledby="confirmClearTitle">
           <div className={styles.confirmModalContent}>

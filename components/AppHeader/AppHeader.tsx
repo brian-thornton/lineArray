@@ -69,15 +69,15 @@ export default function AppHeader(): JSX.Element {
       </div>
       <div className={styles.searchSection}>
         <SearchBox ref={searchBoxRef} />
+        <button
+          className={styles.mobileMenuButton}
+          onClick={() => setShowMobileMenu(!showMobileMenu)}
+          aria-label="Toggle menu"
+          aria-expanded={showMobileMenu}
+        >
+          {showMobileMenu ? <X size={24} /> : <Menu size={24} />}
+        </button>
       </div>
-      <button
-        className={styles.mobileMenuButton}
-        onClick={() => setShowMobileMenu(!showMobileMenu)}
-        aria-label="Toggle menu"
-        aria-expanded={showMobileMenu}
-      >
-        {showMobileMenu ? <X size={24} /> : <Menu size={24} />}
-      </button>
       {showMobileMenu && (
         <div 
           className={styles.menuOverlay}

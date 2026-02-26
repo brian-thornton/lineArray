@@ -30,29 +30,31 @@
   padding: 0 var(--spacing-lg);
   overflow: visible;
   min-height: 0;
-  margin-bottom: 80px; /* Add space for letter navigation */
+  margin-bottom: 180px; /* Space for fixed player (~114px) + letter nav (~50px) above it */
 }
 
 .grid {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  grid-template-rows: repeat(2, 250px);
+  grid-template-rows: repeat(2, minmax(250px, auto));
   grid-auto-rows: 0; /* Prevent additional rows */
   gap: var(--spacing-md);
   width: 100%;
   max-width: 1300px;
-  height: 500px; /* Fixed height for 2 rows: 2 * 250px */
+  min-height: 500px; /* Minimum height for 2 rows: 2 * 250px */
+  height: auto;
   align-items: stretch;
-  overflow: hidden; /* Prevent third row from showing */
+  overflow: visible;
 }
 
 /* Reduce to 5 columns at medium desktop widths */
 @media (max-width: 1300px) {
   .grid {
     grid-template-columns: repeat(5, minmax(0, 1fr));
-    grid-template-rows: repeat(2, 250px); /* Always 2 rows */
+    grid-template-rows: repeat(2, minmax(250px, auto)); /* Always 2 rows */
     grid-auto-rows: 0; /* Prevent additional rows */
-    height: 500px; /* Fixed height for 2 rows: 2 * 250px */
+    min-height: 500px; /* Minimum height for 2 rows: 2 * 250px */
+    height: auto;
   }
 }
 
@@ -60,9 +62,10 @@
 @media (max-width: 1100px) {
   .grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    grid-template-rows: repeat(2, 250px); /* Always 2 rows */
+    grid-template-rows: repeat(2, minmax(250px, auto)); /* Always 2 rows */
     grid-auto-rows: 0; /* Prevent additional rows */
-    height: 500px; /* Fixed height for 2 rows: 2 * 250px */
+    min-height: 500px; /* Minimum height for 2 rows: 2 * 250px */
+    height: auto;
   }
 }
 
@@ -70,9 +73,10 @@
 @media (max-width: 900px) {
   .grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    grid-template-rows: repeat(2, 250px); /* Always 2 rows */
+    grid-template-rows: repeat(2, minmax(250px, auto)); /* Always 2 rows */
     grid-auto-rows: 0; /* Prevent additional rows */
-    height: 500px; /* Fixed height for 2 rows: 2 * 250px */
+    min-height: 500px; /* Minimum height for 2 rows: 2 * 250px */
+    height: auto;
   }
 }
 
@@ -202,14 +206,17 @@
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   flex-shrink: 0;
   overflow-x: auto;
+  overflow-y: hidden;
   scrollbar-width: none;
   -ms-overflow-style: none;
   min-height: 50px;
   position: fixed;
-  bottom: 100px;
+  bottom: 120px;
   left: 0;
   right: 0;
-  z-index: 1000;
+  z-index: 1001;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
 }
 
 .letterNav::-webkit-scrollbar {
@@ -333,6 +340,21 @@
   }
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* Medium width adjustments for letter navigation */
+@media (max-width: 1200px) and (min-width: 769px) {
+  .letterNav {
+    padding: var(--spacing-sm) var(--spacing-md);
+    gap: 6px;
+  }
+  
+  .letterButton {
+    min-width: 32px;
+    height: 32px;
+    font-size: 0.75rem;
+    padding: var(--spacing-xs) var(--spacing-xs);
   }
 }
 

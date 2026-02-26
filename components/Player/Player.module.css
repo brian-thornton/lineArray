@@ -26,16 +26,47 @@
   gap: var(--spacing-md);
   flex-shrink: 0;
   min-width: 0;
-  height: 60px; /* Match the cover height */
+  height: 80px; /* Match the cover height */
+  max-width: 380px;
+  flex: 1;
+}
+
+.coverButton {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: transform 0.2s ease;
+  min-height: unset;
+  min-width: unset;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.coverButton:hover {
+  transform: scale(1.05);
+}
+
+.coverButton:active {
+  transform: scale(0.97);
 }
 
 .cover {
-  width: 60px;
-  height: 60px;
+  width: 80px;
+  height: 80px;
   border-radius: var(--radius-md);
   overflow: hidden;
   background: linear-gradient(135deg, var(--jukebox-accent) 0%, var(--jukebox-purple) 100%);
   flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.coverImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .coverPlaceholder {
@@ -44,16 +75,29 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  color: var(--jukebox-white);
+  opacity: 0.7;
 }
 
 .info {
   min-width: 0;
+  flex: 1;
+}
+
+.nowPlayingLabel {
+  font-family: var(--font-display);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--jukebox-accent);
+  text-transform: uppercase;
+  margin: 0 0 2px 0;
+  opacity: 0.85;
 }
 
 .title {
   font-family: var(--font-display);
-  font-size: 1.1rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: var(--jukebox-white);
   margin: 0 0 var(--spacing-xs) 0;
@@ -65,7 +109,7 @@
 .artist {
   font-size: 0.9rem;
   color: var(--jukebox-accent);
-  margin: 0 0 var(--spacing-xs) 0;
+  margin: 0 0 2px 0;
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -119,7 +163,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 60px; /* Match the track info height */
+  height: 80px; /* Match the track info height */
   gap: var(--spacing-sm);
 }
 
@@ -344,43 +388,49 @@
   }
 }
 
+/* Tablet (iPad portrait and similar) — keep track info but compact it */
 @media (max-width: 768px) {
   .player {
     padding: var(--spacing-sm);
   }
-  
+
   .content {
     flex-direction: row;
     gap: var(--spacing-sm);
     justify-content: space-between;
     align-items: center;
-    min-height: 60px;
+    min-height: 72px;
     display: flex;
   }
-  
+
   .trackInfo {
-    display: none;
+    max-width: 220px;
   }
-  
+
+  .cover {
+    width: 64px;
+    height: 64px;
+  }
+
   .mainControls {
-    height: auto;
+    height: 72px;
     gap: var(--spacing-xs);
     flex-shrink: 0;
     order: 1;
     display: flex;
   }
-  
+
   .controlButton {
     margin: 0 var(--spacing-xs);
     width: 44px;
     height: 44px;
   }
-  
+
   .controlIcon {
     width: 18px;
     height: 18px;
   }
-  
+
   .volume {
     width: auto;
     justify-content: center;
@@ -388,21 +438,26 @@
     order: 2;
     display: flex;
   }
-  
+
   .volumeControls {
     display: flex;
   }
-  
+
   .skipButton {
     display: flex;
   }
-  
+
   .playbackPosition {
     display: none;
   }
 }
 
+/* Small phones — hide track info to save space */
 @media (max-width: 480px) {
+  .trackInfo {
+    display: none;
+  }
+
   .player {
     padding: var(--spacing-xs);
   }
