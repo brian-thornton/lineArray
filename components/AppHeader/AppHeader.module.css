@@ -77,9 +77,10 @@
 }
 
 .navLink.active {
-  background: rgba(var(--jukebox-accent-rgb), 0.15);
+  background: rgba(6, 182, 212, 0.15);
   color: var(--jukebox-accent);
   border-color: var(--jukebox-accent);
+  box-shadow: inset 0 -3px 0 var(--jukebox-accent);
 }
 
 .navLink.active .navIcon {

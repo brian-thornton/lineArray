@@ -362,11 +362,20 @@ export default function AlbumDetail(): JSX.Element {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
+        {effectiveLayout === 'mobile' && (
+          <button
+            onClick={() => router.push(getBackToLibraryUrl())}
+            className={styles.mobileBackButton}
+            aria-label="Back to library"
+          >
+            <ArrowLeft className={styles.mobileBackIcon} />
+          </button>
+        )}
         {effectiveLayout === 'mobile' && album && (
           <div className={styles.mobileHeaderInfo}>
             <div className={styles.mobileHeaderCover}>
               {album.coverPath ? (
-                <Image 
+                <Image
                   src={getCoverUrl(album.coverPath) ?? ''}
                   alt={`${album.title} cover`}
                   width={40}
@@ -594,57 +603,83 @@ export default function AlbumDetail(): JSX.Element {
         </div>
       )}
 
+      {effectiveLayout === 'mobile' && album && (
+        <div className={styles.mobileActionStrip}>
+          <button
+            onClick={() => { void handlePlayAlbum(); }}
+            className={styles.mobileActionPlay}
+            disabled={!canPerformAction('allowAddToQueue')}
+          >
+            <Play className={styles.mobileActionIcon} />
+            Play Album
+          </button>
+          <button
+            onClick={() => { handleAddToPlaylist(); }}
+            className={styles.mobileActionPlaylist}
+            disabled={!canPerformAction('allowCreatePlaylists')}
+          >
+            <Plus className={styles.mobileActionIcon} />
+            Add to Playlist
+          </button>
+          {selectedTracks.size === 0 ? (
+            <button onClick={() => { handleSelectAllTracks(); }} className={styles.mobileActionSelect}>
+              Select All
+            </button>
+          ) : (
+            <button onClick={() => { handleDeselectAllTracks(); }} className={styles.mobileActionSelect}>
+              Deselect ({selectedTracks.size})
+            </button>
+          )}
+        </div>
+      )}
+
       {effectiveLayout !== 'sideBySide' && (
         <div className={`${styles.tracksSection} ${effectiveLayout === 'mobile' ? styles.mobileLayout : ''}`}>
-          <div className={styles.tracksHeader}>
-            <div className={styles.tracksHeaderLeft}>
-              <h2 className={styles.tracksTitle}>Tracks</h2>
+          {effectiveLayout !== 'mobile' && (
+            <div className={styles.tracksHeader}>
+              <div className={styles.tracksHeaderLeft}>
+                <h2 className={styles.tracksTitle}>Tracks</h2>
+              </div>
+              <div className={styles.tracksActions}>
+                {selectedTracks.size === 0 ? (
+                  <button onClick={() => { handleSelectAllTracks(); }} className={styles.selectAllButton}>
+                    Select All Tracks
+                  </button>
+                ) : (
+                  <button onClick={() => { handleDeselectAllTracks(); }} className={styles.selectAllButton}>
+                    Deselect All ({selectedTracks.size})
+                  </button>
+                )}
+                {selectedTracks.size > 0 && (
+                  <button
+                    onClick={() => { void handleAddSelectedToQueue(); }}
+                    className={styles.addSelectedButton}
+                    disabled={!canPerformAction('allowAddToQueue')}
+                    title={!canPerformAction('allowAddToQueue') ? 'Adding to queue is restricted in party mode' : 'Enqueue'}
+                  >
+                    <Play className={styles.playIcon} />
+                    Enqueue
+                  </button>
+                )}
+              </div>
             </div>
-            <div className={styles.tracksActions}>
-              {effectiveLayout === 'mobile' && selectedTracks.size === 0 && (
-                <button 
-                  onClick={() => { void handlePlayAlbum(); }}
-                  className={styles.mobileHeaderPlayButton}
-                  disabled={!canPerformAction('allowAddToQueue')}
-                  title={!canPerformAction('allowAddToQueue') ? 'Adding to queue is restricted in party mode' : 'Play Album'}
-                >
-                  <Play className={styles.mobileHeaderPlayIcon} />
-                  Play Album
-                </button>
-              )}
-              {effectiveLayout === 'mobile' && (
-                <button 
-                  onClick={() => { handleAddToPlaylist(); }}
-                  className={styles.mobileHeaderPlaylistButton}
-                  disabled={!canPerformAction('allowCreatePlaylists')}
-                  title={!canPerformAction('allowCreatePlaylists') ? 'Creating playlists is restricted in party mode' : 'Add to Playlist'}
-                >
-                  <Plus className={styles.mobileHeaderPlusIcon} />
-                  Add to Playlist
-                </button>
-              )}
-              {selectedTracks.size === 0 ? (
-                <button onClick={() => { handleSelectAllTracks(); }} className={styles.selectAllButton}>
-                  Select All Tracks
-                </button>
-              ) : (
-                <button onClick={() => { handleDeselectAllTracks(); }} className={styles.selectAllButton}>
-                  Deselect All ({selectedTracks.size})
-                </button>
-              )}
-              {selectedTracks.size > 0 && (
-                <button 
-                  onClick={() => { void handleAddSelectedToQueue(); }}
-                  className={styles.addSelectedButton}
-                  disabled={!canPerformAction('allowAddToQueue')}
-                  title={!canPerformAction('allowAddToQueue') ? 'Adding to queue is restricted in party mode' : 'Enqueue'}
-                >
-                  <Play className={styles.playIcon} />
-                  Enqueue
-                </button>
-              )}
+          )}
+          {effectiveLayout === 'mobile' && selectedTracks.size > 0 && (
+            <div className={styles.mobileSelectionBar}>
+              <span className={styles.mobileSelectionCount}>{selectedTracks.size} selected</span>
+              <button onClick={() => { handleDeselectAllTracks(); }} className={styles.mobileSelectionDeselect}>
+                Deselect All
+              </button>
+              <button
+                onClick={() => { void handleAddSelectedToQueue(); }}
+                className={styles.mobileSelectionEnqueue}
+                disabled={!canPerformAction('allowAddToQueue')}
+              >
+                <Play className={styles.mobileHeaderPlayBtnIcon} />
+                Enqueue
+              </button>
             </div>
-          </div>
+          )}
 
           <div className={styles.trackList}>
             {album.tracks.map((track: Track, index: number) => (
