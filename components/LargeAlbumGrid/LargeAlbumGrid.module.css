@@ -334,6 +334,42 @@
   flex: 1;
 }
 
+/* Mobile pagination bar — hidden on desktop, shown on mobile via media query */
+.mobilePagination {
+  display: none;
+}
+
+.mobilePagBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 16px;
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--jukebox-text);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.mobilePagBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.mobilePagBtn:not(:disabled):active {
+  transform: scale(0.96);
+}
+
+.mobilePagInfo {
+  font-size: 0.9rem;
+  color: var(--jukebox-text-secondary);
+  font-weight: 500;
+}
+
 @keyframes spin {
   from {
     transform: rotate(0deg);
@@ -358,6 +394,11 @@
   }
 }
 
+/* Floating letter index — hidden on desktop */
+.mobileLetterIndex {
+  display: none;
+}
+
 /* Mobile responsive adjustments - stacked layout */
 @media (max-width: 768px) {
   .gridContainer {
@@ -370,7 +411,7 @@
     gap: 0 !important;
     align-items: stretch;
     margin-top: 0 !important;
-    margin-bottom: 120px !important;
+    margin-bottom: 200px !important; /* player (~88px) + letter bar (~48px) + buffer */
     min-height: auto !important;
     height: auto !important;
     overflow: visible !important;
@@ -392,9 +433,73 @@
   .navArrow {
     display: none !important;
   }
-  
+
   .letterNav {
     display: none;
+  }
+
+  .mobilePagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: var(--spacing-sm) 0;
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .mobileLetterIndex {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    position: fixed;
+    bottom: 88px;
+    left: 0;
+    right: 0;
+    z-index: 1500;
+    background: rgba(10, 10, 20, 0.85);
+    padding: 0 8px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    height: 48px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    gap: 0;
+  }
+
+  .mobileLetterIndex::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mobileLetterIndexBtn {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 0.85rem;
+    font-weight: 700;
+    min-width: 36px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0 4px;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    line-height: 1;
+    transition: color 0.15s ease;
+  }
+
+  .mobileLetterIndexActive {
+    color: var(--jukebox-accent) !important;
+  }
+
+  .mobileLetterIndexUnavailable {
+    color: rgba(255, 255, 255, 0.2);
+    cursor: default;
   }
 }
 

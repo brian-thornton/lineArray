@@ -143,45 +143,9 @@
   background: #ef4444;
 }
 
-/* Mobile optimizations */
+/* Mobile optimizations — hide toasts entirely on mobile */
 @media (max-width: 768px) {
   .toast {
-    top: 10px;
-    right: 10px;
-    left: 10px;
-    max-width: none;
-    min-width: auto;
-    transform: translateY(-100%) scale(0.95);
-  }
-  
-  .toast.visible {
-    transform: translateY(0) scale(1);
-  }
-  
-  .toast.hidden {
-    transform: translateY(-100%) scale(0.95);
-  }
-  
-  .content {
-    padding: 1.5rem 1.75rem;
-  }
-  
-  .message {
-    font-size: 1.1rem;
-  }
-  
-  .closeButton {
-    width: 36px;
-    height: 36px;
-  }
-  
-  .closeIcon {
-    width: 1.2rem;
-    height: 1.2rem;
-  }
-  
-  .icon {
-    width: 1.75rem;
-    height: 1.75rem;
+    display: none !important;
   }
 } 

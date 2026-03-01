@@ -193,6 +193,33 @@ function LargeAlbumGrid({ albums, onPlayTrack, isLoading }: LargeAlbumGridProps)
           </button>
         )}
 
+        {/* Mobile pagination bar — hidden on desktop via CSS */}
+        {totalPages > 1 && (
+          <div className={styles.mobilePagination}>
+            <button
+              className={styles.mobilePagBtn}
+              onClick={handlePreviousPage}
+              disabled={currentPage <= 1}
+              aria-label="Previous page"
+            >
+              <ChevronLeft size={20} />
+              Prev
+            </button>
+            <span className={styles.mobilePagInfo}>
+              {currentPage} / {totalPages}
+            </span>
+            <button
+              className={styles.mobilePagBtn}
+              onClick={handleNextPage}
+              disabled={currentPage >= totalPages}
+              aria-label="Next page"
+            >
+              Next
+              <ChevronRight size={20} />
+            </button>
+          </div>
+        )}
+
         <div className={styles.grid}>
           {currentAlbums.map((album) => (
             <LargeAlbumCard
@@ -212,6 +239,34 @@ function LargeAlbumGrid({ albums, onPlayTrack, isLoading }: LargeAlbumGridProps)
       )}
 
 
+
+      {/* iOS-style floating letter index — mobile only, hidden on desktop via CSS */}
+      <div className={styles.mobileLetterIndex} aria-label="Jump to letter">
+        <button
+          className={`${styles.mobileLetterIndexBtn} ${!selectedLetter ? styles.mobileLetterIndexActive : ''}`}
+          onClick={() => { updateLibraryState({ selectedLetter: null }) }}
+          aria-label="Show all albums"
+        >
+          ★
+        </button>
+        <button
+          className={`${styles.mobileLetterIndexBtn} ${selectedLetter === '#' ? styles.mobileLetterIndexActive : ''} ${!availableLetters.includes('#') ? styles.mobileLetterIndexUnavailable : ''}`}
+          onClick={() => { if (availableLetters.includes('#')) handleLetterClick('#') }}
+          aria-label="Albums starting with numbers"
+        >
+          #
+        </button>
+        {Array.from('ABCDEFGHIJKLMNOPQRSTUVWXYZ').map((letter) => (
+          <button
+            key={letter}
+            className={`${styles.mobileLetterIndexBtn} ${selectedLetter === letter ? styles.mobileLetterIndexActive : ''} ${!availableLetters.includes(letter) ? styles.mobileLetterIndexUnavailable : ''}`}
+            onClick={() => { if (availableLetters.includes(letter)) handleLetterClick(letter) }}
+            aria-label={`Albums starting with ${letter}`}
+          >
+            {letter}
+          </button>
+        ))}
+      </div>
 
       {/* Letter Navigation Bar */}
       <div className={styles.letterNav}>

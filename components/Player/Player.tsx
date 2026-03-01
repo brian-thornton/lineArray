@@ -770,41 +770,54 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
           </div>
         </div>
         
-        {/* Full-page volume overlay for mobile - must be outside .player for true fullscreen */}
+        {/* Volume bottom-sheet for mobile */}
         {isMobile && showVolumeOverlay && typeof window !== 'undefined' && createPortal(
-          <div className={styles.volumeOverlay}>
-            <button className={styles.volumeOverlayClose} onClick={() => setShowVolumeOverlay(false)} aria-label="Close volume overlay">
-              <X size={32} />
-            </button>
-            <div className={styles.volumeOverlayContent}>
-              <button
-                onClick={() => { void handleMuteToggle(); }}
-                className={styles.volumeOverlayMute}
-                aria-label={playerStatus.isMuted ? 'Unmute' : 'Mute'}
-              >
-                {playerStatus.isMuted ? <VolumeX size={40} /> : <Volume2 size={40} />}
-              </button>
-              <div className={styles.volumeOverlayValue}>{Math.round((playerStatus.volume ?? 0) * 100)}%</div>
-              <div className={styles.volumeOverlayControls}>
+          <>
+            <div className={styles.volumeSheetBackdrop} onClick={() => setShowVolumeOverlay(false)} aria-hidden="true" />
+            <div className={styles.volumeSheet} role="dialog" aria-label="Volume control">
+              <div className={styles.volumeSheetHeader}>
+                <button
+                  onClick={() => { void handleMuteToggle(); }}
+                  className={styles.volumeSheetMute}
+                  aria-label={playerStatus.isMuted ? 'Unmute' : 'Mute'}
+                >
+                  {playerStatus.isMuted ? <VolumeX size={22} /> : <Volume2 size={22} />}
+                </button>
+                <span className={styles.volumeSheetValue}>{Math.round((playerStatus.volume ?? 0) * 100)}%</span>
+                <button className={styles.volumeSheetClose} onClick={() => setShowVolumeOverlay(false)} aria-label="Close">
+                  <X size={20} />
+                </button>
+              </div>
+              <div className={styles.volumeSheetControls}>
                 <button
                   onClick={() => { void handleVolumeDown(); }}
-                  className={styles.volumeOverlayButton}
+                  className={styles.volumeSheetAdj}
                   disabled={volumeLoading}
                   aria-label="Decrease volume"
                 >
-                  <Minus size={36} />
+                  <Minus size={24} />
                 </button>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.02}
+                  value={playerStatus.volume ?? 0}
+                  onChange={(e) => { void handleVolumeChange(parseFloat(e.target.value)); }}
+                  className={styles.volumeSheetSlider}
+                  aria-label="Volume"
+                />
                 <button
                   onClick={() => { void handleVolumeUp(); }}
-                  className={styles.volumeOverlayButton}
+                  className={styles.volumeSheetAdj}
                   disabled={volumeLoading}
                   aria-label="Increase volume"
                 >
-                  <Plus size={36} />
+                  <Plus size={24} />
                 </button>
               </div>
             </div>
-          </div>,
+          </>,
           document.body
         )}
       </div>

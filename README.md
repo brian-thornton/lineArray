@@ -1,334 +1,206 @@
-# Jukebox 2.0 🎵
+# Jukebox 2.0
 
-A modern, responsive jukebox application built with React and Next.js, designed to manage and play your local music collection. Inspired by TouchTunes, this application provides a beautiful, touch-friendly interface for browsing and playing your music.
+A modern, touch-friendly jukebox application built with Next.js and TypeScript. Inspired by TouchTunes — designed for a living room, bar, or party context where the interface needs to look great and work well on any device from phone to desktop.
+
+Audio playback is handled by VLC running in the background; the app communicates with VLC over its HTTP interface.
+
+---
 
 ## Features
 
-- **🎵 Music Library Scanning**: Recursively scan your local music directories
-- **📱 Responsive Design**: Optimized for desktop, tablet, and mobile devices
-- **👆 Touch-Friendly Interface**: Large buttons and intuitive controls for touch devices
-- **🎨 Modern UI**: Beautiful dark theme with neon accents and smooth animations
-- **📊 Album Organization**: Automatically organizes music by albums (folders)
-- **🎧 Audio Player**: Full-featured player with progress, volume, and playback controls
-- **💾 Local Storage**: Saves your music library index and settings locally
-- **🔍 Metadata Extraction**: Reads music file metadata for accurate track information
-- **🖼️ Cover Art Support**: Automatically finds and displays album artwork
+- **Album library** — Recursively scans a local music directory and organizes tracks by album (folder)
+- **Letter navigation** — Jump to any letter in the library; iOS-style index bar on mobile
+- **Queue management** — Add individual tracks or full albums, reorder the queue
+- **Playlists** — Create, edit, and play saved playlists
+- **Search** — Full-text search across albums and tracks
+- **Recently played** — Tracks recently played with quick replay
+- **Play counts** — Tracks how many times each album has been played
+- **Volume control** — Bottom-sheet slider on mobile, inline controls on desktop
+- **Cover art** — Automatically finds and serves folder artwork
+- **QR code** — Generates a QR code so mobile devices can connect to the same instance
+- **Party mode / PIN** — Optional PIN protection to lock settings
+- **Admin panel** — Manage library folders and scan paths
+- **Themes** — Switchable color themes
+- **Responsive** — Optimized for desktop (1024px+), tablet/iPad (768–1024px), and mobile (≤767px)
+
+---
+
+## Architecture
+
+```mermaid
+flowchart TD
+    subgraph Browser["🌐 Browser"]
+        Pages["Pages\nHome · Album · Playlists · Recent · Settings"]
+        Components["Components\nPlayer · Queue · AlbumGrid · SearchBox · Header"]
+        Contexts["Context Providers\nLibrary · Settings · Search · Toast"]
+        Pages <--> Components
+        Components <--> Contexts
+    end
+
+    subgraph NextAPI["⚙️ Next.js API Routes"]
+        direction LR
+        ScanAPI["scan\nalbums\ncover\nbrowse"]
+        PlayAPI["play\ncontrol\nqueue"]
+        DataAPI["playlists\nsearch\nplaycounts\nsettings · themes"]
+    end
+
+    subgraph AudioLayer["🔊 Audio"]
+        AudioMgr["AudioManager\naudio-manager.ts"]
+        VLC["VLC Media Player\nHTTP interface · port 8081"]
+        AudioMgr -- "HTTP commands\n(play, pause, seek, volume)" --> VLC
+    end
+
+    subgraph Storage["💾 File System"]
+        MusicFiles["Music Files\nMP3 · FLAC · M4A · WAV · OGG"]
+        CoverArt["Cover Art\nJPG · PNG · GIF"]
+        JSONData["JSON Data\nmusic-library · queue-state\nplaylists · settings · playCounts"]
+    end
+
+    Browser -- "REST / JSON" --> NextAPI
+    PlayAPI --> AudioMgr
+    ScanAPI --> MusicFiles
+    ScanAPI --> CoverArt
+    ScanAPI --> JSONData
+    DataAPI --> JSONData
+    VLC --> MusicFiles
+```
+
+---
 
 ## Technology Stack
 
-- **Frontend**: React 18, Next.js 14, TypeScript
-- **Styling**: CSS Modules with custom design system
-- **Icons**: Lucide React
-- **Audio**: HTML5 Audio API
-- **File Processing**: fs-extra, music-metadata
-- **Animations**: CSS animations and Framer Motion
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 14, React 18 |
+| Language | TypeScript 5 |
+| Styling | CSS Modules + custom design system |
+| Icons | Lucide React |
+| Audio backend | VLC Media Player (HTTP API on port 8081) |
+| Metadata | music-metadata |
+| File I/O | fs-extra |
+| QR codes | qrcode |
 
-## System Architecture
+---
 
-```mermaid
+## Prerequisites
+
+1. **VLC Media Player** must be installed and running with its HTTP interface enabled:
+   ```
+   vlc --intf http --http-host 127.0.0.1 --http-port 8081 --http-password <your-password>
+   ```
+2. **Node.js** 18+
+
 ---
-config:
-  theme: redux
-  look: classic
-  layout: elk
----
-graph TB
-    %% User Interface Layer
-    subgraph "Frontend Layer"
-        UI[User Interface]
-        subgraph "Pages"
-            HOME[Home Page]
-            SETTINGS[Settings Page]
-            PLAYLISTS[Playlists Page]
-            RECENT[Recent Page]
-            ALBUM[Album Detail Page]
-        end
-        
-        subgraph "Core Components"
-            APP_SHELL[AppShell]
-            HEADER[AppHeader]
-            PLAYER[Player Component]
-            QUEUE[Queue Component]
-            ALBUM_GRID[AlbumGrid]
-            ALBUM_CARD[AlbumCard]
-            SEARCH[SearchBox]
-        end
-        
-        subgraph "UI Components"
-            TOAST[Toast]
-            MODAL[PlaylistModal]
-            PINPAD[PinPad]
-            SCAN[ScanButton]
-            PAGINATION[Pagination]
-            QRCODE[QRCode]
-        end
-    end
-    
-    %% Context Layer
-    subgraph "Context Layer"
-        SETTINGS_CTX[SettingsContext]
-        LIBRARY_CTX[LibraryContext]
-        SEARCH_CTX[SearchContext]
-        THEME_CTX[ThemeContext]
-        TOAST_CTX[ToastContext]
-    end
-    
-    %% API Layer
-    subgraph "API Layer"
-        subgraph "Music Management"
-            SCAN_API["api/scan"]
-            ALBUMS_API["api/albums"]
-            COVER_API["api/cover"]
-            BROWSE_API["api/browse"]
-        end
-        
-        subgraph "Playback Control"
-            PLAY_API["api/play"]
-            CONTROL_API["api/control"]
-            QUEUE_API["api/queue"]
-            AUDIO_API["api/audio"]
-        end
-        
-        subgraph "Settings & Admin"
-            SETTINGS_API["api/settings"]
-            ADMIN_API["api/admin"]
-            THEMES_API["api/themes"]
-            LOGS_API["api/logs"]
-        end
-        
-        subgraph "Playlists & Search"
-            PLAYLISTS_API["api/playlists"]
-            SEARCH_API["api/search"]
-            PLAYCOUNTS_API["api/playcounts"]
-        end
-    end
-    
-    %% Audio Management Layer
-    subgraph "Audio Management"
-        AUDIO_MGR[AudioManager]
-        AFPLAY_MGR[AFPlayManager]
-        VLC_MGR[VLCManager]
-        VOLUME_MGR[VolumeManager]
-    end
-    
-    %% Data Layer
-    subgraph "Data Layer"
-        subgraph "File System"
-            MUSIC_FILES["Music Files<br/>MP3, FLAC, M4A, WAV"]
-            COVER_ART["Cover Art<br/>JPG, PNG, GIF"]
-            METADATA[Music Metadata]
-        end
-        
-        subgraph "Local Storage"
-            LIBRARY_JSON[music-library.json]
-            SETTINGS_JSON[settings.json]
-            PLAYLISTS_JSON[playlists.json]
-            QUEUE_JSON[queue-state.json]
-            PLAYCOUNTS_JSON[playCounts.json]
-            THEMES_JSON[themes.json]
-        end
-    end
-    
-    %% External Dependencies
-    subgraph "External Dependencies"
-        VLC[VLC Media Player]
-        AFPLAY[macOS AFPLAY]
-        FS[File System API]
-        MUSIC_METADATA[music-metadata]
-    end
-    
-    %% Connections
-    UI --> SETTINGS_CTX
-    UI --> LIBRARY_CTX
-    UI --> SEARCH_CTX
-    UI --> THEME_CTX
-    UI --> TOAST_CTX
-    
-    SETTINGS_CTX --> SETTINGS_API
-    LIBRARY_CTX --> ALBUMS_API
-    SEARCH_CTX --> SEARCH_API
-    
-    SCAN_API --> MUSIC_FILES
-    SCAN_API --> METADATA
-    ALBUMS_API --> LIBRARY_JSON
-    COVER_API --> COVER_ART
-    
-    PLAY_API --> AUDIO_MGR
-    CONTROL_API --> AUDIO_MGR
-    QUEUE_API --> QUEUE_JSON
-    
-    AUDIO_MGR --> VLC_MGR
-    AUDIO_MGR --> AFPLAY_MGR
-    AUDIO_MGR --> VOLUME_MGR
-    
-    VLC_MGR --> VLC
-    AFPLAY_MGR --> AFPLAY
-    
-    SETTINGS_API --> SETTINGS_JSON
-    PLAYLISTS_API --> PLAYLISTS_JSON
-    PLAYCOUNTS_API --> PLAYCOUNTS_JSON
-    THEMES_API --> THEMES_JSON
-    
-    %% Styling
-    classDef frontend fill:#e1f5fe
-    classDef context fill:#f3e5f5
-    classDef api fill:#e8f5e8
-    classDef audio fill:#fff3e0
-    classDef data fill:#fce4ec
-    classDef external fill:#f1f8e9
-    
-    class UI,HOME,SETTINGS,PLAYLISTS,RECENT,ALBUM,APP_SHELL,HEADER,PLAYER,QUEUE,ALBUM_GRID,ALBUM_CARD,SEARCH,TOAST,MODAL,PINPAD,SCAN,PAGINATION,QRCODE frontend
-    class SETTINGS_CTX,LIBRARY_CTX,SEARCH_CTX,THEME_CTX,TOAST_CTX context
-    class SCAN_API,ALBUMS_API,COVER_API,BROWSE_API,PLAY_API,CONTROL_API,QUEUE_API,AUDIO_API,SETTINGS_API,ADMIN_API,THEMES_API,LOGS_API,PLAYLISTS_API,SEARCH_API,PLAYCOUNTS_API api
-    class AUDIO_MGR,AFPLAY_MGR,VLC_MGR,VOLUME_MGR audio
-    class MUSIC_FILES,COVER_ART,METADATA,LIBRARY_JSON,SETTINGS_JSON,PLAYLISTS_JSON,QUEUE_JSON,PLAYCOUNTS_JSON,THEMES_JSON data
-    class VLC,AFPLAY,FS,MUSIC_METADATA external
-```
 
 ## Installation
 
-1. Clone the repository:
 ```bash
 git clone <repository-url>
 cd jukebox_2.0
-```
-
-2. Install dependencies:
-```bash
 npm install
-```
-
-3. Run the development server:
-```bash
 npm run dev
 ```
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:3000](http://localhost:3000). Configure the VLC password and music library path in **Settings** on first run.
+
+---
 
 ## Usage
 
-### Scanning Your Music Library
+### Scanning your library
 
-1. Click the "Scan Music Library" button
-2. Enter the path to your music directory (e.g., `/Users/username/Music` or `C:\Users\username\Music`)
-3. The application will recursively scan the directory and organize music by albums
-4. Each folder at the lowest level is treated as an album
+1. Go to **Settings** and set your music directory path
+2. Click **Scan Music Library** — the app recursively scans and indexes all audio files
+3. Each folder at the deepest level is treated as one album
 
-### Playing Music
+### Browsing and playing
 
-1. Browse your albums in the grid view
-2. Click the expand button (+) on an album to see its tracks
-3. Click the play button on any track to start playback
-4. Use the player controls at the bottom to control playback
+- Browse albums in the grid; use the letter bar to jump by initial
+- Click an album to open its track list
+- Click any track to play it, or use **Play Album** to queue the whole album
+- The player bar at the bottom controls playback, volume, and shows now-playing info
 
-### Supported File Formats
+### Supported formats
 
 - **Audio**: MP3, FLAC, M4A, WAV, OGG, AAC
-- **Cover Art**: JPG, JPEG, PNG, GIF, BMP
+- **Cover art**: JPG, JPEG, PNG, GIF, BMP
+
+---
 
 ## Project Structure
 
 ```
 jukebox_2.0/
-├── app/                    # Next.js app directory
-│   ├── api/               # API routes
-│   │   ├── scan/          # Music scanning endpoint
-│   │   └── albums/        # Library retrieval endpoint
-│   ├── globals.css        # Global styles
-│   ├── layout.tsx         # Root layout
-│   └── page.tsx           # Main page
-├── components/            # React components
-│   ├── AlbumCard/         # Individual album display
-│   ├── AlbumGrid/         # Album grid layout
-│   ├── JukeboxHeader/     # Application header
-│   ├── Player/            # Audio player
-│   └── ScanButton/        # Library scanning controls
-├── types/                 # TypeScript type definitions
-│   └── music.ts           # Music-related types
-├── data/                  # Local data storage (auto-created)
-│   ├── music-library.json # Scanned music library
-│   └── settings.json      # Application settings
-└── package.json           # Dependencies and scripts
+├── app/                         # Next.js app router
+│   ├── api/                     # API routes
+│   │   ├── albums/              # Library retrieval
+│   │   ├── browse/              # File browser
+│   │   ├── control/             # Playback control (play/pause/volume/seek)
+│   │   ├── cover/               # Album art serving
+│   │   ├── play/                # Track playback
+│   │   ├── playcounts/          # Play count tracking
+│   │   ├── playlists/           # Playlist CRUD
+│   │   ├── queue/               # Queue management
+│   │   ├── scan/                # Library scanning
+│   │   ├── search/              # Search
+│   │   ├── settings/            # App settings
+│   │   └── themes/              # Theme management
+│   ├── album/[id]/              # Album detail page
+│   ├── classic-library/         # Classic list layout
+│   ├── playlists/               # Playlists page
+│   ├── recent/                  # Recently played page
+│   ├── settings/                # Settings page
+│   └── page.tsx                 # Home / album grid
+├── components/
+│   ├── AppHeader/               # Navigation header
+│   ├── AppShell.tsx             # Root layout shell
+│   ├── LargeAlbumCard/          # Album card (grid view)
+│   ├── LargeAlbumGrid/          # Album grid + letter nav
+│   ├── AlbumCard/               # Compact album card
+│   ├── Player/                  # Fixed player bar
+│   ├── Queue/                   # Queue panel
+│   ├── SearchBox/               # Search input + results
+│   ├── SearchResults/           # Search result list
+│   ├── RecentlyPlayed/          # Recently played panel
+│   ├── PlaylistModal/           # Add-to-playlist modal
+│   ├── PinPad/                  # Party mode PIN entry
+│   ├── MeterBridge/             # VU meter display
+│   ├── Toast/                   # Notification toasts
+│   └── ...                      # Supporting components
+├── contexts/                    # React context providers
+│   ├── LibraryContext.tsx       # Library + letter filter state
+│   ├── SettingsContext.tsx      # App settings
+│   ├── SearchContext.tsx        # Search state
+│   └── ToastContext.tsx         # Toast notifications
+├── types/
+│   └── music.ts                 # Shared TypeScript types
+├── audio-manager.ts             # VLC HTTP API wrapper
+└── data/                        # Runtime data (auto-created)
+    ├── music-library.json
+    ├── settings.json
+    ├── playlists.json
+    ├── queue-state.json
+    └── playCounts.json
 ```
+
+---
+
+## Available Scripts
+
+```bash
+npm run dev      # Development server (localhost:3000)
+npm run build    # Production build
+npm run start    # Production server
+npm run lint     # ESLint
+```
+
+---
 
 ## Design System
 
-The application uses a custom CSS design system with:
+Custom CSS variables defined in `app/globals.css`:
 
-- **Color Palette**: Dark theme with neon accents (gold, red, blue, purple)
-- **Typography**: Orbitron for display text, Inter for body text
-- **Spacing**: Consistent spacing scale (xs, sm, md, lg, xl, 2xl)
-- **Animations**: Smooth transitions, hover effects, and loading animations
-- **Responsive Breakpoints**: Mobile-first design with tablet and desktop optimizations
-
-## API Endpoints
-
-### POST /api/scan
-Scans a directory for music files and builds the album index.
-
-**Request Body:**
-```json
-{
-  "path": "/path/to/music/directory"
-}
-```
-
-**Response:**
-```json
-{
-  "albums": [...],
-  "totalTracks": 1234,
-  "scanPath": "/path/to/music/directory",
-  "scanDate": "2024-01-01T00:00:00.000Z"
-}
-```
-
-### GET /api/albums
-Retrieves the saved music library data.
-
-**Response:**
-```json
-{
-  "albums": [...],
-  "scanPath": "/path/to/music/directory"
-}
-```
-
-## Development
-
-### Available Scripts
-
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run start` - Start production server
-- `npm run lint` - Run ESLint
-
-### Adding New Features
-
-1. Create new components in the `components/` directory
-2. Add TypeScript types in `types/` directory
-3. Create API routes in `app/api/` directory
-4. Use CSS modules for component styling
-
-## Browser Support
-
-- Chrome/Chromium (recommended)
-- Firefox
-- Safari
-- Edge
-
-## License
-
-This project is open source and available under the [MIT License](LICENSE).
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## Support
-
-If you encounter any issues or have questions, please open an issue on the GitHub repository. 
+- **Colors**: Dark background, cyan accent (`--jukebox-accent`), gold highlights (`--jukebox-gold`)
+- **Typography**: Orbitron for display headings, Inter for body text
+- **Spacing scale**: `--spacing-xs` through `--spacing-2xl`
+- **Breakpoints**: 480px (small mobile), 768px (tablet), 1024px (desktop), 1100px / 1300px (wide desktop)

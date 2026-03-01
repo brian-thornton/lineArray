@@ -67,13 +67,15 @@
   }
 }
 
-/* Small screen adjustments */
+/* Small screen adjustments — real phones */
 @media (max-width: 480px) {
   .main {
     height: auto !important;
-    min-height: calc(100vh - 219px - 150px); /* Account for header (219px) and larger player on small screens */
-    padding-bottom: 150px; /* Even more space on very small screens */
+    min-height: 50vh !important;
+    max-height: none !important;
+    /* player ~84px content + iOS home indicator safe area */
+    padding-bottom: calc(120px + env(safe-area-inset-bottom)) !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
   }
-} 
+}

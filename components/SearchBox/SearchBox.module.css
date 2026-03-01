@@ -152,16 +152,16 @@
 /* Mobile optimizations */
 @media (max-width: 768px) {
   .searchInput {
-    padding: 1.25rem 3.5rem 1.25rem 1.75rem;
-    font-size: 1.2rem;
-    min-height: 56px;
+    padding: 0.5rem 3rem 0.5rem 1rem;
+    font-size: 1rem;
+    min-height: 40px;
   }
 
   .clearButton {
-    right: 1.25rem;
-    min-width: 48px;
-    min-height: 48px;
-    font-size: 1.3rem;
+    right: 0.5rem;
+    min-width: 40px;
+    min-height: 40px;
+    font-size: 1.1rem;
   }
 
   /* Hide on-screen keyboard on mobile devices */

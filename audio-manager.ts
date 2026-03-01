@@ -58,6 +58,7 @@ class AudioManager implements AudioManagerInterface {
       const isWorking = await this.verifyVLCRunning()
       if (isWorking) {
         console.log('🎬 Simple VLC Audio Manager: VLC started successfully')
+        await this.syncVolumeFromVLC()
       } else {
         console.error('🎬 Simple VLC Audio Manager: VLC failed to start - not responding to HTTP requests')
         if (this.vlcProcess) {
@@ -309,16 +310,23 @@ class AudioManager implements AudioManagerInterface {
       }
 
       const text = await response.text()
-      
+
       // Simple XML parsing without DOMParser (server-side compatible)
       const stateMatch = text.match(/<state>([^<]*)<\/state>/)
       const timeMatch = text.match(/<time>([^<]*)<\/time>/)
       const lengthMatch = text.match(/<length>([^<]*)<\/length>/)
-      
+      const volumeMatch = text.match(/<volume>([^<]*)<\/volume>/)
+
       const state = stateMatch ? stateMatch[1] : 'stopped'
       const currentTime = timeMatch ? parseFloat(timeMatch[1]) : 0
       const totalLength = lengthMatch ? parseFloat(lengthMatch[1]) : 0
       const progress = totalLength > 0 ? (currentTime / totalLength) * 100 : 0
+
+      // Keep internal volume in sync with VLC's actual volume
+      if (volumeMatch) {
+        const vlcVolume = parseFloat(volumeMatch[1])
+        this.volume = Math.max(0, Math.min(1, vlcVolume / 512))
+      }
 
       return {
         state,
@@ -329,6 +337,28 @@ class AudioManager implements AudioManagerInterface {
     } catch (error) {
       console.error('🎬 Simple VLC Audio Manager: Error getting VLC status:', error)
       return null
+    }
+  }
+
+  // Sync this.volume with whatever VLC is actually set to
+  private async syncVolumeFromVLC(): Promise<void> {
+    try {
+      const statusUrl = `http://localhost:${this.vlcPort}/requests/status.xml`
+      const response = await fetch(statusUrl, {
+        headers: {
+          'Authorization': `Basic ${Buffer.from(`:${this.vlcPassword}`).toString('base64')}`
+        }
+      })
+      if (!response.ok) return
+      const text = await response.text()
+      const volumeMatch = text.match(/<volume>([^<]*)<\/volume>/)
+      if (volumeMatch) {
+        const vlcVolume = parseFloat(volumeMatch[1])
+        this.volume = Math.max(0, Math.min(1, vlcVolume / 512))
+        console.log('🎬 Simple VLC Audio Manager: Synced volume from VLC:', Math.round(this.volume * 100) + '%')
+      }
+    } catch (error) {
+      console.error('🎬 Simple VLC Audio Manager: Error syncing volume from VLC:', error)
     }
   }
 
@@ -367,8 +397,15 @@ class AudioManager implements AudioManagerInterface {
       })
       
       if (response.ok) {
-        console.log('🎬 Simple VLC Audio Manager: Volume set to', Math.round(clampedVolume * 100) + '%')
-        return clampedVolume
+        // Parse the actual volume VLC confirms back (in case it clamped differently)
+        const text = await response.text()
+        const volumeMatch = text.match(/<volume>([^<]*)<\/volume>/)
+        if (volumeMatch) {
+          const vlcVolume = parseFloat(volumeMatch[1])
+          this.volume = Math.max(0, Math.min(1, vlcVolume / 512))
+        }
+        console.log('🎬 Simple VLC Audio Manager: Volume set to', Math.round(this.volume * 100) + '%')
+        return this.volume
       } else {
         console.error('🎬 Simple VLC Audio Manager: Failed to set volume')
         return this.volume
