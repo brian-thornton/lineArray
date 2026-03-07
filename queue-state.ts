@@ -79,7 +79,8 @@ function monitorQueueForNewTracks(): void {
   const state = getStateSnapshot()
   
   // Only start playback if there's no current track and no playback happening
-  if (!state.currentTrack && !state.isPlaying && state.queueLength > 0) {
+  // and the user hasn't manually stopped playback
+  if (!state.currentTrack && !state.isPlaying && state.queueLength > 0 && !manuallyStoppedByUser) {
     console.log('🎯 Queue State: Queue monitor detected new tracks, starting playback...')
     logger.info('Queue monitor detected new tracks, starting playback', 'QueueState')
     void playNextInQueue()
@@ -172,6 +173,7 @@ let progress: number = 0
 let volume: number = 1.0
 let isMuted: boolean = false
 let isStopping: boolean = false
+let manuallyStoppedByUser: boolean = false
 
 // State lock to prevent race conditions
 let isStateUpdating: boolean = false
@@ -344,6 +346,9 @@ getCurrentAudioManager().setProgressCallback((newProgress: number) => {
 })
 
 async function playNextInQueue(): Promise<boolean> {
+  // User explicitly triggered playback — clear the manual-stop flag so
+  // the queue monitor can resume auto-advance if needed
+  manuallyStoppedByUser = false
   console.log('⏭️ Queue State: playNextInQueue called')
   console.log('📊 Queue State: Queue length:', queue.length)
   logger.info('Playing next track in queue', 'QueueState', { queueLength: queue.length })
@@ -424,9 +429,6 @@ async function playNextInQueue(): Promise<boolean> {
       if (success) {
         isPlaying = true
         console.log('✅ Queue State: Set isPlaying to true')
-        // Only remove the track from queue after successful playback
-        queue.shift()
-        console.log('🎯 Queue State: Removed track from queue, remaining tracks:', queue.length)
       } else {
         console.log('❌ Queue State: Play file failed, isPlaying remains false')
         // Don't remove the track from queue if playback failed
@@ -936,11 +938,14 @@ const queueState: QueueStateInterface = {
   switchAudioPlayer,
   reloadAudioPlayerPreference,
   checkQueueAndStartPlayback,
-  stopAllPlayback: async () => { 
+  stopAllPlayback: async () => {
     logger.info('stopAllPlayback: Starting stop operation', 'QueueState')
-    
+
     // Set stopping flag to prevent race conditions
     isStopping = true
+    // Signal that the user explicitly stopped — prevents the queue monitor
+    // from auto-restarting playback until the user explicitly plays again
+    manuallyStoppedByUser = true
     
     // Use the aggressive force stop method to ensure VLC actually stops
     try {
@@ -964,19 +969,16 @@ const queueState: QueueStateInterface = {
     // Clear the track completion callback completely
     audio.clearTrackCompleteCallback()
     logger.info('stopAllPlayback: Cleared track completion callback', 'QueueState')
-    
-    // Clear the queue to prevent auto-advance
-    queue = []
-    logger.info('stopAllPlayback: Cleared queue to prevent auto-advance', 'QueueState')
-    
-    // Reset all state
+
+    // Reset playback state only — leave the queue intact so the user can
+    // see and continue with the remaining tracks after stopping
     currentTrack = null
     isPlaying = false
     progress = 0
     isStopping = false
     saveState()
-    logger.info('stopAllPlayback: Reset all state and cleared queue', 'QueueState')
-    
+    logger.info('stopAllPlayback: Playback stopped, queue preserved', 'QueueState')
+
     logger.info('stopAllPlayback: Stop operation completed', 'QueueState')
   },
   skipToNext: async () => {

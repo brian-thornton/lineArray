@@ -1,3 +1,5 @@
+"use client"
+
 import React, { useState, useEffect } from 'react';
 import { Album } from '@/types/music';
 import ClassicLibraryGrid from '@/components/ClassicLibraryGrid/ClassicLibraryGrid';

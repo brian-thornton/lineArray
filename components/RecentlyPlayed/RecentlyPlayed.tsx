@@ -147,7 +147,7 @@ export default function RecentlyPlayed({ limit = 10, showTitle = true }: Recentl
 
   return (
     <div className={styles.container}>
-      {showTitle && <h3 className={styles.title}>Recently Played FOO</h3>}
+      {showTitle && <h3 className={styles.title}>Recently Played</h3>}
       
       <div className={styles.trackList}>
         {recentTracks.map((track, index) => (

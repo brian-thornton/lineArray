@@ -2,6 +2,12 @@ import { exec, type ChildProcess } from 'child_process'
 import type { AudioStatus, CurrentSong, AudioManagerInterface } from './types/audio'
 import { NetworkPathHandler } from './utils/networkPathHandler'
 
+// Process-level lock so multiple AudioManager instances (from Next.js module reloads)
+// don't race to start VLC simultaneously.
+const g = global as typeof globalThis & {
+  __vlcStarting?: boolean
+}
+
 class AudioManager implements AudioManagerInterface {
   private vlcProcess: ChildProcess | null = null
   private vlcPort: number = 8081
@@ -26,11 +32,34 @@ class AudioManager implements AudioManagerInterface {
       return
     }
 
+    // If another AudioManager instance is currently starting VLC, wait for it
+    if (g.__vlcStarting) {
+      console.log('🎬 Simple VLC Audio Manager: Another instance is starting VLC, waiting...')
+      await new Promise(resolve => setTimeout(resolve, 4500))
+    }
+
+    // If another AudioManager instance already started VLC, reuse it
+    const alreadyRunning = await this.verifyVLCRunning()
+    if (alreadyRunning) {
+      console.log('🎬 Simple VLC Audio Manager: VLC already running (from another instance), reusing')
+      await this.syncVolumeFromVLC()
+      return
+    }
+
+    // Acquire process-level lock
+    g.__vlcStarting = true
+
+    // Kill any stale VLC processes on our port before starting fresh
+    await new Promise<void>(resolve => {
+      exec(`pkill -f "vlc --intf http --http-port ${this.vlcPort}"`, () => resolve())
+    })
+    await new Promise(resolve => setTimeout(resolve, 500))
+
     const command = `vlc --intf http --http-port ${this.vlcPort} --http-password ${this.vlcPassword} --no-video --quiet --network-caching=1000 --live-caching=1000 --file-caching=1000 --sout-keep --sout-all --extraintf http`
-    
+
     console.log('🎬 Simple VLC Audio Manager: Starting VLC...')
     console.log('🎬 Simple VLC Audio Manager: Command:', command)
-    
+
     try {
       this.vlcProcess = exec(command)
       
@@ -42,9 +71,11 @@ class AudioManager implements AudioManagerInterface {
       this.vlcProcess.on('exit', (code, signal) => {
         console.log('🎬 Simple VLC Audio Manager: VLC exited with code:', code, 'signal:', signal)
         this.vlcProcess = null
-        // Restart VLC if it was killed
-        if (signal === 'SIGKILL' || signal === 'SIGTERM') {
-          console.log('🎬 Simple VLC Audio Manager: VLC was killed, restarting...')
+        // Only auto-restart on unexpected crash (no signal = natural exit/crash)
+        // When killed intentionally via forceStop/stop, do NOT restart automatically
+        // — playFile() will restart VLC when needed
+        if (!signal && code !== 0) {
+          console.log('🎬 Simple VLC Audio Manager: VLC crashed unexpectedly, restarting...')
           setTimeout(() => this.startVLC(), 2000)
         }
       })
@@ -69,6 +100,9 @@ class AudioManager implements AudioManagerInterface {
     } catch (error) {
       console.error('🎬 Simple VLC Audio Manager: Error starting VLC:', error)
       this.vlcProcess = null
+    } finally {
+      // Release process-level lock
+      g.__vlcStarting = false
     }
   }
 
@@ -245,7 +279,7 @@ class AudioManager implements AudioManagerInterface {
             this.stopCompletionChecking()
             this.isPlaying = false
             this.currentFile = null
-            this.onTrackComplete()
+            this.onTrackComplete?.()
           }
         }
       } catch (error) {
@@ -265,7 +299,7 @@ class AudioManager implements AudioManagerInterface {
   async stop(): Promise<boolean> {
     try {
       console.log('🛑 Simple VLC Audio Manager: stop called')
-      
+
       // Stop completion checking
       this.stopCompletionChecking()
       
@@ -477,37 +511,17 @@ class AudioManager implements AudioManagerInterface {
   async forceStop(): Promise<boolean> {
     try {
       console.log('🛑 Simple VLC Audio Manager: forceStop called')
-      
+
       // Stop completion checking first
       this.stopCompletionChecking()
-      
-      // Try the normal stop first
+
+      // Send stop + clear playlist via HTTP — keeps VLC process alive and ready for next play
       await this.stop()
-      
-      // Force kill the VLC process to ensure it actually stops
-      if (this.vlcProcess) {
-        console.log('🛑 Simple VLC Audio Manager: Force killing VLC process')
-        this.vlcProcess.kill('SIGKILL')
-        this.vlcProcess = null
-      }
-      
-      // Also kill any remaining VLC processes as a safety measure
-      try {
-        if (this.platform === 'win32') {
-          exec('taskkill /f /im vlc.exe', () => {})
-        } else {
-          exec('pkill -f vlc', () => {})
-          exec('pkill -f "vlc --intf http"', () => {})
-        }
-        console.log('🛑 Simple VLC Audio Manager: Killed all VLC processes')
-      } catch (error) {
-        console.log('🛑 Simple VLC Audio Manager: Error killing VLC processes:', error)
-      }
-      
+
       // Reset state
       this.isPlaying = false
       this.currentFile = null
-      
+
       console.log('🛑 Simple VLC Audio Manager: Force stop completed')
       return true
     } catch (error) {
