@@ -20,6 +20,8 @@ class AudioManager implements AudioManagerInterface {
   private volumeBeforeMute = 1.0 // Store volume before muting
   private platform: string = process.platform
   private completionCheckInterval: NodeJS.Timeout | null = null
+  private trackStartTime: number = 0
+  private _stoppedDuringLoad = false
 
   constructor() {
     console.log('🎬 Simple VLC Audio Manager: Initialized')
@@ -123,22 +125,18 @@ class AudioManager implements AudioManagerInterface {
   async playFile(filePath: string): Promise<boolean> {
     try {
       console.log('🎬 Simple VLC Audio Manager: playFile called with path:', filePath)
-      
-      // Ensure VLC is running
-      if (!this.vlcProcess) {
-        console.log('🎬 Simple VLC Audio Manager: VLC not running, starting...')
-        await this.startVLC()
-        await new Promise(resolve => setTimeout(resolve, 2000))
-      }
 
-      // Verify VLC is responding
+      // Reset sentinel SYNCHRONOUSLY before any await so forceStop() called
+      // during any of the awaits below can still be detected.
+      this._stoppedDuringLoad = false
+
+      // Verify VLC is responding; start it if needed.
+      // startVLC() handles its own startup wait internally, so no extra sleep here.
       const isWorking = await this.verifyVLCRunning()
       if (!isWorking) {
-        console.error('🎬 Simple VLC Audio Manager: VLC is not responding, trying to restart...')
+        console.log('🎬 Simple VLC Audio Manager: VLC not responding, starting...')
         this.vlcProcess = null
         await this.startVLC()
-        await new Promise(resolve => setTimeout(resolve, 3000))
-        
         const retryWorking = await this.verifyVLCRunning()
         if (!retryWorking) {
           console.error('🎬 Simple VLC Audio Manager: VLC still not responding after restart')
@@ -154,13 +152,25 @@ class AudioManager implements AudioManagerInterface {
 
       // Load and play the file
       const success = await this.loadAndPlayFile(filePath)
-      
+
+      // forceStop() may have been called while loadAndPlayFile was awaiting HTTP responses.
+      // It sets _stoppedDuringLoad=true and sends pl_stop to VLC, but our
+      // pl_empty+in_play+pl_play commands may have arrived at VLC AFTER the pl_stop,
+      // leaving VLC playing despite the stop command. Re-stop VLC now to fix that.
+      if (this._stoppedDuringLoad) {
+        console.log('🎬 Simple VLC Audio Manager: Stop was called during file load — re-stopping VLC')
+        this.stopCompletionChecking()
+        await this.stop()
+        return false
+      }
+
       if (success) {
         this.isPlaying = true
         this.currentFile = filePath
+        this.trackStartTime = Date.now() // reset grace period from actual play start
         console.log('🎬 Simple VLC Audio Manager: Successfully started playback')
       }
-      
+
       return success
     } catch (error) {
       console.error('🎬 Simple VLC Audio Manager: Error in playFile:', error)
@@ -258,22 +268,28 @@ class AudioManager implements AudioManagerInterface {
     }
 
     console.log('🎬 Simple VLC Audio Manager: Setting up completion checking...')
-    
+    this.trackStartTime = Date.now()
+
     this.completionCheckInterval = setInterval(async () => {
       if (!this.isPlaying || !this.onTrackComplete) {
         return
       }
 
+      // Grace period: ignore stale VLC state from the previous track for the
+      // first second after a new track starts (prevents double-advance)
+      if (Date.now() - this.trackStartTime < 1000) {
+        return
+      }
+
       try {
         const status = await this.getVLCStatus()
+        // Re-check after async gap: stop() or forceStop() may have run while we awaited
+        if (!this.isPlaying || !this.onTrackComplete) return
         if (status) {
-          console.log('🎬 Simple VLC Audio Manager: Completion check - state:', status.state, 'currentTime:', status.currentTime, 'totalLength:', status.totalLength, 'progress:', status.progress)
-          
-          // Check if track has completed - multiple conditions to catch different completion scenarios
           const isStopped = status.state === 'stopped'
           const isNearEnd = status.totalLength > 0 && status.currentTime >= status.totalLength - 1
-          const isProgressComplete = status.progress >= 99.9 // 99.9% complete
-          
+          const isProgressComplete = status.progress >= 99.9
+
           if (isStopped || isNearEnd || isProgressComplete) {
             console.log('🎬 Simple VLC Audio Manager: Track completed - isStopped:', isStopped, 'isNearEnd:', isNearEnd, 'isProgressComplete:', isProgressComplete)
             this.stopCompletionChecking()
@@ -285,7 +301,7 @@ class AudioManager implements AudioManagerInterface {
       } catch (error) {
         console.error('🎬 Simple VLC Audio Manager: Error in completion checking:', error)
       }
-    }, 2000) // Check every 2 seconds
+    }, 250) // Check every 250ms for fast track transitions
   }
 
   private stopCompletionChecking(): void {
@@ -512,15 +528,21 @@ class AudioManager implements AudioManagerInterface {
     try {
       console.log('🛑 Simple VLC Audio Manager: forceStop called')
 
-      // Stop completion checking first
+      // Stop completion checking first to prevent the interval from
+      // firing the callback while we're stopping.
       this.stopCompletionChecking()
 
-      // Send stop + clear playlist via HTTP — keeps VLC process alive and ready for next play
-      await this.stop()
+      // Signal to any in-flight playFile that a stop was requested.
+      // playFile checks this flag after loadAndPlayFile returns and re-stops VLC
+      // if our pl_stop arrived at VLC before the in-flight pl_play.
+      this._stoppedDuringLoad = true
 
-      // Reset state
+      // Reset local state immediately
       this.isPlaying = false
       this.currentFile = null
+
+      // Send stop + playlist clear to VLC
+      await this.stop()
 
       console.log('🛑 Simple VLC Audio Manager: Force stop completed')
       return true

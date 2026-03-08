@@ -72,30 +72,26 @@ function checkAndReloadAudioPlayerPreference(): void {
 }
 
 // Check audio player preference every 30 seconds to catch settings changes
-setInterval(checkAndReloadAudioPlayerPreference, 30000)
+// (global dedup handled below with __audioPreferenceInterval)
 
 // Queue monitoring function - continuously checks for new tracks and starts playback
 function monitorQueueForNewTracks(): void {
   const state = getStateSnapshot()
-  
-  // Only start playback if there's no current track and no playback happening
-  // and the user hasn't manually stopped playback
-  if (!state.currentTrack && !state.isPlaying && state.queueLength > 0 && !manuallyStoppedByUser) {
-    console.log('🎯 Queue State: Queue monitor detected new tracks, starting playback...')
-    logger.info('Queue monitor detected new tracks, starting playback', 'QueueState')
+
+  // Only start playback if:
+  // - no track is currently playing or loading
+  // - there are tracks in the queue
+  // - the user hasn't manually stopped
+  if (
+    !state.currentTrack &&
+    !state.isPlaying &&
+    !qs.playbackInProgress &&
+    state.queueLength > 0 &&
+    !qs.manuallyStoppedByUser
+  ) {
+    console.log('🎯 Queue State: monitor → starting playback')
     void playNextInQueue()
-  } else if (state.currentTrack && state.isPlaying) {
-    // Only log playing state occasionally to avoid spam (10% chance)
-    if (Math.random() < 0.1) {
-      console.log('🎯 Queue State: Queue monitor - track currently playing:', state.currentTrack.path)
-    }
-  } else if (state.currentTrack && !state.isPlaying) {
-    // Only log paused state occasionally to avoid spam (10% chance)
-    if (Math.random() < 0.1) {
-      console.log('🎯 Queue State: Queue monitor - track paused:', state.currentTrack.path)
-    }
   }
-  // Don't log idle state - it's the most common and creates noise
 }
 
 // Manual queue check function that can be called to force a check
@@ -112,7 +108,7 @@ function checkQueueAndStartPlayback(): void {
     console.error('🎯 Queue State: Error getting audio manager state:', error)
   }
   
-  if (!state.currentTrack && !state.isPlaying && state.queueLength > 0) {
+  if (!state.currentTrack && !state.isPlaying && state.queueLength > 0 && !qs.manuallyStoppedByUser) {
     console.log('🎯 Queue State: Manual check detected new tracks, starting playback...')
     logger.info('Manual queue check detected new tracks, starting playback', 'QueueState')
     void playNextInQueue()
@@ -126,7 +122,17 @@ function checkQueueAndStartPlayback(): void {
 }
 
 // Monitor queue every 5 seconds for new tracks (reduced frequency to reduce log noise)
-setInterval(monitorQueueForNewTracks, 5000)
+// Use global object so that multiple module instances (from Next.js hot-reload) don't
+// create duplicate intervals — each new instance clears the previous one first.
+const _g = global as typeof globalThis & {
+  __queueMonitorInterval?: NodeJS.Timeout
+  __audioPreferenceInterval?: NodeJS.Timeout
+}
+if (_g.__queueMonitorInterval) clearInterval(_g.__queueMonitorInterval)
+_g.__queueMonitorInterval = setInterval(monitorQueueForNewTracks, 1000)
+
+if (_g.__audioPreferenceInterval) clearInterval(_g.__audioPreferenceInterval)
+_g.__audioPreferenceInterval = setInterval(checkAndReloadAudioPlayerPreference, 30000)
 
 // Function to reload audio player preference and update manager
 function reloadAudioPlayerPreference(): void {
@@ -166,43 +172,57 @@ function updateLocalAudioReference(): void {
   }
 }
 
-let queue: QueueTrack[] = []
-let currentTrack: QueueTrack | null = null
-let isPlaying: boolean = false
-let progress: number = 0
+// ─── Shared global state ──────────────────────────────────────────────────────
+// Next.js dev-mode creates separate module instances per API route. To ensure
+// all instances share the same queue/playback state, we store everything in the
+// global object and reference it via `qs`.
+interface QS {
+  queue: QueueTrack[]
+  currentTrack: QueueTrack | null
+  isPlaying: boolean
+  progress: number
+  isStopping: boolean
+  manuallyStoppedByUser: boolean
+  playbackStartTimer: NodeJS.Timeout | null
+  // Concurrency control:
+  // playbackGeneration is incremented every time we start a new playback or stop.
+  // Each playNextInQueue() call captures its generation at start; after any await it
+  // checks if its generation is still current — if not, it was cancelled and aborts.
+  playbackGeneration: number
+  // playbackInProgress is true while playNextInQueue() is executing.
+  // Prevents concurrent calls from each shifting a track off the queue.
+  playbackInProgress: boolean
+}
+const _gqs = global as typeof globalThis & { __qs?: QS }
+if (!_gqs.__qs) {
+  _gqs.__qs = {
+    queue: [],
+    currentTrack: null,
+    isPlaying: false,
+    progress: 0,
+    isStopping: false,
+    manuallyStoppedByUser: false,
+    playbackStartTimer: null,
+    playbackGeneration: 0,
+    playbackInProgress: false,
+  }
+}
+const qs = _gqs.__qs
+// ─────────────────────────────────────────────────────────────────────────────
+
 let volume: number = 1.0
 let isMuted: boolean = false
-let isStopping: boolean = false
-let manuallyStoppedByUser: boolean = false
-
-// State lock to prevent race conditions
-let isStateUpdating: boolean = false
 
 
 // File path for persisting queue state
 const STATE_FILE_PATH = path.join(process.cwd(), 'data', 'queue-state.json')
 
-// Safe state update function to prevent race conditions
-function safeStateUpdate(updater: () => void): void {
-  if (isStateUpdating) {
-    console.log('⚠️ Queue State: State update blocked - another update in progress')
-    return
-  }
-  
-  isStateUpdating = true
-  try {
-    updater()
-  } finally {
-    isStateUpdating = false
-  }
-}
-
 // Get a consistent snapshot of the current state
 function getStateSnapshot(): { currentTrack: QueueTrack | null; isPlaying: boolean; queueLength: number } {
   return {
-    currentTrack,
-    isPlaying,
-    queueLength: queue.length
+    currentTrack: qs.currentTrack,
+    isPlaying: qs.isPlaying,
+    queueLength: qs.queue.length
   }
 }
 
@@ -227,8 +247,8 @@ function logStateChange(operation: string, oldState: { currentTrack: QueueTrack 
 function saveState(): void {
   try {
     const state: QueueState = {
-      queue,
-      currentTrack,
+      queue: qs.queue,
+      currentTrack: qs.currentTrack,
       timestamp: Date.now()
     }
     
@@ -256,11 +276,11 @@ function loadState(): void {
       const isRecent = (Date.now() - state.timestamp) < (24 * 60 * 60 * 1000)
       
       if (isRecent && state.queue && Array.isArray(state.queue)) {
-        queue = state.queue
-        currentTrack = state.currentTrack
+        qs.queue = state.queue
+        qs.currentTrack = state.currentTrack
         console.log('Queue state restored from:', STATE_FILE_PATH)
-        console.log('Restored queue length:', queue.length)
-        console.log('Restored current track:', currentTrack)
+        console.log('Restored queue length:', qs.queue.length)
+        console.log('Restored current track:', qs.currentTrack)
       } else {
         console.log('Queue state is too old or invalid, starting fresh')
       }
@@ -270,8 +290,10 @@ function loadState(): void {
   }
 }
 
-// Load state on module initialization
-loadState()
+// Load state on module initialization — only if not already initialized by another instance
+if (qs.queue.length === 0 && !qs.currentTrack) {
+  loadState()
+}
 
 // Function to switch audio player
 async function switchAudioPlayer(playerType: AudioPlayerType): Promise<void> {
@@ -279,7 +301,7 @@ async function switchAudioPlayer(playerType: AudioPlayerType): Promise<void> {
     logger.info('Queue state: Switching audio player to: ' + playerType, 'QueueState')
     
     // Stop current playback if any
-    if (isPlaying) {
+    if (qs.isPlaying) {
       await audio.forceStop()
     }
     
@@ -305,16 +327,16 @@ async function switchAudioPlayer(playerType: AudioPlayerType): Promise<void> {
     
     // Re-setup callbacks with new audio manager
     audio.setTrackCompleteCallback(() => {
-      if (isStopping) {
+      if (qs.isStopping) {
         logger.info('Queue state: Track completion ignored - stopping in progress', 'QueueState')
         return
       }
       logger.info('Queue state: Track completed, playing next in queue', 'QueueState')
       void playNextInQueue()
     })
-    
+
     audio.setProgressCallback((newProgress: number) => {
-      progress = newProgress
+      qs.progress = newProgress
     })
     
     // Sync volume with new audio manager
@@ -342,153 +364,141 @@ setTimeout(syncVolumeWithAudioManager, 1000)
 
 // Set up the progress callback to update UI
 getCurrentAudioManager().setProgressCallback((newProgress: number) => {
-  progress = newProgress
+  qs.progress = newProgress
 })
 
 async function playNextInQueue(): Promise<boolean> {
-  // User explicitly triggered playback — clear the manual-stop flag so
-  // the queue monitor can resume auto-advance if needed
-  manuallyStoppedByUser = false
-  console.log('⏭️ Queue State: playNextInQueue called')
-  console.log('📊 Queue State: Queue length:', queue.length)
-  logger.info('Playing next track in queue', 'QueueState', { queueLength: queue.length })
-  
-  if (queue.length === 0) {
-    console.log('⚠️ Queue State: Queue is empty, stopping audio')
-    logger.info('Queue is empty, stopping audio', 'QueueState')
-    await stopPlayback()
+  // ── Step 1: Claim this playback slot ────────────────────────────────────────
+  // Increment the generation FIRST (synchronous, before any await).
+  // Any previously in-flight playNextInQueue will see a stale generation on its
+  // next await and abort without touching the queue or VLC state.
+  const myGen = ++qs.playbackGeneration
+  qs.manuallyStoppedByUser = false
+
+  console.log(`⏭️ Queue State: playNextInQueue called (gen=${myGen}), queue=${qs.queue.length}`)
+
+  // ── Step 2: Wait for previous call to release the lock ──────────────────────
+  // If another playNextInQueue is loading, wait for it to detect the new generation
+  // and abort (it clears playbackInProgress in its finally block).
+  if (qs.playbackInProgress) {
+    console.log('⏳ Queue State: waiting for previous playback to abort...')
+    const deadline = Date.now() + 800
+    while (qs.playbackInProgress && Date.now() < deadline) {
+      await new Promise(r => setTimeout(r, 30))
+    }
+    if (qs.playbackInProgress) {
+      console.log('⚠️ Queue State: previous playback did not abort in time, forcing flag clear')
+      qs.playbackInProgress = false
+    }
+  }
+
+  // After waiting, verify we're still the current generation.
+  // A stop or a third skip may have superseded us while we waited.
+  if (myGen !== qs.playbackGeneration) {
+    console.log(`🚫 Queue State: gen ${myGen} superseded by ${qs.playbackGeneration}, aborting`)
     return false
   }
-  
-  const nextTrack = queue[0] || null
-  console.log('🎵 Queue State: Next track from queue:', nextTrack)
-  logger.info('Next track from queue', 'QueueState', { track: nextTrack })
-  
-  if (!nextTrack) {
-    console.log('⚠️ Queue State: No next track, stopping audio')
-    logger.info('No next track, stopping audio', 'QueueState')
-    await stopPlayback()
-    return false
-  }
-  
-  // Remove the current track from the queue before playing it
-  queue.shift() // Remove the first track from the queue
-  console.log('📊 Queue State: Removed track from queue, remaining length:', queue.length)
-  
-  // Don't call stopPlayback() here - just update the state
-  // This preserves the callback for the next track
-  console.log('🎯 Queue State: Setting current track:', nextTrack)
-  logger.info('Set current track', 'QueueState', { track: nextTrack })
-  
-  currentTrack = nextTrack
-  isPlaying = false
-  progress = 0
-  saveState()
-  
-  // Re-enable the track completion callback when playing next track
-  updateLocalAudioReference() // Ensure we have the current audio manager
-  console.log('🎯 Queue State: Setting up track completion callback for next track')
-  
-  // Check if there are more tracks in the queue to determine auto-advance behavior
-  const shouldAutoAdvance = queue.length > 0 // Check remaining tracks after removing current one
-  if (shouldAutoAdvance) {
-    audio.setTrackCompleteCallback(() => {
-      console.log('🎯 Queue State: Track completion callback triggered - auto-advancing to next track')
-      logger.info('Queue state: Track completed, auto-advancing to next track', 'QueueState')
-      void playNextInQueue()
-    })
-  } else {
-    console.log('🎯 Queue State: Setting up completion callback for last track to reset state')
-    // For the last track in queue, set a callback that resets the state when complete
-    audio.setTrackCompleteCallback(() => {
-      console.log('🎯 Queue State: Last track completed, resetting state')
-      logger.info('Last track completed, resetting state', 'QueueState')
-      // Reset state for last track completion
-      currentTrack = null
-      isPlaying = false
-      progress = 0
-      saveState()
-      console.log('🎯 Queue State: State reset complete - currentTrack: null, isPlaying: false')
-    })
-  }
-  
-  console.log('🚀 Queue State: Calling audio.playFile with path:', nextTrack.path)
-  logger.info('Playing file', 'QueueState', { filePath: nextTrack.path })
-  
+
+  // ── Step 3: Acquire lock ────────────────────────────────────────────────────
+  qs.playbackInProgress = true
+
   try {
-    const currentAudioManager = audioFactory.getCurrentManager();
-    console.log('🎯 Queue State: Got audio manager:', currentAudioManager?.constructor.name)
-    
-    if (currentAudioManager) {
-      console.log('🎯 Queue State: About to call playFile on:', nextTrack.path)
-      const success = await currentAudioManager.playFile(nextTrack.path)
-      
-      console.log('📊 Queue State: Play file result:', success)
-      logger.info('Play file result', 'QueueState', { success, filePath: nextTrack.path })
-      
-      if (success) {
-        isPlaying = true
-        console.log('✅ Queue State: Set isPlaying to true')
-      } else {
-        console.log('❌ Queue State: Play file failed, isPlaying remains false')
-        // Don't remove the track from queue if playback failed
-        console.log('⚠️ Queue State: Track remains in queue for retry')
-      }
-
-      // Increment play count for this track
-      try {
-        await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'}/api/playcounts`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ trackPath: nextTrack.path })
-        })
-      } catch (err) {
-        console.error('Failed to increment play count:', err)
-      }
-
-      return success
-    } else {
-      console.error('playNextInQueue: No current audio manager available');
+    if (qs.queue.length === 0) {
+      console.log('⚠️ Queue State: Queue empty, stopping audio')
+      qs.currentTrack = null
+      qs.isPlaying = false
+      saveState()
       return false
     }
+
+    // ── Step 4: Shift next track (we hold the lock — no other call can do this) ─
+    const nextTrack = qs.queue.shift()!
+    console.log(`🎵 Queue State: Playing "${nextTrack.title}", ${qs.queue.length} remaining`)
+
+    qs.currentTrack = nextTrack
+    qs.isPlaying = false
+    qs.progress = 0
+    saveState()
+
+    // ── Step 5: Set up completion callback with generation guard ────────────────
+    updateLocalAudioReference()
+    const currentAudioManager = audioFactory.getCurrentManager()
+    if (!currentAudioManager) {
+      console.error('playNextInQueue: no audio manager')
+      return false
+    }
+
+    // Clear old callback synchronously — prevents the completion interval from
+    // firing the previous track's callback while we're between tracks.
+    currentAudioManager.clearTrackCompleteCallback()
+
+    currentAudioManager.setTrackCompleteCallback(() => {
+      // Only advance if this callback belongs to the current playback generation.
+      if (myGen !== qs.playbackGeneration) {
+        console.log(`🚫 Queue State: stale completion callback (gen ${myGen} vs ${qs.playbackGeneration}), ignoring`)
+        return
+      }
+      console.log('🎯 Queue State: track complete → advancing queue')
+      void playNextInQueue()
+    })
+
+    // ── Step 6: Start playback ──────────────────────────────────────────────────
+    console.log(`🚀 Queue State: playFile (gen=${myGen}): ${nextTrack.path}`)
+    const success = await currentAudioManager.playFile(nextTrack.path)
+
+    // ── Step 7: Post-await generation check ────────────────────────────────────
+    // After the await, verify nothing cancelled us (stop or a newer skip).
+    if (myGen !== qs.playbackGeneration) {
+      console.log(`🚫 Queue State: gen ${myGen} cancelled during playFile, re-stopping VLC`)
+      // playFile's own _stoppedDuringLoad guard should have stopped VLC already,
+      // but send another stop to be certain.
+      void currentAudioManager.forceStop()
+      qs.isPlaying = false
+      return false
+    }
+
+    if (success) {
+      qs.isPlaying = true
+      console.log(`✅ Queue State: playback started (gen=${myGen})`)
+    } else {
+      console.log('❌ Queue State: playFile returned false')
+    }
+
+    // Record play count (fire-and-forget, don't await)
+    void fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'}/api/playcounts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ trackPath: nextTrack.path })
+    }).catch(() => {}) // ignore errors
+
+    return success
   } catch (error) {
-    console.error('playNextInQueue: Error playing file:', error);
+    console.error('playNextInQueue: error:', error)
     return false
+  } finally {
+    // Release lock only if we're still the current generation.
+    // If we were cancelled, the new owner will manage the flag.
+    if (myGen === qs.playbackGeneration) {
+      qs.playbackInProgress = false
+    }
   }
 }
 
 async function startPlayback(): Promise<boolean> {
-  if (currentTrack) {
-    // Check if there are more tracks in the queue to determine auto-advance behavior
-    const shouldAutoAdvance = queue.length > 0
-    if (shouldAutoAdvance) {
-      // Re-enable the track completion callback when starting playback
-      audio.setTrackCompleteCallback(() => {
-        logger.info('Queue state: Track completed, auto-advancing to next track', 'QueueState')
-        void playNextInQueue()
-      })
-    } else {
-      console.log('🎯 Queue State: Setting up completion callback for single track in startPlayback to reset state')
-      // For single tracks, set a callback that resets the state when complete
-      audio.setTrackCompleteCallback(() => {
-        console.log('🎯 Queue State: Single track completed in startPlayback, resetting state')
-        logger.info('Single track completed in startPlayback, resetting state', 'QueueState')
-        // Reset state for single track completion
-        currentTrack = null
-        isPlaying = false
-        progress = 0
-        saveState()
-        console.log('🎯 Queue State: State reset complete in startPlayback - currentTrack: null, isPlaying: false')
-      })
-    }
-    
-    logger.info('Starting playback for current track', 'QueueState', { track: currentTrack })
-    const success = await audio.playFile(currentTrack.path)
+  if (qs.currentTrack) {
+    // Always advance: playNextInQueue handles empty-queue case via stopPlayback()
+    audio.setTrackCompleteCallback(() => {
+      logger.info('Queue state: Track completed, advancing to next track', 'QueueState')
+      void playNextInQueue()
+    })
+
+    logger.info('Starting playback for current track', 'QueueState', { track: qs.currentTrack })
+    const success = await audio.playFile(qs.currentTrack.path)
     if (success) {
-      isPlaying = true
+      qs.isPlaying = true
     }
     return success
-  } else if (queue.length > 0) {
+  } else if (qs.queue.length > 0) {
     logger.info('No current track, playing next in queue', 'QueueState')
     return await playNextInQueue()
   } else {
@@ -499,22 +509,22 @@ async function startPlayback(): Promise<boolean> {
 
 async function stopPlayback(): Promise<boolean> {
   // Check if we're in the process of stopping
-  if (isStopping) {
+  if (qs.isStopping) {
     logger.info('stopPlayback: Already stopping, skipping', 'QueueState')
     return true
   }
-  
+
   logger.info('Stopping all playback', 'QueueState')
-  
+
   // Clear the track completion callback to prevent race conditions
   audio.clearCallbackForStop()
-  
+
   const success = await audio.stop()
-  
+
   // Force reset all state to ensure consistency
-  isPlaying = false
-  currentTrack = null
-  progress = 0
+  qs.isPlaying = false
+  qs.currentTrack = null
+  qs.progress = 0
   
   // Force reset the audio manager state to match
   try {
@@ -537,20 +547,20 @@ async function pausePlayback(): Promise<boolean> {
   console.log('pausePlayback: Pausing playback')
   const success = await audio.pause()
   if (success) {
-    isPlaying = false
+    qs.isPlaying = false
   }
   return success
 }
 
 async function resumePlayback(): Promise<boolean> {
   console.log('resumePlayback: Resuming playback')
-  if (currentTrack) {
+  if (qs.currentTrack) {
     try {
       const currentAudioManager = audioFactory.getCurrentManager();
       if (currentAudioManager) {
         const success = await currentAudioManager.resume()
         if (success) {
-          isPlaying = true
+          qs.isPlaying = true
         }
         return success
       } else {
@@ -568,9 +578,9 @@ async function resumePlayback(): Promise<boolean> {
 
 async function seekPlayback(position: number): Promise<boolean> {
   console.log('seekPlayback: Seeking to position:', position)
-  console.log('seekPlayback: currentTrack:', currentTrack)
-  console.log('seekPlayback: isPlaying:', isPlaying)
-  if (!currentTrack) {
+  console.log('seekPlayback: currentTrack:', qs.currentTrack)
+  console.log('seekPlayback: isPlaying:', qs.isPlaying)
+  if (!qs.currentTrack) {
     console.error('seekPlayback: No currentTrack, cannot seek')
     return false
   }
@@ -594,13 +604,13 @@ async function seekPlayback(position: number): Promise<boolean> {
             const statusText = await response.text();
             const stateMatch = statusText.match(/<state>([^<]+)<\/state>/);
             const state = stateMatch ? stateMatch[1] : 'unknown';
-            isPlaying = state === 'playing';
+            qs.isPlaying = state === 'playing';
             const timeMatch = statusText.match(/<time>(\d+)<\/time>/);
             const lengthMatch = statusText.match(/<length>(\d+)<\/length>/);
             if (timeMatch && lengthMatch) {
               const currentTime = parseInt(timeMatch[1], 10);
               const totalLength = parseInt(lengthMatch[1], 10);
-              progress = totalLength > 0 ? currentTime / totalLength : 0;
+              qs.progress = totalLength > 0 ? currentTime / totalLength : 0;
             }
           }
         } catch (e) {
@@ -609,15 +619,15 @@ async function seekPlayback(position: number): Promise<boolean> {
       } else if (audioFactory.getCurrentType() === 'afplay') {
         // For AFPLAY, use the audio manager's methods
         try {
-          isPlaying = currentAudioManager.getStatus().isPlaying;
-          progress = currentAudioManager.getPlaybackProgress();
+          qs.isPlaying = currentAudioManager.getStatus().isPlaying;
+          qs.progress = currentAudioManager.getPlaybackProgress();
         } catch (e) {
           console.error('seekPlayback: Error getting AFPLAY state after seek', e);
         }
       }
-      
+
       if (success) {
-        console.log('seekPlayback: Seek completed, isPlaying:', isPlaying, 'progress:', progress)
+        console.log('seekPlayback: Seek completed, isPlaying:', qs.isPlaying, 'progress:', qs.progress)
       }
       return success
     } else {
@@ -631,21 +641,29 @@ async function seekPlayback(position: number): Promise<boolean> {
   
   }
 
+// Debounced playback start — coalesces multiple rapid addToQueue calls so only
+// ONE playNextInQueue() fires after all tracks have been added to the array.
+function schedulePlaybackStart(): void {
+  if (qs.manuallyStoppedByUser || qs.currentTrack || qs.isPlaying || qs.playbackInProgress) return
+  if (qs.playbackStartTimer) clearTimeout(qs.playbackStartTimer)
+  qs.playbackStartTimer = setTimeout(() => {
+    qs.playbackStartTimer = null
+    if (!qs.currentTrack && !qs.isPlaying && !qs.playbackInProgress && qs.queue.length > 0 && !qs.manuallyStoppedByUser) {
+      console.log('▶️ Queue State: schedulePlaybackStart firing playNextInQueue')
+      void playNextInQueue()
+    }
+  }, 150)
+}
+
 async function addToQueue(filePath: string, isAlbum: boolean = false): Promise<void> {
-  console.log('🎯 Queue State: addToQueue called with path:', filePath, ', isAlbum:', isAlbum)
-  console.log('🎯 Queue State: Current state - currentTrack:', currentTrack?.path || 'null', ', isPlaying:', isPlaying, ', queue length before:', queue.length)
-  
-  // Check if we're in the process of stopping
-  if (isStopping) {
-    console.log('⚠️ Queue State: Ignoring addToQueue - stopping in progress')
-    logger.info('Ignoring addToQueue - stopping in progress', 'QueueState')
-    return
-  }
-  
-  // Generate a unique ID for the track
-  const trackId = `track_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  if (qs.isStopping) return
+
+  // User explicitly added a track — clear the manual-stop flag so the scheduler
+  // will auto-start if nothing is currently playing.
+  qs.manuallyStoppedByUser = false
+
   const track: QueueTrack = {
-    id: trackId,
+    id: `track_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     path: filePath,
     title: filePath.split('/').pop()?.replace(/\.[^/.]+$/, '') || 'Unknown',
     artist: 'Unknown',
@@ -653,70 +671,20 @@ async function addToQueue(filePath: string, isAlbum: boolean = false): Promise<v
     duration: '0:00',
     isAlbum
   }
-  queue.push(track)
+  qs.queue.push(track)
   saveState()
-  
-  console.log('📝 Queue State: Added track to queue:', track)
-  console.log('📊 Queue State: Queue length now:', queue.length)
-  console.log('🎯 Queue State: Queue state after adding track - currentTrack:', currentTrack?.path || 'null', ', isPlaying:', isPlaying)
-  logger.info('Added track to queue', 'QueueState', { track, queueLength: queue.length })
-  
-  // If no track is currently playing, start playing this track
-  // Only check the queue state - if there's no currentTrack, we should start playback
-  const hasCurrentTrack = currentTrack !== null
-  
-  console.log('🎯 Queue State: Playback decision - hasCurrentTrack:', hasCurrentTrack, ', queue length:', queue.length)
-  
-  if (!hasCurrentTrack) {
-    console.log('▶️ Queue State: No current track, starting playback...')
-    console.log('🎯 Queue State: About to call playNextInQueue()')
-    logger.info('No current track, starting playback', 'QueueState')
-    
-    // Force reset audio manager state to ensure it's ready to play
-    try {
-      console.log('🎯 Queue State: Force resetting audio manager state')
-      audio.clearCallbackForStop()
-      // Small delay to ensure audio manager is ready
-      await new Promise(resolve => setTimeout(resolve, 100))
-    } catch (error) {
-      console.error('💥 Queue State: Error resetting audio manager:', error)
-    }
-    
-    try {
-      const success = await playNextInQueue()
-      console.log('🎯 Queue State: playNextInQueue() returned:', success)
-      
-      if (success) {
-        console.log('✅ Queue State: Playback started successfully')
-        logger.info('Playback started successfully', 'QueueState')
-      } else {
-        console.log('❌ Queue State: Failed to start playback')
-        logger.error('Failed to start playback', 'QueueState')
-      }
-    } catch (error) {
-      console.error('💥 Queue State: Error calling playNextInQueue():', error)
-      logger.error('Error calling playNextInQueue', 'QueueState', error)
-    }
-  } else {
-    console.log('ℹ️ Queue State: Track added but not starting playback (currentTrack:', currentTrack?.path, ')')
-    // Even if there's a current track, the monitor will pick up new tracks in the queue
-    console.log('ℹ️ Queue State: Queue monitor will handle additional tracks automatically')
-  }
-  
-  // Force an immediate queue check to ensure playback starts if possible
-  console.log('🎯 Queue State: Forcing immediate queue check after adding track')
-  setTimeout(() => {
-    console.log('🎯 Queue State: Executing delayed queue check')
-    checkQueueAndStartPlayback()
-  }, 100)
+  logger.info('Added track to queue', 'QueueState', { track, queueLength: qs.queue.length })
+
+  // Schedule a single debounced playback start — handles rapid album adds correctly
+  schedulePlaybackStart()
 }
 
 function getQueue(): QueueTrack[] {
-  return queue
+  return qs.queue
 }
 
 function getCurrentTrack(): QueueTrack | null {
-  return currentTrack
+  return qs.currentTrack
 }
 
 function getIsPlaying(): boolean {
@@ -726,20 +694,20 @@ function getIsPlaying(): boolean {
     if (currentAudioManager) {
       const audioStatus = currentAudioManager.getStatus();
       const result = audioStatus.isPlaying;
-      console.log('🎯 Queue State: getIsPlaying() - audioStatus.isPlaying:', result, ', local isPlaying:', isPlaying)
+      console.log('🎯 Queue State: getIsPlaying() - audioStatus.isPlaying:', result, ', local isPlaying:', qs.isPlaying)
       return result;
     } else {
       console.error('getIsPlaying: No current audio manager available');
-      return isPlaying;
+      return qs.isPlaying;
     }
   } catch (error) {
     console.error('Error getting audio status, falling back to local state:', error)
-    return isPlaying
+    return qs.isPlaying
   }
 }
 
 function getProgress(): number {
-  return progress
+  return qs.progress
 }
 
 function getVolume(): number {
@@ -768,23 +736,24 @@ async function toggleMute(): Promise<boolean> {
 }
 
 async function clearQueue(): Promise<void> {
-  queue = []
+  qs.queue = []
+  qs.manuallyStoppedByUser = false
   await stopPlayback()
   saveState()
 }
 
 function removeFromQueue(index: number): void {
-  if (index >= 0 && index < queue.length) {
-    queue.splice(index, 1)
+  if (index >= 0 && index < qs.queue.length) {
+    qs.queue.splice(index, 1)
     saveState()
   }
 }
 
 function reorderQueue(fromIndex: number, toIndex: number): void {
-  if (fromIndex >= 0 && fromIndex < queue.length && 
-      toIndex >= 0 && toIndex < queue.length) {
-    const movedTrack = queue.splice(fromIndex, 1)[0]
-    queue.splice(toIndex, 0, movedTrack)
+  if (fromIndex >= 0 && fromIndex < qs.queue.length &&
+      toIndex >= 0 && toIndex < qs.queue.length) {
+    const movedTrack = qs.queue.splice(fromIndex, 1)[0]
+    qs.queue.splice(toIndex, 0, movedTrack)
     saveState()
   }
 }
@@ -793,8 +762,8 @@ function reorderQueue(fromIndex: number, toIndex: number): void {
 function getDebugInfo(): DebugInfo {
   const audioStatus = audio.getStatus()
   return {
-    queueLength: queue.length,
-    currentTrack,
+    queueLength: qs.queue.length,
+    currentTrack: qs.currentTrack,
     audioStatus,
     hasStateFile: fs.existsSync(STATE_FILE_PATH),
     stateFileSize: fs.existsSync(STATE_FILE_PATH) ? fs.statSync(STATE_FILE_PATH).size : 0
@@ -819,10 +788,10 @@ async function getCurrentFileFromAudioPlayer(): Promise<string | null> {
         // This is just the filename, not the full path. Try to match it to a known file in the queue.
         const filename = fileMatch[1];
         // Try to find in queue
-        const found = queue.find(t => t.path.endsWith(filename));
+        const found = qs.queue.find(t => t.path.endsWith(filename));
         if (found) return found.path;
         // If not found, try currentTrack
-        if (currentTrack && currentTrack.path.endsWith(filename)) return currentTrack.path;
+        if (qs.currentTrack && qs.currentTrack.path.endsWith(filename)) return qs.currentTrack.path;
         // Otherwise, return just the filename (not ideal, but better than nothing)
         return filename;
       }
@@ -853,7 +822,7 @@ async function getCurrentState(): Promise<{
   isMuted: boolean
 }> {
   // Only sync with VLC if VLC is the active audio player
-  if (currentTrack && audioFactory.getCurrentType() === 'vlc') {
+  if (qs.currentTrack && audioFactory.getCurrentType() === 'vlc') {
     try {
       const statusUrl = `http://localhost:8081/requests/status.xml`;
       const response = await fetch(statusUrl, {
@@ -865,27 +834,27 @@ async function getCurrentState(): Promise<{
         const statusText = await response.text();
         const stateMatch = statusText.match(/<state>([^<]+)<\/state>/);
         const state = stateMatch ? stateMatch[1] : 'unknown';
-        isPlaying = state === 'playing';
+        qs.isPlaying = state === 'playing';
         const timeMatch = statusText.match(/<time>(\d+)<\/time>/);
         const lengthMatch = statusText.match(/<length>(\d+)<\/length>/);
         if (timeMatch && lengthMatch) {
           const currentTime = parseInt(timeMatch[1], 10);
           const totalLength = parseInt(lengthMatch[1], 10);
-          progress = totalLength > 0 ? currentTime / totalLength : 0;
+          qs.progress = totalLength > 0 ? currentTime / totalLength : 0;
         }
       }
     } catch (error) {
       // If VLC is unreachable, keep current state
       console.error('getCurrentState: Error syncing with VLC:', error);
     }
-  } else if (currentTrack && audioFactory.getCurrentType() === 'afplay') {
+  } else if (qs.currentTrack && audioFactory.getCurrentType() === 'afplay') {
     // For AFPLAY, use the audio manager's methods instead of trying to connect to VLC
     try {
       const currentAudioManager = audioFactory.getCurrentManager();
       if (currentAudioManager) {
         const audioStatus = currentAudioManager.getStatus();
-        isPlaying = audioStatus.isPlaying;
-        progress = currentAudioManager.getPlaybackProgress();
+        qs.isPlaying = audioStatus.isPlaying;
+        qs.progress = currentAudioManager.getPlaybackProgress();
       } else {
         console.error('getCurrentState: No current audio manager available');
       }
@@ -895,12 +864,12 @@ async function getCurrentState(): Promise<{
       // Don't change isPlaying or progress, keep current values
     }
   }
-  
+
   return {
-    isPlaying,
-    currentTrack,
-    queue,
-    progress,
+    isPlaying: qs.isPlaying,
+    currentTrack: qs.currentTrack,
+    queue: qs.queue,
+    progress: qs.progress,
     volume: (() => {
       try {
         return audio.getVolume();
@@ -939,103 +908,74 @@ const queueState: QueueStateInterface = {
   reloadAudioPlayerPreference,
   checkQueueAndStartPlayback,
   stopAllPlayback: async () => {
-    logger.info('stopAllPlayback: Starting stop operation', 'QueueState')
+    // ── Step 1: Cancel all in-flight playback by incrementing generation ────────
+    // Any playNextInQueue call that is currently awaiting will see a stale
+    // generation on its next await and abort without touching VLC or the queue.
+    const stopGen = ++qs.playbackGeneration
+    qs.manuallyStoppedByUser = true
+    qs.isStopping = true
 
-    // Set stopping flag to prevent race conditions
-    isStopping = true
-    // Signal that the user explicitly stopped — prevents the queue monitor
-    // from auto-restarting playback until the user explicitly plays again
-    manuallyStoppedByUser = true
-    
-    // Use the aggressive force stop method to ensure VLC actually stops
-    try {
-      await audio.forceStop()
-      logger.info('stopAllPlayback: Audio manager force stop completed', 'QueueState')
-      
-      // Verify that VLC actually stopped
-      try {
-        const audioStatus = audio.getStatus()
-        console.log('🎯 Queue State: VLC status after stop:', audioStatus)
-        if (audioStatus.isPlaying) {
-          console.log('⚠️ Queue State: WARNING - VLC still reports as playing after stop!')
+    console.log(`🛑 Queue State: stopAllPlayback (gen=${stopGen})`)
+
+    // Clear completion callback synchronously — prevents the 250ms completion
+    // interval from firing onTrackComplete and restarting a new track.
+    const currentAudioManager = audioFactory.getCurrentManager()
+    if (currentAudioManager) {
+      currentAudioManager.clearTrackCompleteCallback()
+    }
+
+    // ── Step 2: Wait for any in-flight playNextInQueue to release its lock ──────
+    if (qs.playbackInProgress) {
+      console.log('⏳ Queue State: waiting for in-flight playback to abort...')
+      const deadline = Date.now() + 800
+      while (qs.playbackInProgress && Date.now() < deadline) {
+        await new Promise(r => setTimeout(r, 30))
+      }
+      qs.playbackInProgress = false // force-clear regardless
+    }
+
+    // ── Step 3: Force-stop VLC, retrying until confirmed stopped ────────────────
+    // An in-flight playFile may have sent pl_empty+in_play+pl_play to VLC
+    // before it noticed the cancelled generation. VLC may therefore still be
+    // playing. We retry forceStop until VLC confirms it is stopped.
+    if (currentAudioManager) {
+      for (let attempt = 0; attempt < 4; attempt++) {
+        await currentAudioManager.forceStop()
+        // Small gap so VLC can process the command
+        await new Promise(r => setTimeout(r, 100))
+        // Check VLC state directly
+        try {
+          const statusUrl = `http://localhost:8081/requests/status.xml`
+          const resp = await fetch(statusUrl, {
+            headers: { 'Authorization': `Basic ${Buffer.from(':jukebox').toString('base64')}` }
+          })
+          if (resp.ok) {
+            const text = await resp.text()
+            const stateMatch = text.match(/<state>([^<]+)<\/state>/)
+            const vlcState = stateMatch ? stateMatch[1] : 'unknown'
+            if (vlcState === 'stopped') {
+              console.log(`🛑 Queue State: VLC confirmed stopped (attempt ${attempt + 1})`)
+              break
+            }
+            console.log(`🛑 Queue State: VLC still "${vlcState}" after attempt ${attempt + 1}, retrying...`)
+          }
+        } catch {
+          // VLC unreachable — treat as stopped
+          break
         }
-      } catch (error) {
-        console.log('🎯 Queue State: Could not verify VLC status after stop')
-      }
-    } catch (error) {
-      logger.error('stopAllPlayback: Error stopping audio manager', 'QueueState', error)
-    }
-    
-    // Clear the track completion callback completely
-    audio.clearTrackCompleteCallback()
-    logger.info('stopAllPlayback: Cleared track completion callback', 'QueueState')
-
-    // Reset playback state only — leave the queue intact so the user can
-    // see and continue with the remaining tracks after stopping
-    currentTrack = null
-    isPlaying = false
-    progress = 0
-    isStopping = false
-    saveState()
-    logger.info('stopAllPlayback: Playback stopped, queue preserved', 'QueueState')
-
-    logger.info('stopAllPlayback: Stop operation completed', 'QueueState')
-  },
-  skipToNext: async () => {
-    if (queue.length === 0) {
-      logger.info('Queue is empty, cannot skip', 'QueueState')
-      return false
-    }
-    
-    // Get the next track without removing it from the queue yet
-    const nextTrack = queue[0]
-    logger.info('Skipping to next track', 'QueueState', { track: nextTrack })
-    
-    // Stop current playback first
-    await stopPlayback()
-    
-    // Now remove the current track and set the next one
-    queue.shift()
-    currentTrack = nextTrack
-    isPlaying = false
-    progress = 0
-    saveState()
-    
-    // Start playing the next track
-    logger.info('Playing skipped track', 'QueueState', { filePath: nextTrack.path })
-    
-    // Re-enable the track completion callback
-    console.log('🎯 Queue State: Setting up track completion callback for skipped track')
-    audio.setTrackCompleteCallback(() => {
-      console.log('🎯 Queue State: Track completion callback triggered for skipped track')
-      logger.info('Queue state: Track completed, playing next in queue', 'QueueState')
-      void playNextInQueue()
-    })
-    
-    const success = await audio.playFile(nextTrack.path)
-    if (success) {
-      isPlaying = true
-      
-      // Mark this track as skipped to enable extra completion protection
-      // This prevents the aggressive completion detection from racing through the queue
-      if (audio.markAsSkipped) {
-        audio.markAsSkipped()
       }
     }
-    
-    // Increment play count for this track
-    try {
-      await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'}/api/playcounts`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ trackPath: nextTrack.path })
-      })
-    } catch (err) {
-      console.error('Failed to increment play count:', err)
-    }
-    
-    return success
+
+    // ── Step 4: Update state ────────────────────────────────────────────────────
+    qs.currentTrack = null
+    qs.isPlaying = false
+    qs.progress = 0
+    qs.isStopping = false
+    saveState()
+    console.log(`🛑 Queue State: stopAllPlayback complete, queue preserved (${qs.queue.length} tracks)`)
   },
+  // skipToNext delegates to playNextInQueue, which owns all concurrency control.
+  skipToNext: () => playNextInQueue(),
   getProgress,
   getVolume,
   setVolume,
