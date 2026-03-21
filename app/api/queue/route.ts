@@ -71,7 +71,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const { path, isAlbum } = await request.json() as { path: string; isAlbum?: boolean }
-    
+
     if (!path) {
       return NextResponse.json({ error: 'Path is required' }, { status: 400 })
     }

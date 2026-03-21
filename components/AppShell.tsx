@@ -7,12 +7,13 @@ import Queue from '@/components/Queue/Queue'
 import DynamicTitle from '@/components/DynamicTitle/DynamicTitle'
 import AppHeader from '@/components/AppHeader/AppHeader'
 import styles from '@/app/layout.module.css'
+import { QueueToastProvider } from '@/components/QueueToast/QueueToastContext'
 
 export default function AppShell({ children }: { children: React.ReactNode }): JSX.Element {
   const [showQueue, setShowQueue] = useState(false)
   const pathname = usePathname()
   return (
-    <>
+    <QueueToastProvider>
       <DynamicTitle />
       <AppHeader />
       <main className={styles.main}>
@@ -22,6 +23,6 @@ export default function AppShell({ children }: { children: React.ReactNode }): J
       </main>
       <Player setShowQueue={setShowQueue} showQueue={showQueue} />
       <Queue isOpen={showQueue} onClose={() => setShowQueue(false)} />
-    </>
+    </QueueToastProvider>
   )
 } 

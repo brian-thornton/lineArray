@@ -1,0 +1,110 @@
+/* Queue-added toast — stacks at bottom-right, auto-dismisses, no user interaction needed */
+
+.container {
+  position: fixed;
+  bottom: 110px; /* above the player bar */
+  right: 1.25rem;
+  z-index: 1500;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-end;
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 1rem 0.65rem 0.85rem;
+  border-radius: 12px;
+  background: rgba(20, 20, 30, 0.92);
+  border: 1px solid rgba(255, 215, 0, 0.35);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 215, 0, 0.08) inset;
+  min-width: 220px;
+  max-width: 320px;
+  position: relative;
+  overflow: hidden;
+  /* default: visible (state after enter, before exit) */
+  transform: translateX(0) scale(1);
+  opacity: 1;
+  transition: transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 320ms ease;
+}
+
+.entering {
+  transform: translateX(calc(100% + 1.5rem)) scale(0.92);
+  opacity: 0;
+}
+
+.exiting {
+  transform: translateX(calc(100% + 1.5rem)) scale(0.92);
+  opacity: 0;
+  transition: transform 280ms cubic-bezier(0.4, 0, 0.6, 1), opacity 280ms ease;
+}
+
+.icon {
+  flex-shrink: 0;
+  color: var(--jukebox-gold, #ffd700);
+  display: flex;
+  align-items: center;
+  opacity: 0.9;
+}
+
+.body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--jukebox-gold, #ffd700);
+  opacity: 0.85;
+}
+
+.title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Auto-dismiss progress bar */
+.progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  width: 100%;
+  background: linear-gradient(90deg, var(--jukebox-gold, #ffd700), rgba(255, 215, 0, 0.4));
+  transform-origin: left;
+  animation: shrink linear forwards;
+}
+
+@keyframes shrink {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
+
+/* Mobile: anchor above the player at the bottom, full width */
+@media (max-width: 768px) {
+  .container {
+    bottom: 100px;
+    right: 0.75rem;
+    left: 0.75rem;
+    align-items: stretch;
+  }
+
+  .toast {
+    max-width: 100%;
+  }
+}

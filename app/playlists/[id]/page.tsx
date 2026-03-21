@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Play, Edit, Save, X, Trash2, Plus, Music, GripVertical } from 'lucide-react'
+import { ArrowLeft, Play, Edit, Save, X, Trash2, Plus, Music, GripVertical, ListPlus } from 'lucide-react'
 import { Playlist } from '@/types/music'
 import { useSettings } from '@/contexts/SettingsContext'
 import { useSearch } from '@/contexts/SearchContext'
@@ -23,6 +23,7 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [showQueueModal, setShowQueueModal] = useState(false)
   const [draggedTrack, setDraggedTrack] = useState<string | null>(null)
 
   useEffect(() => {
@@ -136,22 +137,13 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
     }
   }
 
-  const handlePlayPlaylist = async (): Promise<void> => {
-    if (!canPerformAction('allowAddToQueue')) {
-      // TODO: Show non-blocking UI for restricted action
-      return
-    }
-
-    if (!playlist || playlist.tracks.length === 0) {
-      // TODO: Show non-blocking UI for empty playlist
-      return
-    }
-
+  /** Actually loads the playlist tracks into the queue. replace=true clears first. */
+  const doLoadPlaylist = async (replace: boolean): Promise<void> => {
+    if (!playlist) return
     try {
-      // Clear current queue
-      await fetch('/api/queue', { method: 'DELETE' })
-      
-      // Add all tracks from playlist to queue
+      if (replace) {
+        await fetch('/api/queue', { method: 'DELETE' })
+      }
       for (const playlistTrack of playlist.tracks) {
         await fetch('/api/queue', {
           method: 'POST',
@@ -159,14 +151,31 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
           body: JSON.stringify({ path: playlistTrack.track.path })
         })
       }
-
-      // Navigate back to main page to see the player
-      void router.push('/')
       hideKeyboard()
+      void router.push('/')
     } catch (error) {
-      console.error('Error playing playlist:', error)
-      // TODO: Show non-blocking UI for error
+      console.error('Error loading playlist into queue:', error)
     }
+  }
+
+  const handlePlayPlaylist = async (): Promise<void> => {
+    if (!canPerformAction('allowAddToQueue')) return
+    if (!playlist || playlist.tracks.length === 0) return
+
+    // Check if something is already queued or playing
+    const queueRes = await fetch('/api/queue')
+    if (queueRes.ok) {
+      const state = await queueRes.json() as { queue?: unknown[]; currentTrack?: unknown }
+      const hasContent = (state.queue?.length ?? 0) > 0 || !!state.currentTrack
+      if (hasContent) {
+        // Show replace-or-append modal
+        setShowQueueModal(true)
+        return
+      }
+    }
+
+    // Queue is empty — load immediately without asking
+    await doLoadPlaylist(true)
   }
 
   const handleTrackClick = async (path: string): Promise<void> => {
@@ -343,8 +352,8 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
                   className={styles.playButton}
                   disabled={playlist.trackCount === 0 || !canPerformAction('allowAddToQueue')}
                   title={
-                    playlist.trackCount === 0 
-                      ? 'Playlist is empty' 
+                    playlist.trackCount === 0
+                      ? 'Playlist is empty'
                       : !canPerformAction('allowAddToQueue')
                       ? 'Adding to queue is restricted in party mode'
                       : 'Play playlist'
@@ -352,6 +361,21 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
                 >
                   <Play className={styles.playIcon} />
                   Play Playlist
+                </button>
+                <button
+                  onClick={() => { void doLoadPlaylist(false) }}
+                  className={styles.addToQueueActionButton}
+                  disabled={playlist.trackCount === 0 || !canPerformAction('allowAddToQueue')}
+                  title={
+                    playlist.trackCount === 0
+                      ? 'Playlist is empty'
+                      : !canPerformAction('allowAddToQueue')
+                      ? 'Adding to queue is restricted in party mode'
+                      : 'Add playlist to end of queue'
+                  }
+                >
+                  <ListPlus className={styles.playIcon} />
+                  Add to Queue
                 </button>
                 <button
                   onClick={() => setIsEditing(true)}
@@ -443,6 +467,52 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
             </div>
           )}
         </div>
+
+        {/* Queue action modal — shown when queue is non-empty and user presses Play Playlist */}
+        {showQueueModal && (
+          <div
+            className={styles.modalOverlay}
+            onClick={() => setShowQueueModal(false)}
+            onKeyDown={e => { if (e.key === 'Escape') setShowQueueModal(false) }}
+            tabIndex={0}
+            role="button"
+          >
+            <div
+              className={styles.modal}
+              onClick={e => e.stopPropagation()}
+              onKeyDown={e => { if (e.key === 'Escape') setShowQueueModal(false) }}
+              tabIndex={0}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="queue-modal-title"
+            >
+              <h2 id="queue-modal-title">Play &quot;{playlist.name}&quot;</h2>
+              <p>There are already tracks in the queue. What would you like to do?</p>
+              <div className={styles.modalActions}>
+                <button
+                  onClick={() => setShowQueueModal(false)}
+                  className={styles.cancelButton}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => { setShowQueueModal(false); void doLoadPlaylist(false) }}
+                  className={styles.addToQueueButton}
+                >
+                  <Plus className={styles.plusIcon} />
+                  Add to Queue
+                </button>
+                <button
+                  onClick={() => { setShowQueueModal(false); void doLoadPlaylist(true) }}
+                  className={styles.replaceQueueButton}
+                >
+                  <Play className={styles.playIcon} />
+                  Replace Queue
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Delete Confirmation Modal */}
         {showDeleteModal && (

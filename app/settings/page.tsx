@@ -171,53 +171,39 @@ export default function SettingsPage(): JSX.Element {
 // Admin Section Component
 function AdminSection(): JSX.Element {
   const { settings, updateSettings } = useSettings()
+  const { showToast } = useToast()
   const [jukeboxName, setJukeboxName] = useState(settings.jukeboxName)
   const [adminPin, setAdminPin] = useState(settings.adminPin ?? '')
   const [audioPlayer, setAudioPlayer] = useState(settings.audioPlayer)
-  const [isSaving, setIsSaving] = useState(false)
-  const [saveMessage, setSaveMessage] = useState('')
 
-  const handleSaveSettings = async (): Promise<void> => {
-    setIsSaving(true)
-    setSaveMessage('')
-    
+  const saveField = async (patch: Partial<typeof settings>): Promise<void> => {
     try {
-      // First update the settings
-      await updateSettings({
-        jukeboxName: jukeboxName.trim() || 'Jukebox 2.0',
-        adminPin: adminPin || '1234',
-        audioPlayer
-      })
-      
-      // Then switch the audio player if it changed
-      if (settings.audioPlayer !== audioPlayer) {
-        try {
-          const response = await fetch('/api/settings/switch-audio-player', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ playerType: audioPlayer })
-          })
-          
-          if (!response.ok) {
-            throw new Error('Failed to switch audio player')
-          }
-        } catch (switchError) {
-          console.error('Error switching audio player:', switchError)
-          setSaveMessage('Settings saved but failed to switch audio player')
-          setTimeout(() => setSaveMessage(''), 5000)
-          setIsSaving(false)
+      await updateSettings(patch)
+      showToast('Saved ✓', 'success')
+    } catch {
+      showToast('Failed to save settings', 'error')
+    }
+  }
+
+  const handleAudioPlayerChange = async (value: 'vlc' | 'afplay'): Promise<void> => {
+    const prev = audioPlayer
+    setAudioPlayer(value)
+    try {
+      await updateSettings({ audioPlayer: value })
+      if (prev !== value) {
+        const res = await fetch('/api/settings/switch-audio-player', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ playerType: value })
+        })
+        if (!res.ok) {
+          showToast('Settings saved but failed to switch audio player', 'error')
           return
         }
       }
-      
-      setSaveMessage('Settings saved successfully!')
-      setTimeout(() => setSaveMessage(''), 3000)
-    } catch (error) {
-      console.error('Error saving settings:', error)
-      setSaveMessage('Failed to save settings')
-      setTimeout(() => setSaveMessage(''), 3000)
-    } finally {
-      setIsSaving(false)
+      showToast('Saved ✓', 'success')
+    } catch {
+      showToast('Failed to save settings', 'error')
     }
   }
 
@@ -236,6 +222,7 @@ function AdminSection(): JSX.Element {
             type="text"
             value={jukeboxName}
             onChange={(e) => setJukeboxName(e.target.value)}
+            onBlur={() => { void saveField({ jukeboxName: jukeboxName.trim() || 'Jukebox 2.0' }) }}
             className={styles.input}
             placeholder="Enter jukebox name..."
             maxLength={50}
@@ -254,6 +241,7 @@ function AdminSection(): JSX.Element {
             type="password"
             value={adminPin}
             onChange={(e) => setAdminPin(e.target.value)}
+            onBlur={() => { void saveField({ adminPin: adminPin || '1234' }) }}
             className={styles.input}
             placeholder="Enter admin PIN (min 4 digits)"
             maxLength={10}
@@ -274,7 +262,7 @@ function AdminSection(): JSX.Element {
           <select
             id="audioPlayer"
             value={audioPlayer}
-            onChange={(e) => setAudioPlayer(e.target.value as 'vlc' | 'afplay')}
+            onChange={(e) => { void handleAudioPlayerChange(e.target.value as 'vlc' | 'afplay') }}
             className={styles.input}
           >
             <option value="vlc">VLC Media Player</option>
@@ -308,20 +296,6 @@ function AdminSection(): JSX.Element {
         <h3 className={styles.subsectionTitle}>Music Library</h3>
         <MusicScanSection />
       </div>
-
-      <button
-        onClick={() => { void handleSaveSettings(); }}
-        disabled={isSaving}
-        className={styles.saveButton}
-      >
-        {isSaving ? 'Saving...' : 'Save Admin Settings'}
-      </button>
-      
-      {saveMessage && (
-        <div className={`${styles.message} ${saveMessage.includes('success') ? styles.success : styles.error}`}>
-          {saveMessage}
-        </div>
-      )}
     </div>
   )
 }
@@ -331,68 +305,28 @@ function UserInterfaceSection(): JSX.Element {
   const { settings, updateSettings } = useSettings()
   const { themes, setTheme } = useThemeContext()
   const [selectedTheme, setSelectedTheme] = useState(settings.theme)
-  
-
-  const [showTouchKeyboard, setShowTouchKeyboard] = useState(settings.showTouchKeyboard)
-  const [showPagination, setShowPagination] = useState(settings.showPagination)
-  const [showConcertDetails, setShowConcertDetails] = useState(settings.showConcertDetails)
-  const [showMobileQR, setShowMobileQR] = useState(settings.showMobileQR)
-  const [useMobileAlbumLayout, setUseMobileAlbumLayout] = useState(settings.useMobileAlbumLayout)
-  const [useSideBySideAlbumLayout, setUseSideBySideAlbumLayout] = useState(settings.useSideBySideAlbumLayout)
-  const [showPlaybackPosition, setShowPlaybackPosition] = useState(settings.showPlaybackPosition)
-  const [enableAdminMode, setEnableAdminMode] = useState(settings.enableAdminMode)
   const [isSaving, setIsSaving] = useState(false)
-  const [saveMessage, setSaveMessage] = useState('')
 
-  const handleSaveTheme = async (themeId?: string): Promise<void> => {
-    const themeToSave = themeId ?? selectedTheme
-    setIsSaving(true)
-    setSaveMessage('')
-    
-    try {
-      await updateSettings({ theme: themeToSave })
-      setTheme(themeToSave)
-      // Don't update selectedTheme here since it's already set in the onClick
-      setSaveMessage('Theme saved successfully!')
-      setTimeout(() => setSaveMessage(''), 3000)
-    } catch (error) {
-      console.error('Error saving theme:', error)
-      setSaveMessage('Failed to save theme')
-      setTimeout(() => setSaveMessage(''), 3000)
-    } finally {
-      setIsSaving(false)
-    }
+  const handleToggle = (key: keyof typeof settings, value: boolean): void => {
+    void updateSettings({ [key]: value })
   }
 
-  const handleSaveUiFeatures = async (): Promise<void> => {
+  const handleSaveTheme = async (themeId: string): Promise<void> => {
+    setSelectedTheme(themeId)
     setIsSaving(true)
-    setSaveMessage('')
-    
     try {
-      await updateSettings({
-        showTouchKeyboard,
-        showPagination,
-        showConcertDetails,
-        showMobileQR,
-        useMobileAlbumLayout,
-        useSideBySideAlbumLayout,
-        showPlaybackPosition,
-        enableAdminMode
-      })
-      setSaveMessage('UI features saved successfully!')
-      setTimeout(() => setSaveMessage(''), 3000)
+      await updateSettings({ theme: themeId })
+      setTheme(themeId)
     } catch (error) {
-      console.error('Error saving UI features:', error)
-      setSaveMessage('Failed to save UI features')
-      setTimeout(() => setSaveMessage(''), 3000)
+      console.error('Error saving theme:', error)
     } finally {
       setIsSaving(false)
     }
   }
 
   const handleLibraryLayoutChange = (e: React.ChangeEvent<HTMLSelectElement>): void => {
-    void updateSettings({ libraryLayout: e.target.value as 'modern' | 'classic' | 'large' });
-  };
+    void updateSettings({ libraryLayout: e.target.value as 'modern' | 'classic' | 'large' })
+  }
 
   return (
     <div className={styles.section}>
@@ -411,8 +345,8 @@ function UserInterfaceSection(): JSX.Element {
               <label className={styles.toggleLabel}>
                 <input
                   type="checkbox"
-                  checked={showTouchKeyboard}
-                  onChange={() => setShowTouchKeyboard(!showTouchKeyboard)}
+                  checked={settings.showTouchKeyboard}
+                  onChange={() => handleToggle('showTouchKeyboard', !settings.showTouchKeyboard)}
                   className={styles.toggle}
                 />
                 <span className={styles.toggleText}>Show Touch Keyboard</span>
@@ -426,8 +360,8 @@ function UserInterfaceSection(): JSX.Element {
               <label className={styles.toggleLabel}>
                 <input
                   type="checkbox"
-                  checked={showPagination}
-                  onChange={() => setShowPagination(!showPagination)}
+                  checked={settings.showPagination}
+                  onChange={() => handleToggle('showPagination', !settings.showPagination)}
                   className={styles.toggle}
                 />
                 <span className={styles.toggleText}>Show Pagination</span>
@@ -441,8 +375,8 @@ function UserInterfaceSection(): JSX.Element {
               <label className={styles.toggleLabel}>
                 <input
                   type="checkbox"
-                  checked={showConcertDetails}
-                  onChange={() => setShowConcertDetails(!showConcertDetails)}
+                  checked={settings.showConcertDetails}
+                  onChange={() => handleToggle('showConcertDetails', !settings.showConcertDetails)}
                   className={styles.toggle}
                 />
                 <span className={styles.toggleText}>Show Concert Details</span>
@@ -456,8 +390,8 @@ function UserInterfaceSection(): JSX.Element {
               <label className={styles.toggleLabel}>
                 <input
                   type="checkbox"
-                  checked={showMobileQR}
-                  onChange={() => setShowMobileQR(!showMobileQR)}
+                  checked={settings.showMobileQR}
+                  onChange={() => handleToggle('showMobileQR', !settings.showMobileQR)}
                   className={styles.toggle}
                 />
                 <span className={styles.toggleText}>Show Mobile QR Code</span>
@@ -471,8 +405,8 @@ function UserInterfaceSection(): JSX.Element {
               <label className={styles.toggleLabel}>
                 <input
                   type="checkbox"
-                  checked={useMobileAlbumLayout}
-                  onChange={() => setUseMobileAlbumLayout(!useMobileAlbumLayout)}
+                  checked={settings.useMobileAlbumLayout}
+                  onChange={() => handleToggle('useMobileAlbumLayout', !settings.useMobileAlbumLayout)}
                   className={styles.toggle}
                 />
                 <span className={styles.toggleText}>Use Mobile Album Layout</span>
@@ -482,8 +416,8 @@ function UserInterfaceSection(): JSX.Element {
               <label className={styles.toggleLabel}>
                 <input
                   type="checkbox"
-                  checked={useSideBySideAlbumLayout}
-                  onChange={() => setUseSideBySideAlbumLayout(!useSideBySideAlbumLayout)}
+                  checked={settings.useSideBySideAlbumLayout}
+                  onChange={() => handleToggle('useSideBySideAlbumLayout', !settings.useSideBySideAlbumLayout)}
                   className={styles.toggle}
                 />
                 <span className={styles.toggleText}>Use Side-by-Side Album Layout</span>
@@ -510,8 +444,8 @@ function UserInterfaceSection(): JSX.Element {
               <label className={styles.toggleLabel}>
                 <input
                   type="checkbox"
-                  checked={showPlaybackPosition}
-                  onChange={() => setShowPlaybackPosition(!showPlaybackPosition)}
+                  checked={settings.showPlaybackPosition}
+                  onChange={() => handleToggle('showPlaybackPosition', !settings.showPlaybackPosition)}
                   className={styles.toggle}
                 />
                 <span className={styles.toggleText}>Show Playback Position</span>
@@ -525,8 +459,8 @@ function UserInterfaceSection(): JSX.Element {
               <label className={styles.toggleLabel}>
                 <input
                   type="checkbox"
-                  checked={enableAdminMode}
-                  onChange={() => setEnableAdminMode(!enableAdminMode)}
+                  checked={settings.enableAdminMode}
+                  onChange={() => handleToggle('enableAdminMode', !settings.enableAdminMode)}
                   className={styles.toggle}
                 />
                 <span className={styles.toggleText}>Enable Admin Mode</span>
@@ -538,13 +472,6 @@ function UserInterfaceSection(): JSX.Element {
           </div>
         </div>
         
-        <button
-          onClick={() => { void handleSaveUiFeatures(); }}
-          disabled={isSaving}
-          className={styles.saveButton}
-        >
-          {isSaving ? 'Saving...' : 'Save UI Features'}
-        </button>
       </div>
 
       <div className={styles.settingGroup}>
@@ -556,20 +483,16 @@ function UserInterfaceSection(): JSX.Element {
               if (!theme.colors?.primary || !theme.colors?.secondary || !theme.colors?.accent) {
                 return null
               }
-              
+
               return (
                 <button
                   key={theme.id}
                   type="button"
                   className={`${styles.themeCard} ${selectedTheme === theme.id ? styles.themeCardActive : ''}`}
-                  onClick={() => {
-                    setSelectedTheme(theme.id)
-                    void handleSaveTheme(theme.id)
-                  }}
+                  onClick={() => { void handleSaveTheme(theme.id) }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault()
-                      setSelectedTheme(theme.id)
                       void handleSaveTheme(theme.id)
                     }
                   }}
@@ -615,12 +538,6 @@ function UserInterfaceSection(): JSX.Element {
           )}
         </div>
       </div>
-      
-      {saveMessage && (
-        <div className={`${styles.message} ${saveMessage.includes('success') ? styles.success : styles.error}`}>
-          {saveMessage}
-        </div>
-      )}
     </div>
   )
 }
@@ -628,32 +545,9 @@ function UserInterfaceSection(): JSX.Element {
 // Party Mode Section Component
 function PartyModeSection(): JSX.Element {
   const { settings, updateSettings } = useSettings()
-  const [partyMode, setPartyMode] = useState(settings.partyMode)
-  const [isSaving, setIsSaving] = useState(false)
-  const [saveMessage, setSaveMessage] = useState('')
 
-  const handleSavePartyMode = async (): Promise<void> => {
-    setIsSaving(true)
-    setSaveMessage('')
-    
-    try {
-      await updateSettings({ partyMode })
-      setSaveMessage('Party mode settings saved successfully!')
-      setTimeout(() => setSaveMessage(''), 3000)
-    } catch (error) {
-      console.error('Error saving party mode settings:', error)
-      setSaveMessage('Failed to save party mode settings')
-      setTimeout(() => setSaveMessage(''), 3000)
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  const handlePartyModeToggle = (key: keyof typeof partyMode): void => {
-    setPartyMode(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }))
+  const handlePartyModeToggle = (key: keyof typeof settings.partyMode): void => {
+    void updateSettings({ partyMode: { ...settings.partyMode, [key]: !settings.partyMode[key] } })
   }
 
   return (
@@ -669,7 +563,7 @@ function PartyModeSection(): JSX.Element {
           <label className={styles.toggleLabel}>
             <input
               type="checkbox"
-              checked={partyMode.enabled}
+              checked={settings.partyMode.enabled}
               onChange={() => handlePartyModeToggle('enabled')}
               className={styles.toggle}
             />
@@ -685,10 +579,10 @@ function PartyModeSection(): JSX.Element {
             <label className={styles.toggleLabel}>
               <input
                 type="checkbox"
-                checked={partyMode.allowPlay}
+                checked={settings.partyMode.allowPlay}
                 onChange={() => handlePartyModeToggle('allowPlay')}
                 className={styles.toggle}
-                disabled={!partyMode.enabled}
+                disabled={!settings.partyMode.enabled}
               />
               <span className={styles.toggleText}>Allow Play</span>
             </label>
@@ -697,10 +591,10 @@ function PartyModeSection(): JSX.Element {
             <label className={styles.toggleLabel}>
               <input
                 type="checkbox"
-                checked={partyMode.allowStop}
+                checked={settings.partyMode.allowStop}
                 onChange={() => handlePartyModeToggle('allowStop')}
                 className={styles.toggle}
-                disabled={!partyMode.enabled}
+                disabled={!settings.partyMode.enabled}
               />
               <span className={styles.toggleText}>Allow Stop</span>
             </label>
@@ -709,10 +603,10 @@ function PartyModeSection(): JSX.Element {
             <label className={styles.toggleLabel}>
               <input
                 type="checkbox"
-                checked={partyMode.allowNext}
+                checked={settings.partyMode.allowNext}
                 onChange={() => handlePartyModeToggle('allowNext')}
                 className={styles.toggle}
-                disabled={!partyMode.enabled}
+                disabled={!settings.partyMode.enabled}
               />
               <span className={styles.toggleText}>Allow Next Track</span>
             </label>
@@ -721,10 +615,10 @@ function PartyModeSection(): JSX.Element {
             <label className={styles.toggleLabel}>
               <input
                 type="checkbox"
-                checked={partyMode.allowPrevious}
+                checked={settings.partyMode.allowPrevious}
                 onChange={() => handlePartyModeToggle('allowPrevious')}
                 className={styles.toggle}
-                disabled={!partyMode.enabled}
+                disabled={!settings.partyMode.enabled}
               />
               <span className={styles.toggleText}>Allow Previous Track</span>
             </label>
@@ -739,10 +633,10 @@ function PartyModeSection(): JSX.Element {
             <label className={styles.toggleLabel}>
               <input
                 type="checkbox"
-                checked={partyMode.allowCreatePlaylists}
+                checked={settings.partyMode.allowCreatePlaylists}
                 onChange={() => handlePartyModeToggle('allowCreatePlaylists')}
                 className={styles.toggle}
-                disabled={!partyMode.enabled}
+                disabled={!settings.partyMode.enabled}
               />
               <span className={styles.toggleText}>Allow Create Playlists</span>
             </label>
@@ -751,10 +645,10 @@ function PartyModeSection(): JSX.Element {
             <label className={styles.toggleLabel}>
               <input
                 type="checkbox"
-                checked={partyMode.allowEditPlaylists}
+                checked={settings.partyMode.allowEditPlaylists}
                 onChange={() => handlePartyModeToggle('allowEditPlaylists')}
                 className={styles.toggle}
-                disabled={!partyMode.enabled}
+                disabled={!settings.partyMode.enabled}
               />
               <span className={styles.toggleText}>Allow Edit Playlists</span>
             </label>
@@ -763,10 +657,10 @@ function PartyModeSection(): JSX.Element {
             <label className={styles.toggleLabel}>
               <input
                 type="checkbox"
-                checked={partyMode.allowDeletePlaylists}
+                checked={settings.partyMode.allowDeletePlaylists}
                 onChange={() => handlePartyModeToggle('allowDeletePlaylists')}
                 className={styles.toggle}
-                disabled={!partyMode.enabled}
+                disabled={!settings.partyMode.enabled}
               />
               <span className={styles.toggleText}>Allow Delete Playlists</span>
             </label>
@@ -781,10 +675,10 @@ function PartyModeSection(): JSX.Element {
             <label className={styles.toggleLabel}>
               <input
                 type="checkbox"
-                checked={partyMode.allowAddToQueue}
+                checked={settings.partyMode.allowAddToQueue}
                 onChange={() => handlePartyModeToggle('allowAddToQueue')}
                 className={styles.toggle}
-                disabled={!partyMode.enabled}
+                disabled={!settings.partyMode.enabled}
               />
               <span className={styles.toggleText}>Allow Add to Queue</span>
             </label>
@@ -793,10 +687,10 @@ function PartyModeSection(): JSX.Element {
             <label className={styles.toggleLabel}>
               <input
                 type="checkbox"
-                checked={partyMode.allowRemoveFromQueue}
+                checked={settings.partyMode.allowRemoveFromQueue}
                 onChange={() => handlePartyModeToggle('allowRemoveFromQueue')}
                 className={styles.toggle}
-                disabled={!partyMode.enabled}
+                disabled={!settings.partyMode.enabled}
               />
               <span className={styles.toggleText}>Allow Remove from Queue</span>
             </label>
@@ -805,10 +699,10 @@ function PartyModeSection(): JSX.Element {
             <label className={styles.toggleLabel}>
               <input
                 type="checkbox"
-                checked={partyMode.allowSkipInQueue}
+                checked={settings.partyMode.allowSkipInQueue}
                 onChange={() => handlePartyModeToggle('allowSkipInQueue')}
                 className={styles.toggle}
-                disabled={!partyMode.enabled}
+                disabled={!settings.partyMode.enabled}
               />
               <span className={styles.toggleText}>Allow Skip in Queue</span>
             </label>
@@ -816,19 +710,6 @@ function PartyModeSection(): JSX.Element {
         </div>
       </div>
 
-      <button
-        onClick={() => { void handleSavePartyMode(); }}
-        disabled={isSaving}
-        className={styles.saveButton}
-      >
-        {isSaving ? 'Saving...' : 'Save Party Mode Settings'}
-      </button>
-      
-      {saveMessage && (
-        <div className={`${styles.message} ${saveMessage.includes('success') ? styles.success : styles.error}`}>
-          {saveMessage}
-        </div>
-      )}
     </div>
   )
 }

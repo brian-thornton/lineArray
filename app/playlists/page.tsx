@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Edit, Trash2, Play, Music } from 'lucide-react'
+import { Plus, Edit, Trash2, Play, Music, ListPlus } from 'lucide-react'
 import { Playlist } from '@/types/music'
 import { useSettings } from '@/contexts/SettingsContext'
 import { useSearch } from '@/contexts/SearchContext'
@@ -19,6 +19,7 @@ export default function PlaylistsPage(): JSX.Element {
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState<string | null>(null)
+  const [showQueueModal, setShowQueueModal] = useState<Playlist | null>(null)
   const [newPlaylistName, setNewPlaylistName] = useState('')
   const [newPlaylistDescription, setNewPlaylistDescription] = useState('')
   const [isCreating, setIsCreating] = useState(false)
@@ -107,22 +108,11 @@ export default function PlaylistsPage(): JSX.Element {
     }
   }
 
-  const handlePlayPlaylist = async (playlist: Playlist): Promise<void> => {
-    if (!canPerformAction('allowAddToQueue')) {
-      // TODO: Show non-blocking UI for restricted action
-      return
-    }
-
-    if (playlist.tracks.length === 0) {
-      // TODO: Show non-blocking UI for empty playlist
-      return
-    }
-
+  const doLoadPlaylist = async (playlist: Playlist, replace: boolean): Promise<void> => {
     try {
-      // Clear current queue
-      await fetch('/api/queue', { method: 'DELETE' })
-      
-      // Add all tracks from playlist to queue
+      if (replace) {
+        await fetch('/api/queue', { method: 'DELETE' })
+      }
       for (const playlistTrack of playlist.tracks) {
         await fetch('/api/queue', {
           method: 'POST',
@@ -130,13 +120,27 @@ export default function PlaylistsPage(): JSX.Element {
           body: JSON.stringify({ path: playlistTrack.track.path })
         })
       }
-
-      // Navigate back to main page to see the player
       void router.push('/')
     } catch (error) {
-      console.error('Error playing playlist:', error)
-      // TODO: Show non-blocking UI for error
+      console.error('Error loading playlist into queue:', error)
     }
+  }
+
+  const handlePlayPlaylist = async (playlist: Playlist): Promise<void> => {
+    if (!canPerformAction('allowAddToQueue')) return
+    if (playlist.tracks.length === 0) return
+
+    const queueRes = await fetch('/api/queue')
+    if (queueRes.ok) {
+      const state = await queueRes.json() as { queue?: unknown[]; currentTrack?: unknown }
+      const hasContent = (state.queue?.length ?? 0) > 0 || !!state.currentTrack
+      if (hasContent) {
+        setShowQueueModal(playlist)
+        return
+      }
+    }
+
+    await doLoadPlaylist(playlist, true)
   }
 
   const handleTrackClick = async (path: string): Promise<void> => {
@@ -233,14 +237,28 @@ export default function PlaylistsPage(): JSX.Element {
                       className={styles.playButton}
                       disabled={playlist.trackCount === 0 || !canPerformAction('allowAddToQueue')}
                       title={
-                        playlist.trackCount === 0 
-                          ? 'Playlist is empty' 
+                        playlist.trackCount === 0
+                          ? 'Playlist is empty'
                           : !canPerformAction('allowAddToQueue')
                           ? 'Adding to queue is restricted in party mode'
                           : 'Play playlist'
                       }
                     >
                       <Play className={styles.playIcon} />
+                    </button>
+                    <button
+                      onClick={() => { void doLoadPlaylist(playlist, false) }}
+                      className={styles.addToQueueButton}
+                      disabled={playlist.trackCount === 0 || !canPerformAction('allowAddToQueue')}
+                      title={
+                        playlist.trackCount === 0
+                          ? 'Playlist is empty'
+                          : !canPerformAction('allowAddToQueue')
+                          ? 'Adding to queue is restricted in party mode'
+                          : 'Add playlist to end of queue'
+                      }
+                    >
+                      <ListPlus className={styles.playIcon} />
                     </button>
                     <button
                       onClick={() => { void router.push(`/playlists/${playlist.id}`) }}
@@ -325,6 +343,50 @@ export default function PlaylistsPage(): JSX.Element {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Queue Conflict Modal */}
+      {showQueueModal && (
+        <div
+          className={styles.modalOverlay}
+          onClick={() => setShowQueueModal(null)}
+          onKeyDown={e => { if (e.key === 'Escape') setShowQueueModal(null) }}
+          tabIndex={0}
+          role="button"
+        >
+          <div
+            className={styles.modal}
+            onClick={e => e.stopPropagation()}
+            onKeyDown={e => { if (e.key === 'Escape') setShowQueueModal(null) }}
+            tabIndex={0}
+            role="button"
+          >
+            <h2>Play Playlist</h2>
+            <p>
+              There are tracks currently in the queue. Would you like to replace the queue with &ldquo;{showQueueModal.name}&rdquo;, or add it to the end?
+            </p>
+            <div className={styles.modalActions}>
+              <button
+                onClick={() => setShowQueueModal(null)}
+                className={styles.cancelButton}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { const p = showQueueModal; setShowQueueModal(null); void doLoadPlaylist(p, false) }}
+                className={styles.addToQueueButton}
+              >
+                Add to Queue
+              </button>
+              <button
+                onClick={() => { const p = showQueueModal; setShowQueueModal(null); void doLoadPlaylist(p, true) }}
+                className={styles.replaceQueueButton}
+              >
+                Replace Queue
+              </button>
+            </div>
           </div>
         </div>
       )}

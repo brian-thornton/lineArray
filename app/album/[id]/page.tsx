@@ -11,6 +11,8 @@ import { useSettings } from '@/contexts/SettingsContext'
 import { useSearch } from '@/contexts/SearchContext'
 import { useToast } from '@/contexts/ToastContext'
 import { useLibrary } from '@/contexts/LibraryContext'
+import { useQueueToast } from '@/components/QueueToast/QueueToastContext'
+import { useAddToQueue } from '@/hooks/useAddToQueue'
 import styles from './page.module.css'
 import Image from 'next/image'
 
@@ -23,9 +25,11 @@ export default function AlbumDetail(): JSX.Element {
   const params = useParams()
   const router = useRouter()
   const { canPerformAction, settings } = useSettings()
-  const { searchQuery, searchResults, isSearching, addTrackToQueue, hideKeyboard } = useSearch()
+  const { searchQuery, searchResults, isSearching, hideKeyboard } = useSearch()
   const { showToast } = useToast()
   const { libraryState } = useLibrary()
+  const { showQueueToast } = useQueueToast()
+  const addToQueue = useAddToQueue()
   const [album, setAlbum] = useState<Album | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -83,100 +87,50 @@ export default function AlbumDetail(): JSX.Element {
     window.scrollTo(0, 0)
   }, [])
 
-  const handlePlayAlbum = async (): Promise<void> => {
-    if (!canPerformAction('allowAddToQueue')) {
-      // TODO: Implement a non-blocking UI alternative for showing restricted action
-      return
+  const triggerPlayerRefresh = (): void => {
+    if (typeof window !== 'undefined') {
+      (window as WindowWithPlayer).hasAddedTrackToQueue = true
+      setTimeout(() => {
+        void (window as WindowWithPlayer).checkPlayerStatusImmediately?.()
+      }, 100)
     }
+  }
 
-    if (album && album.tracks.length > 0) {
-      try {
-        // Add all tracks to queue with album flag
-        for (const track of album.tracks) {
-          const response = await fetch('/api/queue', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              path: track.path,
-              isAlbum: true 
-            }),
-          })
-          
-          if (!response.ok) {
-            console.error(`Failed to add track to queue: ${track.title}`)
-          }
-        }
-        
-        // Start playing the first track
-        const response = await fetch('/api/queue', {
+  const handlePlayAlbum = async (): Promise<void> => {
+    if (!canPerformAction('allowAddToQueue')) return
+    if (!album || album.tracks.length === 0) return
+
+    try {
+      let lastQueueLength = 0
+      for (const track of album.tracks) {
+        const res = await fetch('/api/queue', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            path: album.tracks[0].path,
-            isAlbum: true 
-          }),
+          body: JSON.stringify({ path: track.path, isAlbum: true }),
         })
-        
-        if (response.ok) {
-          hideKeyboard()
-          
-          // Set flag to show player controls
-          if (typeof window !== 'undefined') {
-            (window as WindowWithPlayer).hasAddedTrackToQueue = true
-          }
-          
-          // Immediately check player status to show controls faster
-          if (typeof window !== 'undefined' && (window as WindowWithPlayer).checkPlayerStatusImmediately) {
-            setTimeout(() => {
-              void (window as WindowWithPlayer).checkPlayerStatusImmediately?.()
-            }, 100)
-          }
+        if (res.ok) {
+          const data = await res.json() as { queue?: unknown[] }
+          lastQueueLength = data.queue?.length ?? lastQueueLength
         }
-      } catch (error) {
-        console.error('Error playing album:', error)
       }
+      hideKeyboard()
+      // Show one summary toast for the whole album
+      showQueueToast(album.title, lastQueueLength > 0 ? lastQueueLength : null)
+      triggerPlayerRefresh()
+    } catch (error) {
+      console.error('Error playing album:', error)
     }
   }
 
   const handlePlayTrack = async (track: Track): Promise<void> => {
-    if (!canPerformAction('allowAddToQueue')) {
-      // TODO: Implement a non-blocking UI alternative for showing restricted action
-      return
-    }
+    if (!canPerformAction('allowAddToQueue')) return
 
-    try {
-      const response = await fetch('/api/queue', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          path: track.path,
-          isAlbum: false 
-        }),
-      })
-      
-      if (response.ok) {
-        hideKeyboard()
-
-        // Flash the tapped track row
-        setFlashingTrackId(track.id)
-        setTimeout(() => setFlashingTrackId(null), 600)
-
-        // Set flag to show player controls
-        if (typeof window !== 'undefined') {
-          (window as WindowWithPlayer).hasAddedTrackToQueue = true
-        }
-
-        // Immediately check player status to show controls faster
-        if (typeof window !== 'undefined' && (window as WindowWithPlayer).checkPlayerStatusImmediately) {
-          setTimeout(() => {
-            void (window as WindowWithPlayer).checkPlayerStatusImmediately?.()
-          }, 100)
-        }
-      } else {
-        console.error('Failed to play track:', track.title)
-      }
-    } catch (error) {
-      console.error('Error playing track:', error)
+    const ok = await addToQueue({ path: track.path, title: track.title })
+    if (ok) {
+      hideKeyboard()
+      setFlashingTrackId(track.id)
+      setTimeout(() => setFlashingTrackId(null), 600)
+      triggerPlayerRefresh()
     }
   }
 
@@ -222,37 +176,28 @@ export default function AlbumDetail(): JSX.Element {
     if (selectedTracks.size === 0 || !album) return
 
     try {
-      // Add all selected tracks to queue
-      for (const trackId of Array.from(selectedTracks)) {
+      const trackIds = Array.from(selectedTracks)
+      let lastQueueLength = 0
+      for (const trackId of trackIds) {
         const track = album.tracks.find(t => t.id === trackId)
         if (track) {
-          const response = await fetch('/api/queue', {
+          const res = await fetch('/api/queue', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ path: track.path }),
           })
-          
-          if (!response.ok) {
-            console.error(`Failed to add track to queue: ${track.title}`)
+          if (res.ok) {
+            const data = await res.json() as { queue?: unknown[] }
+            lastQueueLength = data.queue?.length ?? lastQueueLength
           }
         }
       }
-      
       hideKeyboard()
-      
-      // Set flag to show player controls
-      if (typeof window !== 'undefined') {
-        (window as WindowWithPlayer).hasAddedTrackToQueue = true
-      }
-      
-      // Immediately check player status to show controls faster
-      if (typeof window !== 'undefined' && (window as WindowWithPlayer).checkPlayerStatusImmediately) {
-        setTimeout(() => {
-          void (window as WindowWithPlayer).checkPlayerStatusImmediately?.()
-        }, 100)
-      }
-      
-      // Clear selection after adding to queue
+      const label = trackIds.length === 1
+        ? (album.tracks.find(t => t.id === trackIds[0])?.title ?? 'Track')
+        : `${trackIds.length} tracks`
+      showQueueToast(label, lastQueueLength > 0 ? lastQueueLength : null)
+      triggerPlayerRefresh()
       setSelectedTracks(new Set())
     } catch (error) {
       console.error('Error adding tracks to queue:', error)
@@ -284,15 +229,10 @@ export default function AlbumDetail(): JSX.Element {
   }
 
   const handleTrackClick = async (path: string): Promise<void> => {
-    await addTrackToQueue(path)
-    hideKeyboard()
-    
-    // Find the track title for the toast
     const track = searchResults.find(result => result.path === path)
-    if (track) {
-      showToast(`Added "${track.title}" to queue`, 'success')
-    }
-    
+    await addToQueue({ path, title: track?.title })
+    hideKeyboard()
+
     // Set flag to show player controls
     if (typeof window !== 'undefined') {
       (window as WindowWithPlayer).hasAddedTrackToQueue = true

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Play, X, GripVertical, Music } from 'lucide-react'
+import { Play, X, GripVertical, Music, ChevronUp, ChevronDown } from 'lucide-react'
 import { useSettings } from '@/contexts/SettingsContext'
 import styles from './Queue.module.css'
 import type { QueueResponse } from '@/types/api'
@@ -101,6 +101,24 @@ export default function Queue({ isOpen, onClose }: QueueProps): JSX.Element | nu
       }
     } catch (error) {
       console.error('Error playing track:', error)
+    }
+  }
+
+  const handleMoveTrack = async (fromIndex: number, toIndex: number): Promise<void> => {
+    if (!canPerformAction('allowRemoveFromQueue')) return
+    if (toIndex < 0 || toIndex >= queue.length) return
+    try {
+      const response = await fetch('/api/queue/reorder', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          draggedTrackId: queue[fromIndex].id,
+          targetTrackId: queue[toIndex].id
+        })
+      })
+      if (response.ok) await loadQueue()
+    } catch (error) {
+      console.error('Error reordering tracks:', error)
     }
   }
 
@@ -241,17 +259,41 @@ export default function Queue({ isOpen, onClose }: QueueProps): JSX.Element | nu
                   </div>
                   
                   <div className={styles.trackInfo}>
-                    <div className={styles.trackNumber}>
+                    <button
+                      className={`${styles.trackNumber} ${styles.trackNumberBtn}`}
+                      onClick={() => { void handlePlayTrack(track.id) }}
+                      disabled={!canPerformAction('allowAddToQueue')}
+                      title={!canPerformAction('allowAddToQueue') ? 'Playing tracks is restricted in party mode' : 'Play now'}
+                    >
                       {index + 1}
-                    </div>
+                    </button>
                     <div className={styles.trackDetails}>
                       <div className={styles.trackTitle}>
                         {track.title || getTrackName(track.path)}
                       </div>
                       <div className={styles.trackAlbum}>
-                        {track.album || 'Unknown Album'}
+                        {track.artist ? `${track.artist} · ${track.album || 'Unknown Album'}` : (track.album || 'Unknown Album')}
                       </div>
                     </div>
+                  </div>
+
+                  <div className={styles.moveButtons}>
+                    <button
+                      onClick={() => { void handleMoveTrack(index, index - 1) }}
+                      className={styles.moveButton}
+                      disabled={index === 0 || !canPerformAction('allowRemoveFromQueue')}
+                      title="Move up"
+                    >
+                      <ChevronUp className={styles.moveIcon} />
+                    </button>
+                    <button
+                      onClick={() => { void handleMoveTrack(index, index + 1) }}
+                      className={styles.moveButton}
+                      disabled={index === queue.length - 1 || !canPerformAction('allowRemoveFromQueue')}
+                      title="Move down"
+                    >
+                      <ChevronDown className={styles.moveIcon} />
+                    </button>
                   </div>
 
                   <div className={styles.trackActions}>

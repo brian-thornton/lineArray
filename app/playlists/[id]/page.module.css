@@ -584,6 +584,80 @@
   margin-top: var(--spacing-xl);
 }
 
+.addToQueueActionButton {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  background: transparent;
+  color: var(--jukebox-gold, #c9a84c);
+  border: 1px solid var(--jukebox-gold, #c9a84c);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 48px;
+}
+
+.addToQueueActionButton:hover:not(:disabled) {
+  background: rgba(201, 168, 76, 0.15);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.addToQueueActionButton:disabled {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--jukebox-gray);
+  border-color: rgba(255, 255, 255, 0.1);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.addToQueueButton {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  background: rgba(255, 215, 0, 0.15);
+  color: var(--jukebox-gold);
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 44px;
+}
+
+.addToQueueButton:hover {
+  background: rgba(255, 215, 0, 0.25);
+  border-color: var(--jukebox-gold);
+  transform: translateY(-1px);
+}
+
+.replaceQueueButton {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  background: linear-gradient(135deg, var(--jukebox-primary, #7c3aed) 0%, #9f5ef0 100%);
+  color: var(--jukebox-white);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 44px;
+}
+
+.replaceQueueButton:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
 .deleteConfirmButton {
   background: linear-gradient(135deg, #ff3b30 0%, #ff6b6b 100%);
   color: var(--jukebox-white);

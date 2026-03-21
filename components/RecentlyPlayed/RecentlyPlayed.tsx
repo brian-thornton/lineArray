@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { Play, Clock, Music } from 'lucide-react'
 import { useSettings } from '@/contexts/SettingsContext'
 import { useSearch } from '@/contexts/SearchContext'
+import { useAddToQueue } from '@/hooks/useAddToQueue'
 import styles from './RecentlyPlayed.module.css'
 
 interface WindowWithPlayer extends Window {
@@ -29,6 +30,7 @@ interface RecentlyPlayedProps {
 export default function RecentlyPlayed({ limit = 10, showTitle = true }: RecentlyPlayedProps): JSX.Element {
   const { canPerformAction } = useSettings()
   const { hideKeyboard } = useSearch()
+  const addToQueue = useAddToQueue()
   const [recentTracks, setRecentTracks] = useState<RecentlyPlayedTrack[]>([])
   const [loading, setLoading] = useState(true)
   const [coverErrors, setCoverErrors] = useState<Set<string>>(new Set())
@@ -65,38 +67,15 @@ export default function RecentlyPlayed({ limit = 10, showTitle = true }: Recentl
     void loadRecentlyPlayed()
   }, [loadRecentlyPlayed])
 
-  const handlePlayTrack = async (path: string): Promise<void> => {
-    if (!canPerformAction('allowAddToQueue')) {
-      console.error('Adding to queue is restricted in party mode')
-      return
-    }
-
-    try {
-      const response = await fetch('/api/queue', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path }),
-      })
-
-      if (response.ok) {
-        hideKeyboard()
-        
-        // Set flag to show player controls
-        if (typeof window !== 'undefined') {
-          (window as WindowWithPlayer).hasAddedTrackToQueue = true
-        }
-        
-        // Immediately check player status to show controls faster
-        if (typeof window !== 'undefined' && (window as WindowWithPlayer).checkPlayerStatusImmediately) {
-          setTimeout(() => {
-            void (window as WindowWithPlayer).checkPlayerStatusImmediately?.()
-          }, 100)
-        }
-      } else {
-        console.error('Failed to add track to queue')
+  const handlePlayTrack = async (track: RecentlyPlayedTrack): Promise<void> => {
+    if (!canPerformAction('allowAddToQueue')) return
+    const ok = await addToQueue({ path: track.path, title: track.title || getTrackName(track.path) })
+    if (ok) {
+      hideKeyboard()
+      if (typeof window !== 'undefined') {
+        (window as WindowWithPlayer).hasAddedTrackToQueue = true
+        setTimeout(() => void (window as WindowWithPlayer).checkPlayerStatusImmediately?.(), 100)
       }
-    } catch (error) {
-      console.error('Error adding track to queue:', error)
     }
   }
 
@@ -187,7 +166,7 @@ export default function RecentlyPlayed({ limit = 10, showTitle = true }: Recentl
 
             <div className={styles.trackActions}>
               <button
-                onClick={() => { void handlePlayTrack(track.path) }}
+                onClick={() => { void handlePlayTrack(track) }}
                 className={styles.playButton}
                 disabled={!canPerformAction('allowAddToQueue')}
                 title={!canPerformAction('allowAddToQueue') ? 'Adding to queue is restricted in party mode' : 'Play track'}

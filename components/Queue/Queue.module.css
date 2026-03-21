@@ -205,6 +205,23 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  border: none;
+  cursor: default;
+}
+
+.trackNumberBtn {
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.trackNumberBtn:hover:not(:disabled) {
+  background: var(--jukebox-accent);
+  color: var(--jukebox-dark, #0a0a0f);
+}
+
+.trackNumberBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .trackDetails {
@@ -282,6 +299,41 @@
   height: 16px;
 }
 
+/* Mobile up/down reorder buttons — hidden on desktop */
+.moveButtons {
+  display: none;
+}
+
+.moveButton {
+  background: transparent;
+  color: var(--jukebox-gray);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+}
+
+.moveButton:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--jukebox-white);
+}
+
+.moveButton:disabled {
+  opacity: 0.2;
+  cursor: not-allowed;
+}
+
+.moveIcon {
+  width: 16px;
+  height: 16px;
+}
+
 @keyframes slideIn {
   from {
     opacity: 0;
@@ -309,37 +361,106 @@
   }
 
   .content {
-    height: calc(100vh - 80px);
+    height: calc(100vh - 72px);
   }
 
+  .trackList {
+    padding: 0;
+  }
+
+  /* Flat list rows — no individual card backgrounds */
   .trackItem {
-    padding: var(--spacing-md);
-    min-height: 70px;
+    padding: 12px 16px;
+    min-height: 64px;
+    margin-bottom: 0;
+    border-radius: 0;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    cursor: default;
+    transform: none !important;
+    gap: 12px;
+  }
+
+  .trackItem:hover {
+    background: rgba(255, 255, 255, 0.04);
+    transform: none;
+  }
+
+  .trackItem:last-child {
+    border-bottom: none;
+  }
+
+  .trackItem.currentTrack {
+    background: rgba(255, 215, 0, 0.07);
+    border-bottom: 1px solid rgba(255, 215, 0, 0.15);
+  }
+
+  .trackItem.dragTarget {
+    background: rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: none;
+  }
+
+  /* Hide drag handle — replaced by up/down buttons */
+  .dragHandle {
+    display: none;
   }
 
   .trackInfo {
-    gap: var(--spacing-md);
+    gap: 10px;
   }
 
   .trackNumber {
-    width: 35px;
-    height: 35px;
-    font-size: 0.9rem;
+    width: 28px;
+    height: 28px;
+    font-size: 0.8rem;
+    flex-shrink: 0;
   }
 
   .trackTitle {
-    font-size: 1rem;
+    font-size: 0.95rem;
+    font-weight: 500;
   }
 
   .trackAlbum {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
+    margin-top: 1px;
   }
 
-  .playButton,
+  /* Show up/down buttons vertically stacked */
+  .moveButtons {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+
+  .moveButton {
+    width: 30px;
+    height: 28px;
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .moveIcon {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* Play is handled by tapping the number badge on mobile */
+  .playButton {
+    display: none;
+  }
+
+  .trackActions {
+    gap: 6px;
+  }
+
   .removeButton {
-    min-width: 35px;
-    height: 35px;
-    padding: var(--spacing-xs);
+    min-width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: var(--radius-sm);
   }
 
   .playIcon,

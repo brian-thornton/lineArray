@@ -445,6 +445,51 @@
   cursor: not-allowed;
 }
 
+.addToQueueButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--jukebox-gold, #c9a84c);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: transparent;
+  color: var(--jukebox-gold, #c9a84c);
+}
+
+.addToQueueButton:hover:not(:disabled) {
+  background: rgba(201, 168, 76, 0.15);
+  transform: translateY(-1px);
+}
+
+.addToQueueButton:disabled {
+  background: transparent;
+  color: var(--jukebox-gray);
+  border-color: rgba(255, 255, 255, 0.1);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.replaceQueueButton {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 44px;
+  background: linear-gradient(135deg, var(--jukebox-purple, #6c3fc5) 0%, #9b59b6 100%);
+  color: var(--jukebox-white);
+}
+
+.replaceQueueButton:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
 /* Loading Styles */
 .loadingContainer {
   display: flex;
