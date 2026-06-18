@@ -1,41 +1,8 @@
 import fs from 'fs'
 import path from 'path'
-import AudioFactory, { type AudioPlayerType } from './audio-factory'
+import AudioFactory from './audio-factory'
 import logger from './utils/serverLogger'
-import type { QueueTrack, QueueState, DebugInfo, AudioManagerInterface, QueueStateInterface } from './types/audio'
-
-// Function to load audio player preference from settings
-function loadAudioPlayerPreference(): AudioPlayerType {
-  try {
-    const settingsPath = path.join(process.cwd(), 'data', 'settings.json')
-    console.log('📁 Queue State: Loading audio player preference from:', settingsPath)
-    
-    if (fs.existsSync(settingsPath)) {
-      const data = fs.readFileSync(settingsPath, 'utf-8')
-      const settings = JSON.parse(data) as { audioPlayer?: AudioPlayerType }
-      console.log('🔍 Queue State: Raw settings.audioPlayer:', settings.audioPlayer, 'Type:', typeof settings.audioPlayer)
-      console.log('🔍 Queue State: Validation array:', ['vlc', 'afplay'])
-      console.log('🔍 Queue State: Includes check result:', settings.audioPlayer ? ['vlc', 'afplay'].includes(settings.audioPlayer) : 'undefined')
-      
-      if (settings.audioPlayer && ['vlc', 'afplay'].includes(settings.audioPlayer)) {
-        console.log('🎵 Queue State: Loaded audio player preference:', settings.audioPlayer)
-        logger.info('Queue state: Loaded audio player preference: ' + settings.audioPlayer, 'QueueState')
-        return settings.audioPlayer
-      } else {
-        console.log('⚠️ Queue State: Invalid or missing audioPlayer in settings:', settings.audioPlayer)
-      }
-    } else {
-      console.log('⚠️ Queue State: Settings file not found')
-    }
-  } catch (error) {
-    console.error('💥 Queue State: Error loading audio player preference:', error)
-    logger.error('Queue state: Error loading audio player preference, using default', 'QueueState', error)
-  }
-  
-  console.log('🎬 Queue State: Using default audio player: vlc')
-  logger.info('Queue state: Using default audio player: vlc', 'QueueState')
-  return 'vlc'
-}
+import type { QueueTrack, QueueState, DebugInfo, AudioManagerInterface, QueueStateInterface, RadioStation } from './types/audio'
 
 // Function to load playEntireQueue setting from settings
 function loadPlayEntireQueueSetting(): boolean {
@@ -55,24 +22,6 @@ function loadPlayEntireQueueSetting(): boolean {
   console.log('🎬 Queue State: Using default playEntireQueue setting: false')
   return false
 }
-
-// Function to check and reload audio player preference if needed
-function checkAndReloadAudioPlayerPreference(): void {
-  try {
-    const newPreference = loadAudioPlayerPreference()
-    const currentType = audioFactory.getCurrentType()
-    
-    if (newPreference !== currentType) {
-      logger.info('Queue state: Audio player preference changed, switching from ' + currentType + ' to ' + newPreference, 'QueueState')
-      void switchAudioPlayer(newPreference)
-    }
-  } catch (error) {
-    logger.error('Queue state: Error checking audio player preference', 'QueueState', error)
-  }
-}
-
-// Check audio player preference every 30 seconds to catch settings changes
-// (global dedup handled below with __audioPreferenceInterval)
 
 // Queue monitoring function - continuously checks for new tracks and starts playback
 function monitorQueueForNewTracks(): void {
@@ -126,31 +75,14 @@ function checkQueueAndStartPlayback(): void {
 // create duplicate intervals — each new instance clears the previous one first.
 const _g = global as typeof globalThis & {
   __queueMonitorInterval?: NodeJS.Timeout
-  __audioPreferenceInterval?: NodeJS.Timeout
 }
 if (_g.__queueMonitorInterval) clearInterval(_g.__queueMonitorInterval)
 _g.__queueMonitorInterval = setInterval(monitorQueueForNewTracks, 1000)
 
-if (_g.__audioPreferenceInterval) clearInterval(_g.__audioPreferenceInterval)
-_g.__audioPreferenceInterval = setInterval(checkAndReloadAudioPlayerPreference, 30000)
-
-// Function to reload audio player preference and update manager
-function reloadAudioPlayerPreference(): void {
-  checkAndReloadAudioPlayerPreference()
-}
-
-// Initialize with audio player preference from settings
+// Initialize the VLC audio manager
 const audioFactory = AudioFactory.getInstance()
-const preferredAudioPlayer = loadAudioPlayerPreference()
-console.log('🎯 Queue State: Initializing with audio player:', preferredAudioPlayer)
-let audio: AudioManagerInterface = audioFactory.createManager(preferredAudioPlayer)
+let audio: AudioManagerInterface = audioFactory.createManager('vlc')
 console.log('✅ Queue State: Audio manager initialized:', audio.constructor.name)
-
-// Ensure we're using the correct audio player type
-if (audioFactory.getCurrentType() !== preferredAudioPlayer) {
-  console.log('⚠️ Queue State: Audio player type mismatch, switching to:', preferredAudioPlayer)
-  audio = audioFactory.createManager(preferredAudioPlayer)
-}
 
 // Helper function to always get the current audio manager from the factory
 function getCurrentAudioManager(): AudioManagerInterface {
@@ -192,6 +124,11 @@ interface QS {
   // playbackInProgress is true while playNextInQueue() is executing.
   // Prevents concurrent calls from each shifting a track off the queue.
   playbackInProgress: boolean
+  // Internet-radio state. When a station is playing, isStream is true and the
+  // queue's auto-advance/completion logic is bypassed (a stream never "ends").
+  isStream: boolean
+  currentStation: RadioStation | null
+  nowPlaying: string | null
 }
 const _gqs = global as typeof globalThis & { __qs?: QS }
 if (!_gqs.__qs) {
@@ -205,6 +142,9 @@ if (!_gqs.__qs) {
     playbackStartTimer: null,
     playbackGeneration: 0,
     playbackInProgress: false,
+    isStream: false,
+    currentStation: null,
+    nowPlaying: null,
   }
 }
 const qs = _gqs.__qs
@@ -295,57 +235,72 @@ if (qs.queue.length === 0 && !qs.currentTrack) {
   loadState()
 }
 
-// Function to switch audio player
-async function switchAudioPlayer(playerType: AudioPlayerType): Promise<void> {
-  try {
-    logger.info('Queue state: Switching audio player to: ' + playerType, 'QueueState')
-    
-    // Stop current playback if any
-    if (qs.isPlaying) {
-      await audio.forceStop()
-    }
-    
-    // BRUTE FORCE: If switching FROM VLC, kill ALL VLC processes
-    if (audioFactory.getCurrentType() === 'vlc') {
-      logger.info('Queue state: Killing all VLC processes before switching to AFPLAY', 'QueueState')
-      try {
-        if (process.platform === 'win32') {
-          const { exec } = await import('child_process')
-          exec('taskkill /f /im vlc.exe', () => {})
-        } else {
-          const { exec } = await import('child_process')
-          exec('pkill -f vlc', () => {})
-          exec('pkill -f "vlc --intf http"', () => {})
-        }
-      } catch (error) {
-        logger.error('Queue state: Error killing VLC processes', 'QueueState', error)
-      }
-    }
-    
-    // Switch to new player
-    audio = await audioFactory.switchPlayer(playerType)
-    
-    // Re-setup callbacks with new audio manager
-    audio.setTrackCompleteCallback(() => {
-      if (qs.isStopping) {
-        logger.info('Queue state: Track completion ignored - stopping in progress', 'QueueState')
-        return
-      }
-      logger.info('Queue state: Track completed, playing next in queue', 'QueueState')
-      void playNextInQueue()
-    })
+// ─── Internet radio ────────────────────────────────────────────────────────
+// Play an internet-radio station. A station is handed straight to VLC as a URL.
+// Unlike queue tracks, a stream never completes, so we do NOT register an
+// auto-advance callback — playback continues until the user stops or picks
+// something else.
+async function playStream(station: RadioStation): Promise<boolean> {
+  // Claim a fresh generation so any in-flight queue playback aborts.
+  const myGen = ++qs.playbackGeneration
+  qs.manuallyStoppedByUser = false
+  qs.isStopping = false
 
-    audio.setProgressCallback((newProgress: number) => {
-      qs.progress = newProgress
-    })
-    
-    // Sync volume with new audio manager
-    syncVolumeWithAudioManager()
-    
-    logger.info('Queue state: Audio player switched successfully', 'QueueState')
-  } catch (error) {
-    logger.error('Queue state: Error switching audio player', 'QueueState', error)
+  logger.info('Queue state: Playing radio station: ' + station.name, 'QueueState')
+
+  // Wait for any in-flight playNextInQueue to release its lock.
+  if (qs.playbackInProgress) {
+    const deadline = Date.now() + 800
+    while (qs.playbackInProgress && Date.now() < deadline) {
+      await new Promise(r => setTimeout(r, 30))
+    }
+    qs.playbackInProgress = false
   }
+
+  if (myGen !== qs.playbackGeneration) {
+    return false
+  }
+
+  const currentAudioManager = audioFactory.getCurrentManager()
+  if (!currentAudioManager) return false
+
+  // Streams must never trigger queue advance.
+  currentAudioManager.clearTrackCompleteCallback()
+
+  // Synthetic "track" so the existing player UI has something to render.
+  qs.currentTrack = {
+    id: `stream_${Date.now()}`,
+    path: station.streamUrl,
+    title: station.name,
+    artist: station.tags ?? 'Internet Radio',
+    album: 'Internet Radio',
+    duration: 'LIVE',
+    kind: 'stream',
+    favicon: station.favicon,
+  }
+  qs.isStream = true
+  qs.currentStation = station
+  qs.nowPlaying = null
+  qs.isPlaying = false
+  qs.progress = 0
+  saveState()
+
+  const success = await currentAudioManager.playFile(station.streamUrl)
+
+  if (myGen !== qs.playbackGeneration) {
+    void currentAudioManager.forceStop()
+    return false
+  }
+
+  if (success) {
+    qs.isPlaying = true
+    logger.info('Queue state: Radio station playing: ' + station.name, 'QueueState')
+  } else {
+    qs.isStream = false
+    qs.currentStation = null
+    qs.currentTrack = null
+  }
+  return success
 }
 
 // Sync volume with audio manager on startup
@@ -414,6 +369,11 @@ async function playNextInQueue(): Promise<boolean> {
     // ── Step 4: Shift next track (we hold the lock — no other call can do this) ─
     const nextTrack = qs.queue.shift()!
     console.log(`🎵 Queue State: Playing "${nextTrack.title}", ${qs.queue.length} remaining`)
+
+    // Leaving any radio stream behind — back to finite-track behavior.
+    qs.isStream = false
+    qs.currentStation = null
+    qs.nowPlaying = null
 
     qs.currentTrack = nextTrack
     qs.isPlaying = false
@@ -525,7 +485,10 @@ async function stopPlayback(): Promise<boolean> {
   qs.isPlaying = false
   qs.currentTrack = null
   qs.progress = 0
-  
+  qs.isStream = false
+  qs.currentStation = null
+  qs.nowPlaying = null
+
   // Force reset the audio manager state to match
   try {
     audio.forceResetState()
@@ -589,41 +552,30 @@ async function seekPlayback(position: number): Promise<boolean> {
     const currentAudioManager = audioFactory.getCurrentManager();
     if (currentAudioManager) {
       const success = await currentAudioManager.seek(position)
-      
-      // After seek, update state based on the active audio player
-      if (audioFactory.getCurrentType() === 'vlc') {
-        // For VLC, poll VLC for latest state
-        try {
-          const statusUrl = `http://localhost:8081/requests/status.xml`;
-          const response = await fetch(statusUrl, {
-            headers: {
-              'Authorization': `Basic ${Buffer.from(':jukebox').toString('base64')}`
-            }
-          });
-          if (response.ok) {
-            const statusText = await response.text();
-            const stateMatch = statusText.match(/<state>([^<]+)<\/state>/);
-            const state = stateMatch ? stateMatch[1] : 'unknown';
-            qs.isPlaying = state === 'playing';
-            const timeMatch = statusText.match(/<time>(\d+)<\/time>/);
-            const lengthMatch = statusText.match(/<length>(\d+)<\/length>/);
-            if (timeMatch && lengthMatch) {
-              const currentTime = parseInt(timeMatch[1], 10);
-              const totalLength = parseInt(lengthMatch[1], 10);
-              qs.progress = totalLength > 0 ? currentTime / totalLength : 0;
-            }
+
+      // After seek, poll VLC for the latest state/progress.
+      try {
+        const statusUrl = `http://localhost:8081/requests/status.xml`;
+        const response = await fetch(statusUrl, {
+          headers: {
+            'Authorization': `Basic ${Buffer.from(':jukebox').toString('base64')}`
           }
-        } catch (e) {
-          console.error('seekPlayback: Error polling VLC for state after seek', e);
+        });
+        if (response.ok) {
+          const statusText = await response.text();
+          const stateMatch = statusText.match(/<state>([^<]+)<\/state>/);
+          const state = stateMatch ? stateMatch[1] : 'unknown';
+          qs.isPlaying = state === 'playing';
+          const timeMatch = statusText.match(/<time>(\d+)<\/time>/);
+          const lengthMatch = statusText.match(/<length>(\d+)<\/length>/);
+          if (timeMatch && lengthMatch) {
+            const currentTime = parseInt(timeMatch[1], 10);
+            const totalLength = parseInt(lengthMatch[1], 10);
+            qs.progress = totalLength > 0 ? currentTime / totalLength : 0;
+          }
         }
-      } else if (audioFactory.getCurrentType() === 'afplay') {
-        // For AFPLAY, use the audio manager's methods
-        try {
-          qs.isPlaying = currentAudioManager.getStatus().isPlaying;
-          qs.progress = currentAudioManager.getPlaybackProgress();
-        } catch (e) {
-          console.error('seekPlayback: Error getting AFPLAY state after seek', e);
-        }
+      } catch (e) {
+        console.error('seekPlayback: Error polling VLC for state after seek', e);
       }
 
       if (success) {
@@ -770,49 +722,7 @@ function getDebugInfo(): DebugInfo {
   }
 }
 
-// Helper to get current file from audio player
-async function getCurrentFileFromAudioPlayer(): Promise<string | null> {
-  if (audioFactory.getCurrentType() === 'vlc') {
-    // For VLC, use the HTTP API
-    try {
-      const statusUrl = `http://localhost:8081/requests/status.xml`;
-      const response = await fetch(statusUrl, {
-        headers: {
-          'Authorization': `Basic ${Buffer.from(':jukebox').toString('base64')}`
-        }
-      });
-      if (!response.ok) return null;
-      const statusText = await response.text();
-      const fileMatch = statusText.match(/<info name='filename'>([^<]+)<\/info>/);
-      if (fileMatch) {
-        // This is just the filename, not the full path. Try to match it to a known file in the queue.
-        const filename = fileMatch[1];
-        // Try to find in queue
-        const found = qs.queue.find(t => t.path.endsWith(filename));
-        if (found) return found.path;
-        // If not found, try currentTrack
-        if (qs.currentTrack && qs.currentTrack.path.endsWith(filename)) return qs.currentTrack.path;
-        // Otherwise, return just the filename (not ideal, but better than nothing)
-        return filename;
-      }
-      return null;
-    } catch {
-      return null;
-    }
-  } else if (audioFactory.getCurrentType() === 'afplay') {
-  // For AFPLAY, use the audio manager's method
-  try {
-    const currentSong = audio.getCurrentSong();
-    return currentSong.file;
-  } catch {
-    return null;
-  }
-  }
-  
-  return null;
-}
-
-// Robust getCurrentState with audio player-aware sync
+// Robust getCurrentState with VLC sync
 async function getCurrentState(): Promise<{
   isPlaying: boolean
   currentTrack: QueueTrack | null
@@ -820,9 +730,12 @@ async function getCurrentState(): Promise<{
   progress: number
   volume: number
   isMuted: boolean
+  isStream: boolean
+  station: RadioStation | null
+  nowPlaying: string | null
 }> {
-  // Only sync with VLC if VLC is the active audio player
-  if (qs.currentTrack && audioFactory.getCurrentType() === 'vlc') {
+  // Sync playback state with VLC whenever something is loaded.
+  if (qs.currentTrack) {
     try {
       const statusUrl = `http://localhost:8081/requests/status.xml`;
       const response = await fetch(statusUrl, {
@@ -835,37 +748,40 @@ async function getCurrentState(): Promise<{
         const stateMatch = statusText.match(/<state>([^<]+)<\/state>/);
         const state = stateMatch ? stateMatch[1] : 'unknown';
         qs.isPlaying = state === 'playing';
-        const timeMatch = statusText.match(/<time>(\d+)<\/time>/);
-        const lengthMatch = statusText.match(/<length>(\d+)<\/length>/);
-        if (timeMatch && lengthMatch) {
-          const currentTime = parseInt(timeMatch[1], 10);
-          const totalLength = parseInt(lengthMatch[1], 10);
-          qs.progress = totalLength > 0 ? currentTime / totalLength : 0;
+        if (qs.isStream) {
+          // Streams have no length — there is no meaningful progress, but we do
+          // surface the ICY now-playing title when the station broadcasts it.
+          qs.progress = 0;
+          const npMatch = statusText.match(/<info name=['"]now_playing['"]>([^<]+)<\/info>/);
+          qs.nowPlaying = npMatch && npMatch[1].trim()
+            ? npMatch[1]
+                .replace(/&amp;/g, '&')
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&apos;/g, "'")
+                .replace(/&quot;/g, '"')
+                .trim()
+            : qs.nowPlaying;
+        } else {
+          const timeMatch = statusText.match(/<time>(\d+)<\/time>/);
+          const lengthMatch = statusText.match(/<length>(\d+)<\/length>/);
+          if (timeMatch && lengthMatch) {
+            const currentTime = parseInt(timeMatch[1], 10);
+            const totalLength = parseInt(lengthMatch[1], 10);
+            qs.progress = totalLength > 0 ? currentTime / totalLength : 0;
+          }
         }
       }
     } catch (error) {
       // If VLC is unreachable, keep current state
       console.error('getCurrentState: Error syncing with VLC:', error);
     }
-  } else if (qs.currentTrack && audioFactory.getCurrentType() === 'afplay') {
-    // For AFPLAY, use the audio manager's methods instead of trying to connect to VLC
-    try {
-      const currentAudioManager = audioFactory.getCurrentManager();
-      if (currentAudioManager) {
-        const audioStatus = currentAudioManager.getStatus();
-        qs.isPlaying = audioStatus.isPlaying;
-        qs.progress = currentAudioManager.getPlaybackProgress();
-      } else {
-        console.error('getCurrentState: No current audio manager available');
-      }
-    } catch (error) {
-      console.error('getCurrentState: Error getting AFPLAY state:', error);
-      // Fallback to stored state if audio manager fails
-      // Don't change isPlaying or progress, keep current values
-    }
   }
 
   return {
+    isStream: qs.isStream,
+    station: qs.currentStation,
+    nowPlaying: qs.nowPlaying,
     isPlaying: qs.isPlaying,
     currentTrack: qs.currentTrack,
     queue: qs.queue,
@@ -904,8 +820,7 @@ const queueState: QueueStateInterface = {
   loadState,
   getDebugInfo,
   audio,
-  switchAudioPlayer,
-  reloadAudioPlayerPreference,
+  playStream,
   checkQueueAndStartPlayback,
   stopAllPlayback: async () => {
     // ── Step 1: Cancel all in-flight playback by incrementing generation ────────
@@ -971,6 +886,9 @@ const queueState: QueueStateInterface = {
     qs.isPlaying = false
     qs.progress = 0
     qs.isStopping = false
+    qs.isStream = false
+    qs.currentStation = null
+    qs.nowPlaying = null
     saveState()
     console.log(`🛑 Queue State: stopAllPlayback complete, queue preserved (${qs.queue.length} tracks)`)
   },

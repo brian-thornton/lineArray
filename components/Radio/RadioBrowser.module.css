@@ -1,0 +1,275 @@
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 7rem;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.titleIcon {
+  color: var(--jukebox-gold);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--jukebox-white, #fff);
+  margin: 0;
+}
+
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--jukebox-gray, #aaa);
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tab:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.tabActive {
+  background: var(--jukebox-gold);
+  border-color: var(--jukebox-gold);
+  color: #1a1a1a;
+}
+
+.searchRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 0.9rem;
+  color: var(--jukebox-gray, #888);
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 0.8rem 2.5rem 0.8rem 2.6rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.25);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  outline: none;
+}
+
+.searchInput:focus {
+  border-color: var(--jukebox-gold);
+}
+
+.spinner {
+  animation: spin 0.9s linear infinite;
+  color: var(--jukebox-gold);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.85rem;
+}
+
+.card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(8px);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.card:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 215, 0, 0.35);
+}
+
+.cardLive {
+  border-color: var(--jukebox-gold);
+  background: rgba(255, 215, 0, 0.08);
+}
+
+.actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.favButton {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  line-height: 0;
+  transition: background 0.12s ease;
+}
+
+.favButton:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.starFilled {
+  color: var(--jukebox-gold);
+  fill: var(--jukebox-gold);
+}
+
+.starEmpty {
+  color: var(--jukebox-gray, #888);
+}
+
+.logo {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.logoImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.logoPlaceholder {
+  color: var(--jukebox-gold);
+  opacity: 0.7;
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+}
+
+.name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta {
+  font-size: 0.78rem;
+  color: var(--jukebox-gray, #999);
+  margin-top: 0.2rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.liveTag {
+  color: #ff4d4f;
+  font-weight: 700;
+  margin-right: 0.4rem;
+  animation: livePulse 2s ease-in-out infinite;
+}
+
+@keyframes livePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+.playButton {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: none;
+  background: var(--jukebox-gold);
+  color: #1a1a1a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+
+.playButton:hover:not(:disabled) {
+  transform: scale(1.08);
+}
+
+.playButton:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.stopButton {
+  background: #ff4d4f;
+  color: #fff;
+}
+
+.empty {
+  text-align: center;
+  padding: 4rem 1rem;
+  color: var(--jukebox-gray, #999);
+}
+
+.emptyIcon {
+  color: var(--jukebox-gold);
+  opacity: 0.6;
+  margin-bottom: 1rem;
+}
+
+.empty h3 {
+  font-family: var(--font-display);
+  color: #fff;
+  margin: 0 0 0.4rem;
+}
+
+.empty p {
+  margin: 0;
+  font-size: 0.9rem;
+}

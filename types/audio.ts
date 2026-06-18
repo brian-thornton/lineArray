@@ -21,6 +21,22 @@ export interface QueueTrack {
   album: string
   duration: string
   isAlbum?: boolean
+  // 'stream' marks an internet-radio station rather than a finite local file.
+  kind?: 'track' | 'stream'
+  // Station artwork URL, only set for stream tracks.
+  favicon?: string
+}
+
+export interface RadioStation {
+  id: string
+  name: string
+  streamUrl: string
+  favicon?: string
+  tags?: string
+  bitrate?: number
+  country?: string
+  codec?: string
+  homepage?: string
 }
 
 export interface QueueState {
@@ -88,8 +104,7 @@ export interface QueueStateInterface {
   loadState(): void
   getDebugInfo(): DebugInfo
   audio: AudioManagerInterface
-  switchAudioPlayer(playerType: 'vlc' | 'afplay'): Promise<void>
-  reloadAudioPlayerPreference(): void
+  playStream(station: RadioStation): Promise<boolean>
   checkQueueAndStartPlayback(): void
   stopAllPlayback(): Promise<void>
   getProgress(): number
@@ -105,5 +120,8 @@ export interface QueueStateInterface {
     progress: number
     volume: number
     isMuted: boolean
+    isStream: boolean
+    station: RadioStation | null
+    nowPlaying: string | null
   }>
 } 

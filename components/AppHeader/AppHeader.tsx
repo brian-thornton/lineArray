@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Settings, Smartphone, Library, Clock, ListMusic, Menu, X } from 'lucide-react'
+import { Settings, Smartphone, Library, Clock, ListMusic, Radio, Menu, X } from 'lucide-react'
 import styles from './AppHeader.module.css'
 import JukeboxHeader from '@/components/JukeboxHeader/JukeboxHeader'
 import SearchBox from '@/components/SearchBox/SearchBox'
@@ -94,7 +94,7 @@ export default function AppHeader(): JSX.Element {
           }} 
           className={`${styles.navLink} ${pathname === '/' ? styles.active : ''}`}
         >
-          <Library size={20} className={styles.navIcon} />
+          <Library size={22} className={styles.navIcon} />
           <span className={styles.navText}>Library</span>
         </Link>
         <Link 
@@ -102,16 +102,24 @@ export default function AppHeader(): JSX.Element {
           onClick={() => setShowMobileMenu(false)}
           className={`${styles.navLink} ${pathname === '/recent' ? styles.active : ''}`}
         >
-          <Clock size={20} className={styles.navIcon} />
+          <Clock size={22} className={styles.navIcon} />
           <span className={styles.navText}>Recent</span>
         </Link>
-        <Link 
-          href="/playlists" 
+        <Link
+          href="/playlists"
           onClick={() => setShowMobileMenu(false)}
           className={`${styles.navLink} ${pathname === '/playlists' ? styles.active : ''}`}
         >
-          <ListMusic size={20} className={styles.navIcon} />
+          <ListMusic size={22} className={styles.navIcon} />
           <span className={styles.navText}>Playlists</span>
+        </Link>
+        <Link
+          href="/radio"
+          onClick={() => setShowMobileMenu(false)}
+          className={`${styles.navLink} ${pathname === '/radio' ? styles.active : ''}`}
+        >
+          <Radio size={22} className={styles.navIcon} />
+          <span className={styles.navText}>Radio</span>
         </Link>
         <Link 
           href="/settings" 
@@ -119,7 +127,7 @@ export default function AppHeader(): JSX.Element {
           className={`${styles.navLink} ${styles.settingsButton} ${pathname === '/settings' ? styles.active : ''}`} 
           aria-label="Settings"
         >
-          <Settings size={20} className={styles.navIcon} />
+          <Settings size={22} className={styles.navIcon} />
           <span className={styles.navText}>Settings</span>
         </Link>
       </nav>

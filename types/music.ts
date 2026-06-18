@@ -78,7 +78,7 @@ export interface Settings {
   showPlaybackPosition: boolean
   enableAdminMode: boolean
   libraryLayout: 'modern' | 'classic' | 'large'
-  audioPlayer: 'vlc' | 'afplay'
+  audioPlayer: 'vlc'
   playEntireQueue: boolean
   partyMode: {
     enabled: boolean

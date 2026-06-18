@@ -1,4 +1,4 @@
-import { QueueTrack } from './audio'
+import { QueueTrack, RadioStation } from './audio'
 
 export interface QueueStateResponse {
   isPlaying: boolean
@@ -7,6 +7,9 @@ export interface QueueStateResponse {
   progress: number
   volume: number
   isMuted: boolean
+  isStream?: boolean
+  station?: RadioStation | null
+  nowPlaying?: string | null
 }
 
 export interface QueueResponse extends QueueStateResponse {

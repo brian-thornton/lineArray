@@ -28,7 +28,7 @@ export function SettingsProvider({ children }: { children: ReactNode }): JSX.Ele
     showPlaybackPosition: true,
     enableAdminMode: false,
     libraryLayout: 'modern',
-    audioPlayer: 'afplay',
+    audioPlayer: 'vlc',
     playEntireQueue: false,
     partyMode: {
       enabled: false,

@@ -174,33 +174,10 @@ function AdminSection(): JSX.Element {
   const { showToast } = useToast()
   const [jukeboxName, setJukeboxName] = useState(settings.jukeboxName)
   const [adminPin, setAdminPin] = useState(settings.adminPin ?? '')
-  const [audioPlayer, setAudioPlayer] = useState(settings.audioPlayer)
 
   const saveField = async (patch: Partial<typeof settings>): Promise<void> => {
     try {
       await updateSettings(patch)
-      showToast('Saved ✓', 'success')
-    } catch {
-      showToast('Failed to save settings', 'error')
-    }
-  }
-
-  const handleAudioPlayerChange = async (value: 'vlc' | 'afplay'): Promise<void> => {
-    const prev = audioPlayer
-    setAudioPlayer(value)
-    try {
-      await updateSettings({ audioPlayer: value })
-      if (prev !== value) {
-        const res = await fetch('/api/settings/switch-audio-player', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ playerType: value })
-        })
-        if (!res.ok) {
-          showToast('Settings saved but failed to switch audio player', 'error')
-          return
-        }
-      }
       showToast('Saved ✓', 'success')
     } catch {
       showToast('Failed to save settings', 'error')
@@ -254,25 +231,7 @@ function AdminSection(): JSX.Element {
       </div>
 
       <div className={styles.settingGroup}>
-        <h3 className={styles.subsectionTitle}>Audio Player</h3>
-        <div className={styles.setting}>
-          <label htmlFor="audioPlayer" className={styles.label}>
-            Audio Player Engine
-          </label>
-          <select
-            id="audioPlayer"
-            value={audioPlayer}
-            onChange={(e) => { void handleAudioPlayerChange(e.target.value as 'vlc' | 'afplay') }}
-            className={styles.input}
-          >
-            <option value="vlc">VLC Media Player</option>
-            <option value="afplay">macOS AFPLAY</option>
-          </select>
-          <p className={styles.settingDescription}>
-            Choose your preferred audio player. VLC supports seeking and more features but can be unstable. AFPLAY is built into macOS and more reliable but doesn&apos;t support seeking.
-          </p>
-        </div>
-        
+        <h3 className={styles.subsectionTitle}>Playback</h3>
         <div className={styles.setting}>
           <label htmlFor="playEntireQueue" className={styles.label}>
             <input

@@ -20,6 +20,8 @@ interface PlayerStatus {
   volume?: number
   isMuted: boolean
   progress?: number
+  isStream?: boolean
+  nowPlaying?: string | null
 }
 
 interface PlayerProps {
@@ -96,10 +98,12 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
               queue: data.queue ?? [],
               volume: data.volume ?? prev.volume,
               isMuted: data.isMuted ?? prev.isMuted,
+              isStream: data.isStream ?? false,
+              nowPlaying: data.nowPlaying ?? null,
               // Don't update progress during seeking to prevent jumping back
               progress: isSeeking ? prev.progress : (data.progress ?? prev.progress)
             }
-            
+
             // Trigger dynamic color changes when playback state changes
             if (data.isPlaying && !prev.isPlaying) {
               // Started playing (e.g., track auto-advanced)
@@ -109,8 +113,8 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
               // Device will turn red when stopped
             }
             
-            // Show toast when playback starts on mobile
-            if (isMobile && data.isPlaying && !prev.isPlaying && data.currentTrack) {
+            // Show toast when playback starts on mobile (but not for radio streams)
+            if (isMobile && data.isPlaying && !prev.isPlaying && data.currentTrack && !data.isStream) {
               const trackName = data.currentTrack.title ?? 'Unknown Track'
               showToast(`Now playing: ${trackName}`, 'success', 4000)
             }
@@ -167,10 +171,12 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
             queue: data.queue ?? [],
             volume: data.volume ?? prev.volume,
             isMuted: data.isMuted ?? prev.isMuted,
+            isStream: data.isStream ?? false,
+            nowPlaying: data.nowPlaying ?? null,
             // Don't update progress during seeking to prevent jumping back
             progress: isSeeking ? prev.progress : (data.progress ?? prev.progress)
           }
-          
+
           // Clear the flag once we have proper status
           if (typeof window !== 'undefined' && (window as WindowWithPlayer).hasAddedTrackToQueue) {
             (window as WindowWithPlayer).hasAddedTrackToQueue = false
@@ -469,27 +475,19 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
   }
 
   const handleSeekStart = (): void => {
-    if (settings.audioPlayer === 'afplay') {
-      showToast('Seeking not supported by afplay', 'warning', 3000)
-      return
-    }
+    if (playerStatus.isStream) return
     setIsSeeking(true)
     setSeekPreview(null)
   }
 
   const handleSeekDrag = (position: number): void => {
-    if (settings.audioPlayer === 'afplay') {
-      return
-    }
+    if (playerStatus.isStream) return
     // Show preview during drag, but don't update actual progress
     setSeekPreview(position)
   }
 
   const handleSeekEnd = async (position: number): Promise<void> => {
-    if (settings.audioPlayer === 'afplay') {
-      showToast('Seeking not supported by afplay', 'warning', 3000)
-      return
-    }
+    if (playerStatus.isStream) return
 
     if (!canPerformAction('allowPlay')) {
       showToast('Playback control is restricted in party mode', 'error', 3000)
@@ -622,20 +620,22 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
                   : (typeof playerStatus.volume === 'number' ? 'Ready' : 'No track playing')}
               </h3>
               <p className={styles.artist}>
-                {playerStatus.currentTrack?.artist ?? getTrackStatus()}
+                {playerStatus.isStream
+                  ? (playerStatus.nowPlaying ?? playerStatus.currentTrack?.artist ?? 'Internet Radio')
+                  : (playerStatus.currentTrack?.artist ?? getTrackStatus())}
               </p>
-              {playerStatus.queue.length > 0 ? (
+              {playerStatus.queue.length > 0 && !playerStatus.isStream ? (
                 <p className={styles.upNext} title={playerStatus.queue[0].title ?? undefined}>
                   <span className={styles.upNextLabel}>Next</span>
                   {playerStatus.queue[0].title ?? 'Unknown Track'}
                 </p>
               ) : (
-                <p className={styles.album}>{getTrackInfo()}</p>
+                <p className={styles.album}>{playerStatus.isStream ? 'Internet Radio' : getTrackInfo()}</p>
               )}
             </div>
           </div>
           
-          {settings.showPlaybackPosition && playerStatus.currentTrack && settings.audioPlayer !== 'afplay' && (
+          {settings.showPlaybackPosition && playerStatus.currentTrack && !playerStatus.isStream && (
             <div className={styles.playbackPosition}>
               <Equalizer
                 isPlaying={playerStatus.isPlaying}
@@ -647,33 +647,25 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
               />
               <div className={styles.positionInfo}>
                 <span className={styles.positionText}>
-                  {isSeeking && seekPreview !== null 
+                  {isSeeking && seekPreview !== null
                     ? `${Math.round(seekPreview * 100)}%`
-                    : playerStatus.progress 
-                      ? `${Math.round((playerStatus.progress ?? 0) * 100)}%` 
+                    : playerStatus.progress
+                      ? `${Math.round((playerStatus.progress ?? 0) * 100)}%`
                       : '0%'
                   }
                 </span>
               </div>
             </div>
           )}
-          
-          {settings.showPlaybackPosition && playerStatus.currentTrack && settings.audioPlayer === 'afplay' && (
+
+          {playerStatus.currentTrack && playerStatus.isStream && (
             <div className={styles.playbackPosition}>
               <div className={styles.positionInfo}>
-                <span className={styles.positionText}>
-                  {playerStatus.progress 
-                    ? `${Math.round((playerStatus.progress ?? 0) * 100)}%` 
-                    : '0%'
-                  }
-                </span>
-                <span className={styles.seekWarning} title="Seeking not supported by afplay">
-                  (No seek)
-                </span>
+                <span className={styles.liveBadge}>● LIVE</span>
               </div>
             </div>
           )}
-          
+
           <div className={styles.mainControls}>
             <button
               className={styles.controlButton}
@@ -689,7 +681,7 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
               <button
                 className={`${styles.controlButton} ${styles.skipButton}`}
                 onClick={() => { void handleSkip(); }}
-                disabled={loading || playerStatus.queue.length <= 1 || !canPerformAction('allowNext')}
+                disabled={loading || playerStatus.isStream || playerStatus.queue.length <= 1 || !canPerformAction('allowNext')}
                 aria-label="Skip to next track"
                 title={!canPerformAction('allowNext') ? 'Skip restricted in party mode' : undefined}
               >
@@ -837,7 +829,7 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
           onSeekStart={handleSeekStart}
           onSeekDrag={handleSeekDrag}
           onSeekEnd={(pos) => { void handleSeekEnd(pos) }}
-          showSeekBar={settings.audioPlayer !== 'afplay'}
+          showSeekBar={!playerStatus.isStream}
           seekDisabled={!canPerformAction('allowPlay') || !playerStatus.isPlaying}
         />
       )}
