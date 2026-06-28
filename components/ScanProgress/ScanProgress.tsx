@@ -1,5 +1,5 @@
 import React from 'react'
-import { Loader, Music, Folder, X } from 'lucide-react'
+import { Music, Folder, X } from 'lucide-react'
 import styles from './ScanProgress.module.css'
 
 interface ScanProgressProps {
@@ -42,9 +42,6 @@ export default function ScanProgress({
               <X size={20} />
             </button>
           )}
-          <div className={styles.spinnerContainer}>
-            <Loader className={styles.spinner} />
-          </div>
           <h2 className={styles.title}>Scanning Music Library</h2>
           <p className={styles.subtitle}>Please wait while we index your music collection...</p>
         </div>

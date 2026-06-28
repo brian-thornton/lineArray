@@ -783,12 +783,15 @@ function MusicScanSection(): JSX.Element {
             try {
               const data = JSON.parse(line.slice(6))
               
-              // Add message to console
-              setConsoleMessages(prev => [...prev, {
-                type: data.type,
-                message: data.message,
-                timestamp: Date.now()
-              }])
+              // Add message to console — only show the list of folders being
+              // scanned, not individual files or per-album processing text.
+              if (data.type !== 'file' && data.type !== 'album') {
+                setConsoleMessages(prev => [...prev, {
+                  type: data.type,
+                  message: data.message,
+                  timestamp: Date.now()
+                }])
+              }
               
               // Update progress
               setScanProgress(prev => ({
@@ -921,12 +924,15 @@ function MusicScanSection(): JSX.Element {
             try {
               const data = JSON.parse(line.slice(6))
               
-              // Add message to console
-              setConsoleMessages(prev => [...prev, {
-                type: data.type,
-                message: data.message,
-                timestamp: Date.now()
-              }])
+              // Add message to console — only show the list of folders being
+              // scanned, not individual files or per-album processing text.
+              if (data.type !== 'file' && data.type !== 'album') {
+                setConsoleMessages(prev => [...prev, {
+                  type: data.type,
+                  message: data.message,
+                  timestamp: Date.now()
+                }])
+              }
               
               // Update progress
               setScanProgress(prev => ({
