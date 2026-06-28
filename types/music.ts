@@ -69,7 +69,6 @@ export interface Settings {
   jukeboxName: string
   adminPin?: string
   theme: string
-  showTouchKeyboard: boolean
   showPagination: boolean
   showConcertDetails: boolean
   showMobileQR: boolean
@@ -79,7 +78,6 @@ export interface Settings {
   enableAdminMode: boolean
   libraryLayout: 'modern' | 'classic' | 'large'
   audioPlayer: 'vlc'
-  playEntireQueue: boolean
   partyMode: {
     enabled: boolean
     allowPlay: boolean

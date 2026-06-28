@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
 import { Album } from '@/types/music'
@@ -132,4 +132,82 @@ export function GET(): Promise<NextResponse> {
       { status: 500 }
     ))
   }
-} 
+}
+
+// Remove a scan location from the library. This deletes the location from the
+// saved scan paths/results and drops every album that lives within that
+// location. Files on disk are left untouched — only the library index is edited.
+export function DELETE(request: NextRequest): Promise<NextResponse> {
+  try {
+    const { searchParams } = new URL(request.url)
+    const location = searchParams.get('path')?.trim()
+
+    if (!location) {
+      return Promise.resolve(NextResponse.json(
+        { error: 'A "path" query parameter is required' },
+        { status: 400 }
+      ))
+    }
+
+    const dataPath = path.join(process.cwd(), 'data', 'music-library.json')
+
+    if (!fs.existsSync(dataPath)) {
+      // Nothing persisted yet — treat as already removed.
+      return Promise.resolve(NextResponse.json({ success: true, scanPaths: [], totalAlbums: 0 }))
+    }
+
+    const data = fs.readFileSync(dataPath, 'utf8')
+    const libraryData = JSON.parse(data) as LibraryData
+
+    const albums = libraryData.albums ?? []
+    const scanPaths = libraryData.scanPaths ?? (libraryData.scanPath ? [libraryData.scanPath] : [])
+    const scanResults = libraryData.scanResults ?? {}
+
+    // Normalize away trailing separators so comparisons are stable.
+    const normalize = (p: string): string => p.replace(/[/\\]+$/, '')
+    const target = normalize(location)
+    const isWithin = (p: string): boolean => {
+      const n = normalize(p)
+      return n === target || n.startsWith(target + path.sep)
+    }
+
+    const remainingAlbums = albums.filter(album => !(album.folderPath !== undefined && isWithin(album.folderPath)))
+    const remainingScanPaths = scanPaths.filter(p => !isWithin(p))
+
+    const remainingScanResults: Record<string, unknown> = {}
+    for (const [key, value] of Object.entries(scanResults)) {
+      if (!isWithin(key)) {
+        remainingScanResults[key] = value
+      }
+    }
+
+    const updatedLibrary: LibraryData = {
+      ...libraryData,
+      albums: remainingAlbums,
+      scanPaths: remainingScanPaths,
+      totalAlbums: remainingAlbums.length,
+      totalFiles: remainingAlbums.reduce((sum, album) => sum + album.tracks.length, 0),
+      scanResults: remainingScanResults,
+    }
+
+    // Drop the legacy single-path field if it referenced the removed location.
+    if (updatedLibrary.scanPath && isWithin(updatedLibrary.scanPath)) {
+      delete updatedLibrary.scanPath
+    }
+
+    fs.writeFileSync(dataPath, JSON.stringify(updatedLibrary, null, 2))
+
+    return Promise.resolve(NextResponse.json({
+      success: true,
+      scanPaths: remainingScanPaths,
+      totalAlbums: remainingAlbums.length,
+    }))
+
+  } catch (error) {
+    console.error('Error removing location:', error)
+    return Promise.resolve(NextResponse.json(
+      { error: 'Failed to remove location' },
+      { status: 500 }
+    ))
+  }
+}

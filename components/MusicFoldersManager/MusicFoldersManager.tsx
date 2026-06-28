@@ -8,17 +8,19 @@ import styles from './MusicFoldersManager.module.css'
 interface MusicFoldersManagerProps {
   onScan: (directories: string[]) => void
   onRescanSingle: (directory: string) => void
+  onRemoveLocation: (directory: string) => void
   isScanning: boolean
   currentPaths: string[]
   scanResults: { [path: string]: { albums: number; files: number; lastScanned: string; status?: string; reason?: string } }
 }
 
-export default function MusicFoldersManager({ 
-  onScan, 
+export default function MusicFoldersManager({
+  onScan,
   onRescanSingle,
-  isScanning, 
-  currentPaths, 
-  scanResults 
+  onRemoveLocation,
+  isScanning,
+  currentPaths,
+  scanResults
 }: MusicFoldersManagerProps): JSX.Element {
   const [folders, setFolders] = useState<string[]>(currentPaths)
   const [newFolder, setNewFolder] = useState('')
@@ -37,8 +39,15 @@ export default function MusicFoldersManager({
   }
 
   const handleRemoveFolder = (index: number): void => {
+    const folder = folders[index]
     const updatedFolders = folders.filter((_, i) => i !== index)
     setFolders(updatedFolders)
+    // If this folder is part of the persisted library, remove it there too so
+    // it doesn't reappear (and its albums leave the UI). Folders added locally
+    // but not yet scanned only need the local state update above.
+    if (currentPaths.includes(folder)) {
+      onRemoveLocation(folder)
+    }
   }
 
   const handleScanAll = (): void => {

@@ -12,10 +12,10 @@ import ScanProgress from '@/components/ScanProgress/ScanProgress'
 import PinPad from '@/components/PinPad/PinPad'
 import PlayCounts from '@/components/PlayCounts/PlayCounts'
 import LogsViewer from '@/components/LogsViewer/LogsViewer'
-import { Settings, Palette, PartyPopper, BarChart3 } from 'lucide-react'
+import { Settings, Palette, PartyPopper, BarChart3, Paintbrush } from 'lucide-react'
 
 
-type SettingsSection = 'admin' | 'ui' | 'party' | 'statistics'
+type SettingsSection = 'admin' | 'ui' | 'theme' | 'party' | 'statistics'
 
 interface SectionConfig {
   id: SettingsSection
@@ -94,6 +94,7 @@ export default function SettingsPage(): JSX.Element {
   const sections: SectionConfig[] = [
     { id: 'admin', name: 'Admin', icon: Settings },
     { id: 'ui', name: 'User Interface', icon: Palette },
+    { id: 'theme', name: 'Themes', icon: Paintbrush },
     { id: 'party', name: 'Party Mode', icon: PartyPopper },
     { id: 'statistics', name: 'Statistics', icon: BarChart3 }
   ]
@@ -120,6 +121,7 @@ export default function SettingsPage(): JSX.Element {
       <div className={styles.content}>
         {activeSection === 'admin' && <AdminSection />}
         {activeSection === 'ui' && <UserInterfaceSection />}
+        {activeSection === 'theme' && <ThemeSection />}
         {activeSection === 'party' && <PartyModeSection />}
         {activeSection === 'statistics' && <StatisticsSection />}
       </div>
@@ -231,27 +233,6 @@ function AdminSection(): JSX.Element {
       </div>
 
       <div className={styles.settingGroup}>
-        <h3 className={styles.subsectionTitle}>Playback</h3>
-        <div className={styles.setting}>
-          <label htmlFor="playEntireQueue" className={styles.label}>
-            <input
-              type="checkbox"
-              id="playEntireQueue"
-              checked={settings.playEntireQueue}
-              onChange={(e) => {
-                void updateSettings({ playEntireQueue: e.target.checked })
-              }}
-              className={styles.checkbox}
-            />
-            Auto-advance to next track
-          </label>
-          <p className={styles.settingDescription}>
-            When enabled, the queue will automatically advance to the next track when a song ends. When disabled, playback will stop after each track.
-          </p>
-        </div>
-      </div>
-
-      <div className={styles.settingGroup}>
         <h3 className={styles.subsectionTitle}>Music Library</h3>
         <MusicScanSection />
       </div>
@@ -262,25 +243,9 @@ function AdminSection(): JSX.Element {
 // User Interface Section Component
 function UserInterfaceSection(): JSX.Element {
   const { settings, updateSettings } = useSettings()
-  const { themes, setTheme } = useThemeContext()
-  const [selectedTheme, setSelectedTheme] = useState(settings.theme)
-  const [isSaving, setIsSaving] = useState(false)
 
   const handleToggle = (key: keyof typeof settings, value: boolean): void => {
     void updateSettings({ [key]: value })
-  }
-
-  const handleSaveTheme = async (themeId: string): Promise<void> => {
-    setSelectedTheme(themeId)
-    setIsSaving(true)
-    try {
-      await updateSettings({ theme: themeId })
-      setTheme(themeId)
-    } catch (error) {
-      console.error('Error saving theme:', error)
-    } finally {
-      setIsSaving(false)
-    }
   }
 
   const handleLibraryLayoutChange = (e: React.ChangeEvent<HTMLSelectElement>): void => {
@@ -298,21 +263,6 @@ function UserInterfaceSection(): JSX.Element {
         </p>
         
         <div className={styles.featuresGrid}>
-          <div className={styles.featureSection}>
-            <h4 className={styles.featureTitle}>Input</h4>
-            <div className={styles.toggleSetting}>
-              <label className={styles.toggleLabel}>
-                <input
-                  type="checkbox"
-                  checked={settings.showTouchKeyboard}
-                  onChange={() => handleToggle('showTouchKeyboard', !settings.showTouchKeyboard)}
-                  className={styles.toggle}
-                />
-                <span className={styles.toggleText}>Show Touch Keyboard</span>
-              </label>
-            </div>
-          </div>
-
           <div className={styles.featureSection}>
             <h4 className={styles.featureTitle}>Navigation</h4>
             <div className={styles.toggleSetting}>
@@ -430,11 +380,41 @@ function UserInterfaceSection(): JSX.Element {
             </p>
           </div>
         </div>
-        
+
       </div>
+    </div>
+  )
+}
+
+// Theme Section Component
+function ThemeSection(): JSX.Element {
+  const { settings, updateSettings } = useSettings()
+  const { themes, setTheme } = useThemeContext()
+  const [selectedTheme, setSelectedTheme] = useState(settings.theme)
+  const [isSaving, setIsSaving] = useState(false)
+
+  const handleSaveTheme = async (themeId: string): Promise<void> => {
+    setSelectedTheme(themeId)
+    setIsSaving(true)
+    try {
+      await updateSettings({ theme: themeId })
+      setTheme(themeId)
+    } catch (error) {
+      console.error('Error saving theme:', error)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  return (
+    <div className={styles.section}>
+      <h2 className={styles.sectionTitle}>Themes</h2>
 
       <div className={styles.settingGroup}>
         <h3 className={styles.subsectionTitle}>Theme</h3>
+        <p className={styles.description}>
+          Choose a color theme to personalize the look of your jukebox.
+        </p>
         <div className={styles.themeSelection}>
           <div className={styles.themeGrid}>
             {themes && themes.length > 0 ? themes.map((theme) => {
@@ -457,17 +437,17 @@ function UserInterfaceSection(): JSX.Element {
                   }}
                 >
                   <div className={styles.themePreview}>
-                    <div 
+                    <div
                       className={styles.themeColors}
                       style={{
                         background: `linear-gradient(135deg, ${theme.colors.primary || '#1a1a2e'} 0%, ${theme.colors.secondary || '#16213e'} 100%)`
                       }}
                     >
-                      <div 
+                      <div
                         className={styles.themeAccent}
                         style={{ backgroundColor: theme.colors.accent || '#ffd700' }}
                       />
-                      <div 
+                      <div
                         className={styles.themeSurface}
                         style={{ backgroundColor: theme.colors.surface || 'rgba(255, 255, 255, 0.05)' }}
                       />
@@ -734,6 +714,23 @@ function MusicScanSection(): JSX.Element {
     if (abortController) {
       abortController.abort()
       setAbortController(null)
+    }
+  }
+
+  const handleRemoveLocation = async (directory: string): Promise<void> => {
+    try {
+      const response = await fetch(`/api/albums?path=${encodeURIComponent(directory)}`, {
+        method: 'DELETE'
+      })
+      if (response.ok) {
+        // Reload from the server so the persisted state (paths, albums, results)
+        // is the source of truth after removal.
+        await loadCurrentPaths()
+      } else {
+        console.error('Failed to remove location:', response.status, response.statusText)
+      }
+    } catch (error) {
+      console.error('Error removing location:', error)
     }
   }
 
@@ -1017,9 +1014,10 @@ function MusicScanSection(): JSX.Element {
       <p className={styles.description}>
         Configure music library scanning to discover and index your music files.
       </p>
-      <MusicFoldersManager 
+      <MusicFoldersManager
         onScan={(directories) => { void handleScan(directories); }}
         onRescanSingle={(directory) => { void handleRescanSingle(directory); }}
+        onRemoveLocation={(directory) => { void handleRemoveLocation(directory); }}
         isScanning={isScanning}
         currentPaths={currentPaths}
         scanResults={scanResults}

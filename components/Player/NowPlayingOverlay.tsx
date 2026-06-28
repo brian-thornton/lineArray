@@ -134,7 +134,7 @@ function NowPlayingOverlay({
           <button
             className={styles.controlBtn}
             onClick={onSkip}
-            disabled={queue.length <= 1}
+            disabled={queue.length === 0}
             aria-label="Skip to next track"
           >
             <SkipForward size={28} />

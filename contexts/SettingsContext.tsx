@@ -19,7 +19,6 @@ export function SettingsProvider({ children }: { children: ReactNode }): JSX.Ele
     jukeboxName: 'Jukebox 2.0',
     adminPin: '1234',
     theme: 'jukebox-classic',
-    showTouchKeyboard: true,
     showPagination: true,
     showConcertDetails: true,
     showMobileQR: true,
@@ -29,7 +28,6 @@ export function SettingsProvider({ children }: { children: ReactNode }): JSX.Ele
     enableAdminMode: false,
     libraryLayout: 'modern',
     audioPlayer: 'vlc',
-    playEntireQueue: false,
     partyMode: {
       enabled: false,
       allowPlay: true,

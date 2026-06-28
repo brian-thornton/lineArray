@@ -92,7 +92,6 @@ export interface Settings {
   theme: string
   partyMode: boolean
   pin: string
-  showTouchKeyboard: boolean
   showPaginationButtons: boolean
   showConcertDetails: boolean
   showMobileQRControl: boolean

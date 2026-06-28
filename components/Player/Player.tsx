@@ -681,7 +681,7 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
               <button
                 className={`${styles.controlButton} ${styles.skipButton}`}
                 onClick={() => { void handleSkip(); }}
-                disabled={loading || playerStatus.isStream || playerStatus.queue.length <= 1 || !canPerformAction('allowNext')}
+                disabled={loading || playerStatus.isStream || playerStatus.queue.length === 0 || !canPerformAction('allowNext')}
                 aria-label="Skip to next track"
                 title={!canPerformAction('allowNext') ? 'Skip restricted in party mode' : undefined}
               >

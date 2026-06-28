@@ -4,25 +4,6 @@ import AudioFactory from './audio-factory'
 import logger from './utils/serverLogger'
 import type { QueueTrack, QueueState, DebugInfo, AudioManagerInterface, QueueStateInterface, RadioStation } from './types/audio'
 
-// Function to load playEntireQueue setting from settings
-function loadPlayEntireQueueSetting(): boolean {
-  try {
-    const settingsPath = path.join(process.cwd(), 'data', 'settings.json')
-    if (fs.existsSync(settingsPath)) {
-      const data = fs.readFileSync(settingsPath, 'utf-8')
-      const settings = JSON.parse(data) as { playEntireQueue?: boolean }
-      console.log('🔍 Queue State: Loaded playEntireQueue setting:', settings.playEntireQueue)
-      return settings.playEntireQueue ?? false
-    }
-  } catch (error) {
-    console.error('💥 Queue State: Error loading playEntireQueue setting:', error)
-    logger.error('Queue state: Error loading playEntireQueue setting, using default', 'QueueState', error)
-  }
-  
-  console.log('🎬 Queue State: Using default playEntireQueue setting: false')
-  return false
-}
-
 // Queue monitoring function - continuously checks for new tracks and starts playback
 function monitorQueueForNewTracks(): void {
   const state = getStateSnapshot()
