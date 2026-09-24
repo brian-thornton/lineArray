@@ -2,6 +2,7 @@
 
 import { useCallback } from 'react'
 import { useQueueToast } from '@/components/QueueToast/QueueToastContext'
+import { usePlayback } from '@/contexts/PlaybackContext'
 
 interface AddToQueueOptions {
   path: string
@@ -10,32 +11,17 @@ interface AddToQueueOptions {
   title?: string
 }
 
-interface QueueApiResponse {
-  success?: boolean
-  error?: string
-  isPlaying?: boolean
-  currentTrack?: { title?: string } | null
-  queue?: Array<{ title?: string }>
-}
-
 /**
  * Returns a function that adds a track to the queue and shows a toast.
  * The toast shows the queue position (number of tracks in queue after adding).
  */
 export function useAddToQueue(): (opts: AddToQueueOptions) => Promise<boolean> {
   const { showQueueToast } = useQueueToast()
+  const playback = usePlayback()
 
   return useCallback(async ({ path, isAlbum = false, title }: AddToQueueOptions): Promise<boolean> => {
-    const res = await fetch('/api/queue', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path, isAlbum }),
-    })
-
-    if (!res.ok) return false
-
-    const data: QueueApiResponse = await res.json()
-    if (!data.success) return false
+    const data = await playback.addToQueue(path, isAlbum)
+    if (!data) return false
 
     // Determine display title (fall back to filename stem)
     const displayTitle = title ?? path.split('/').pop()?.replace(/\.[^/.]+$/, '') ?? 'Track'
@@ -61,5 +47,5 @@ export function useAddToQueue(): (opts: AddToQueueOptions) => Promise<boolean> {
 
     showQueueToast(displayTitle, position)
     return true
-  }, [showQueueToast])
+  }, [showQueueToast, playback])
 }

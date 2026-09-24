@@ -4,8 +4,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { Radio, Play, Square, Star, Search, Loader2 } from 'lucide-react'
 import { useToast } from '@/contexts/ToastContext'
 import { useSettings } from '@/contexts/SettingsContext'
+import { usePlayback } from '@/contexts/PlaybackContext'
 import type { RadioStation } from '@/types/audio'
-import type { QueueResponse } from '@/types/api'
 import styles from './RadioBrowser.module.css'
 
 type Tab = 'favorites' | 'browse'
@@ -13,6 +13,7 @@ type Tab = 'favorites' | 'browse'
 export default function RadioBrowser(): JSX.Element {
   const { showToast } = useToast()
   const { canPerformAction } = useSettings()
+  const playback = usePlayback()
   const [tab, setTab] = useState<Tab>('browse')
   const [favorites, setFavorites] = useState<RadioStation[]>([])
   const [browseResults, setBrowseResults] = useState<RadioStation[]>([])
@@ -73,9 +74,8 @@ export default function RadioBrowser(): JSX.Element {
   useEffect(() => {
     const poll = async (): Promise<void> => {
       try {
-        const res = await fetch('/api/queue')
-        if (res.ok) {
-          const data = await res.json() as QueueResponse
+        const data = await playback.getState()
+        if (data) {
           setLiveStreamUrl(data.isStream && data.currentTrack ? data.currentTrack.path : null)
           setIsPlaying(Boolean(data.isStream && data.isPlaying))
         }
@@ -86,7 +86,7 @@ export default function RadioBrowser(): JSX.Element {
     void poll()
     const interval = setInterval(() => { void poll() }, 3000)
     return () => clearInterval(interval)
-  }, [])
+  }, [playback])
 
   const isFavorited = useCallback(
     (station: RadioStation): boolean => favorites.some(f => f.streamUrl === station.streamUrl),
@@ -100,17 +100,12 @@ export default function RadioBrowser(): JSX.Element {
     }
     setBusyStation(station.id)
     try {
-      const res = await fetch('/api/radio/play', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ station }),
-      })
-      if (res.ok) {
+      const result = await playback.playStation(station)
+      if (result.ok) {
         setLiveStreamUrl(station.streamUrl)
         setIsPlaying(true)
       } else {
-        const err = await res.json() as { error?: string }
-        showToast(err.error ?? 'Could not start station', 'error', 3500)
+        showToast(result.error ?? 'Could not start station', 'error', 3500)
       }
     } catch {
       showToast('Could not start station', 'error')
@@ -121,11 +116,7 @@ export default function RadioBrowser(): JSX.Element {
 
   const handleStop = async (): Promise<void> => {
     try {
-      await fetch('/api/queue/play', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'stop' }),
-      })
+      await playback.control('stop')
       setLiveStreamUrl(null)
       setIsPlaying(false)
     } catch {

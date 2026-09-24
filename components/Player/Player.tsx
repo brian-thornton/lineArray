@@ -1,14 +1,15 @@
 "use client"
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { Play, Pause, SkipForward, Square, Trash2, Volume2, VolumeX, List, Plus, Minus, X, Music } from 'lucide-react'
+import { Play, Pause, SkipForward, Square, Trash2, Volume2, VolumeX, List, Plus, Minus, X, Music, Headphones, Speaker } from 'lucide-react'
 import Image from 'next/image'
 import styles from './Player.module.css'
 import { useSettings } from '@/contexts/SettingsContext'
 import { useSearch } from '@/contexts/SearchContext'
 import { useToast } from '@/contexts/ToastContext'
 import { usePlayer } from '@/contexts/PlayerContext'
-import type { QueueResponse, QueuePlayResponse, Track } from '@/types/api'
+import { usePlayback } from '@/contexts/PlaybackContext'
+import type { Track } from '@/types/api'
 import { createPortal } from 'react-dom'
 import Equalizer from './Equalizer'
 import NowPlayingOverlay from './NowPlayingOverlay'
@@ -39,6 +40,7 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
   const { hideKeyboard } = useSearch()
   const { showToast } = useToast()
   const { setCurrentTrackPath } = usePlayer()
+  const playback = usePlayback()
   const [loading, setLoading] = useState(false)
   const [hasLoaded, setHasLoaded] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
@@ -87,9 +89,8 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
   useEffect(() => {
     const pollStatus = async (): Promise<void> => {
       try {
-        const response = await fetch('/api/queue')
-        if (response.ok) {
-          const data = await response.json() as QueueResponse
+        const data = await playback.getState()
+        if (data) {
           setPlayerStatus(prev => {
             const newStatus = {
               ...prev,
@@ -134,6 +135,7 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
 
     // Also check audio state periodically to handle recompile scenarios
     const checkAudioState = async (): Promise<void> => {
+      if (playback.mode !== 'server') return
       try {
         await fetch('/api/control', {
           method: 'POST',
@@ -146,23 +148,33 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
     }
 
     void pollStatus();
-    const statusInterval = setInterval(() => { void pollStatus(); }, 500); // Poll every 500ms for better responsiveness
+    const statusInterval = setInterval(() => { void pollStatus(); }, playback.mode === 'browser' ? 250 : 500); // Poll every 500ms for better responsiveness (local state is cheap to read)
     const audioCheckInterval = setInterval(() => { void checkAudioState(); }, 5000); // Check audio state every 5 seconds (less aggressive)
     
     return () => {
       clearInterval(statusInterval);
       clearInterval(audioCheckInterval);
     }
-  }, [hasLoaded, isMobile, showToast, isSeeking])
+  }, [hasLoaded, isMobile, showToast, isSeeking, playback])
 
 
+
+  // Surface local-playback problems (unsupported file, blocked autoplay, dead station)
+  useEffect(() => {
+    if (playback.notice) showToast(playback.notice.message, 'error', 3500)
+  }, [playback.notice, showToast])
+
+  const handleToggleMode = (): void => {
+    const next = playback.mode === 'browser' ? 'server' : 'browser'
+    playback.setMode(next)
+    showToast(next === 'browser' ? 'Playing on this device' : 'Playing on the jukebox speakers', 'info', 2500)
+  }
 
   // Add a function to immediately check status (for use after adding tracks)
   const checkStatusImmediately = useCallback(async (): Promise<void> => {
     try {
-      const response = await fetch('/api/queue')
-      if (response.ok) {
-        const data = await response.json() as QueueResponse
+      const data = await playback.getState()
+      if (data) {
         setPlayerStatus(prev => {
           const newStatus = {
             ...prev,
@@ -188,7 +200,7 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
     } catch (error) {
       // Silently handle error
     }
-  }, [isSeeking])
+  }, [isSeeking, playback])
 
   // Expose the immediate check function to parent components
   useEffect(() => {
@@ -251,7 +263,7 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
     setLoading(true)
     try {
       // Determine the correct action based on current state
-      let action: string
+      let action: 'pause' | 'resume' | 'play'
       if (playerStatus.isPlaying) {
         action = 'pause'
       } else if (playerStatus.currentTrack) {
@@ -267,14 +279,10 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
         return
       }
 
-      const response = await fetch('/api/queue/play', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action }),
-      })
-      
-      if (response.ok) {
-        const data = await response.json() as QueuePlayResponse
+      const result = await playback.control(action)
+
+      if (result.ok) {
+        const data = result.state
         setPlayerStatus(prev => ({ 
           ...prev, 
           isPlaying: data.isPlaying,
@@ -308,14 +316,10 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
 
     setLoading(true)
     try {
-      const response = await fetch('/api/queue/play', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'stop' }),
-      })
-      
-      if (response.ok) {
-        const data = await response.json() as QueuePlayResponse
+      const result = await playback.control('stop')
+
+      if (result.ok) {
+        const data = result.state
         setPlayerStatus(prev => ({
           ...prev,
           isPlaying: data.isPlaying,
@@ -345,14 +349,10 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
 
     setLoading(true)
     try {
-      const response = await fetch('/api/queue/play', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'skip' }),
-      })
-      
-      if (response.ok) {
-        const data = await response.json() as QueuePlayResponse
+      const result = await playback.control('skip')
+
+      if (result.ok) {
+        const data = result.state
         setPlayerStatus(prev => ({ 
           ...prev, 
           isPlaying: data.isPlaying,
@@ -384,13 +384,9 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
 
     setLoading(true)
     try {
-      const response = await fetch('/api/queue', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-      })
-      
-      if (response.ok) {
-        const data = await response.json() as QueueResponse
+      const data = await playback.clearQueue()
+
+      if (data) {
         setPlayerStatus(prev => ({
           ...prev,
           isPlaying: data.isPlaying,
@@ -413,20 +409,15 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
   const handleVolumeChange = async (newVolume: number): Promise<void> => {
     setVolumeLoading(true)
     try {
-      const response = await fetch('/api/control', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'setVolume', volume: newVolume }),
-      })
-      if (response.ok) {
-        const data = await response.json() as { volume?: number; isMuted?: boolean }
+      const data = await playback.setVolume(newVolume)
+      if (data) {
         setPlayerStatus(prev => ({
           ...prev, 
-          volume: typeof data.volume === 'number' ? data.volume : newVolume, 
-          isMuted: data.isMuted ?? (newVolume === 0)
+          volume: data.volume,
+          isMuted: data.isMuted
         }))
         // Show toast if the backend value is not close to the requested value
-        if (typeof data.volume === 'number' && Math.abs(data.volume - newVolume) > 0.02) {
+        if (Math.abs(data.volume - newVolume) > 0.02) {
           showToast(`Volume set to ${Math.round((data.volume ?? 0) * 100)}% (closest possible)`, 'info', 2500)
         }
       } else {
@@ -453,18 +444,13 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
 
   const handleMuteToggle = async (): Promise<void> => {
     try {
-      const response = await fetch('/api/control', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'toggleMute' }),
-      })
-      
-      if (response.ok) {
-        const data = await response.json() as { isMuted?: boolean; volume?: number }
+      const data = await playback.toggleMute()
+
+      if (data) {
         setPlayerStatus(prev => ({ 
           ...prev, 
-          isMuted: data.isMuted ?? !prev.isMuted,
-          volume: data.volume ?? prev.volume
+          isMuted: data.isMuted,
+          volume: data.volume
         }))
       } else {
         console.error('Failed to toggle mute')
@@ -500,24 +486,18 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
     // Don't clear them yet - we'll clear them after the seek completes
 
     try {
-      const response = await fetch('/api/queue/play', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'seek', position }),
-      })
-      
-      if (response.ok) {
-        const data = await response.json() as QueuePlayResponse
+      const result = await playback.control('seek', position)
+
+      if (result.ok) {
         setPlayerStatus(prev => ({ 
           ...prev, 
-          progress: data.progress
+          progress: result.state.progress
         }))
         // Clear seeking state only after successful seek
         setIsSeeking(false)
         setSeekPreview(null)
       } else {
-        const errorData = await response.json() as { error?: string }
-        showToast(`Seek failed: ${errorData.error ?? 'Unknown error'}`, 'error', 3000)
+        showToast(`Seek failed: ${result.error}`, 'error', 3000)
         // Clear seeking state after failed seek
         setIsSeeking(false)
         setSeekPreview(null)
@@ -717,6 +697,15 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
           </div>
           
           <div className={styles.volume}>
+            <button
+              onClick={handleToggleMode}
+              className={`${styles.modeButton} ${playback.mode === 'browser' ? styles.modeButtonLocal : ''}`}
+              aria-label={playback.mode === 'browser' ? 'Playing on this device. Switch to jukebox speakers' : 'Playing on jukebox speakers. Switch to this device'}
+              title={playback.mode === 'browser' ? 'Playing on this device — click to play on the jukebox speakers' : 'Playing on the jukebox speakers — click to play on this device'}
+            >
+              {playback.mode === 'browser' ? <Headphones className={styles.volumeIcon} /> : <Speaker className={styles.volumeIcon} />}
+              {!isMobile && <span className={styles.modeLabel}>{playback.mode === 'browser' ? 'This device' : 'Jukebox'}</span>}
+            </button>
             {isMobile ? (
               <button
                 onClick={() => { setShowVolumeOverlay(true); }}

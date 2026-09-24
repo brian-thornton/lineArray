@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useCallback, useRef } from 'react'
 import { SearchBoxRef } from '@/components/SearchBox/SearchBox'
 import type { SearchResponse } from '@/types/api'
+import { usePlayback } from '@/contexts/PlaybackContext'
 
 interface WindowWithPlayer extends Window {
   hasAddedTrackToQueue?: boolean
@@ -32,6 +33,7 @@ interface SearchContextType {
 const SearchContext = createContext<SearchContextType | undefined>(undefined)
 
 export function SearchProvider({ children }: { children: React.ReactNode }): JSX.Element {
+  const playback = usePlayback()
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
@@ -76,16 +78,10 @@ export function SearchProvider({ children }: { children: React.ReactNode }): JSX
 
   const addTrackToQueue = useCallback(async (path: string): Promise<void> => {
     try {
-      const response = await fetch('/api/queue', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ path }),
-      })
+      const data = await playback.addToQueue(path)
 
-      if (!response.ok) {
-        console.error('Failed to add track to queue:', response.statusText)
+      if (!data) {
+        console.error('Failed to add track to queue')
       } else {
         // Set flag to show player controls
         if (typeof window !== 'undefined') {
@@ -102,7 +98,7 @@ export function SearchProvider({ children }: { children: React.ReactNode }): JSX
     } catch (error) {
       console.error('Error adding track to queue:', error)
     }
-  }, [])
+  }, [playback])
 
   const value: SearchContextType = {
     searchQuery,

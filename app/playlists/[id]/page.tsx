@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, Play, Edit, Save, X, Trash2, Plus, Music, GripVertical, ListPlus } from 'lucide-react'
 import { Playlist } from '@/types/music'
 import { useSettings } from '@/contexts/SettingsContext'
+import { usePlayback } from '@/contexts/PlaybackContext'
 import { useSearch } from '@/contexts/SearchContext'
 import { useToast } from '@/contexts/ToastContext'
 import SearchResults from '@/components/SearchResults/SearchResults'
@@ -13,6 +14,7 @@ import styles from './page.module.css'
 export default function PlaylistDetailPage({ params }: { params: { id: string } }): JSX.Element {
   const router = useRouter()
   const { canPerformAction } = useSettings()
+  const playback = usePlayback()
   const { searchQuery, searchResults, isSearching, addTrackToQueue, hideKeyboard } = useSearch()
   const { showToast } = useToast()
   const [playlist, setPlaylist] = useState<Playlist | null>(null)
@@ -142,14 +144,10 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
     if (!playlist) return
     try {
       if (replace) {
-        await fetch('/api/queue', { method: 'DELETE' })
+        await playback.clearQueue()
       }
       for (const playlistTrack of playlist.tracks) {
-        await fetch('/api/queue', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ path: playlistTrack.track.path })
-        })
+        await playback.addToQueue(playlistTrack.track.path)
       }
       hideKeyboard()
       void router.push('/')
@@ -163,10 +161,9 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
     if (!playlist || playlist.tracks.length === 0) return
 
     // Check if something is already queued or playing
-    const queueRes = await fetch('/api/queue')
-    if (queueRes.ok) {
-      const state = await queueRes.json() as { queue?: unknown[]; currentTrack?: unknown }
-      const hasContent = (state.queue?.length ?? 0) > 0 || !!state.currentTrack
+    const state = await playback.getState()
+    if (state) {
+      const hasContent = state.queue.length > 0 || !!state.currentTrack
       if (hasContent) {
         // Show replace-or-append modal
         setShowQueueModal(true)

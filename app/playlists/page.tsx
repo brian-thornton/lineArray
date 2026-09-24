@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Plus, Edit, Trash2, Play, Music, ListPlus } from 'lucide-react'
 import { Playlist } from '@/types/music'
 import { useSettings } from '@/contexts/SettingsContext'
+import { usePlayback } from '@/contexts/PlaybackContext'
 import { useSearch } from '@/contexts/SearchContext'
 import { useToast } from '@/contexts/ToastContext'
 import SearchResults from '@/components/SearchResults/SearchResults'
@@ -13,6 +14,7 @@ import styles from './page.module.css'
 export default function PlaylistsPage(): JSX.Element {
   const router = useRouter()
   const { canPerformAction } = useSettings()
+  const playback = usePlayback()
   const { searchQuery, searchResults, isSearching, addTrackToQueue, hideKeyboard } = useSearch()
   const { showToast } = useToast()
   const [playlists, setPlaylists] = useState<Playlist[]>([])
@@ -111,14 +113,10 @@ export default function PlaylistsPage(): JSX.Element {
   const doLoadPlaylist = async (playlist: Playlist, replace: boolean): Promise<void> => {
     try {
       if (replace) {
-        await fetch('/api/queue', { method: 'DELETE' })
+        await playback.clearQueue()
       }
       for (const playlistTrack of playlist.tracks) {
-        await fetch('/api/queue', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ path: playlistTrack.track.path })
-        })
+        await playback.addToQueue(playlistTrack.track.path)
       }
       void router.push('/')
     } catch (error) {
@@ -130,10 +128,9 @@ export default function PlaylistsPage(): JSX.Element {
     if (!canPerformAction('allowAddToQueue')) return
     if (playlist.tracks.length === 0) return
 
-    const queueRes = await fetch('/api/queue')
-    if (queueRes.ok) {
-      const state = await queueRes.json() as { queue?: unknown[]; currentTrack?: unknown }
-      const hasContent = (state.queue?.length ?? 0) > 0 || !!state.currentTrack
+    const state = await playback.getState()
+    if (state) {
+      const hasContent = state.queue.length > 0 || !!state.currentTrack
       if (hasContent) {
         setShowQueueModal(playlist)
         return

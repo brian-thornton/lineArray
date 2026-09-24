@@ -13,6 +13,7 @@ import { useToast } from '@/contexts/ToastContext'
 import { useLibrary } from '@/contexts/LibraryContext'
 import { useQueueToast } from '@/components/QueueToast/QueueToastContext'
 import { useAddToQueue } from '@/hooks/useAddToQueue'
+import { usePlayback } from '@/contexts/PlaybackContext'
 import styles from './page.module.css'
 import Image from 'next/image'
 
@@ -30,6 +31,7 @@ export default function AlbumDetail(): JSX.Element {
   const { libraryState } = useLibrary()
   const { showQueueToast } = useQueueToast()
   const addToQueue = useAddToQueue()
+  const playback = usePlayback()
   const [album, setAlbum] = useState<Album | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -103,15 +105,8 @@ export default function AlbumDetail(): JSX.Element {
     try {
       let lastQueueLength = 0
       for (const track of album.tracks) {
-        const res = await fetch('/api/queue', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ path: track.path, isAlbum: true }),
-        })
-        if (res.ok) {
-          const data = await res.json() as { queue?: unknown[] }
-          lastQueueLength = data.queue?.length ?? lastQueueLength
-        }
+        const data = await playback.addToQueue(track.path, true)
+        if (data) lastQueueLength = data.queue.length
       }
       hideKeyboard()
       // Show one summary toast for the whole album
@@ -181,15 +176,8 @@ export default function AlbumDetail(): JSX.Element {
       for (const trackId of trackIds) {
         const track = album.tracks.find(t => t.id === trackId)
         if (track) {
-          const res = await fetch('/api/queue', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ path: track.path }),
-          })
-          if (res.ok) {
-            const data = await res.json() as { queue?: unknown[] }
-            lastQueueLength = data.queue?.length ?? lastQueueLength
-          }
+          const data = await playback.addToQueue(track.path)
+          if (data) lastQueueLength = data.queue.length
         }
       }
       hideKeyboard()

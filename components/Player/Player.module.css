@@ -321,6 +321,36 @@
   flex-shrink: 0;
 }
 
+.modeButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--jukebox-white);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.modeButton:hover {
+  border-color: var(--jukebox-gold);
+  color: var(--jukebox-gold);
+}
+
+.modeButtonLocal {
+  border-color: var(--jukebox-accent);
+  color: var(--jukebox-accent);
+}
+
+.modeLabel {
+  font-family: var(--font-display);
+  letter-spacing: 0.02em;
+}
+
 .volumeButton {
   background: transparent;
   color: var(--jukebox-accent);

@@ -7,6 +7,7 @@ import { ThemeProvider } from '@/contexts/ThemeContext'
 import { ToastProvider } from '@/contexts/ToastContext'
 import { LibraryProvider } from '@/contexts/LibraryContext'
 import { PlayerProvider } from '@/contexts/PlayerContext'
+import { PlaybackProvider } from '@/contexts/PlaybackContext'
 import AppShell from '@/components/AppShell'
 
 export const metadata: Metadata = {
@@ -33,21 +34,23 @@ export default function RootLayout({
         <meta name="theme-color" content="#0f0f23" />
       </head>
       <body>
-        <SettingsProvider>
-          <ThemeProvider>
-            <SearchProvider>
-              <ToastProvider>
-                <LibraryProvider>
-                  <PlayerProvider>
-                    <AppShell>
-                      {children}
-                    </AppShell>
-                  </PlayerProvider>
-                </LibraryProvider>
-              </ToastProvider>
-            </SearchProvider>
-          </ThemeProvider>
-        </SettingsProvider>
+        <PlaybackProvider>
+          <SettingsProvider>
+            <ThemeProvider>
+              <SearchProvider>
+                <ToastProvider>
+                  <LibraryProvider>
+                    <PlayerProvider>
+                      <AppShell>
+                        {children}
+                      </AppShell>
+                    </PlayerProvider>
+                  </LibraryProvider>
+                </ToastProvider>
+              </SearchProvider>
+            </ThemeProvider>
+          </SettingsProvider>
+        </PlaybackProvider>
       </body>
     </html>
   )

@@ -1,10 +1,10 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Play, X, GripVertical, Music, ChevronUp, ChevronDown } from 'lucide-react'
 import { useSettings } from '@/contexts/SettingsContext'
+import { usePlayback } from '@/contexts/PlaybackContext'
 import styles from './Queue.module.css'
-import type { QueueResponse } from '@/types/api'
 
 interface QueueTrack {
   id: string
@@ -31,25 +31,17 @@ interface CurrentTrack {
 
 export default function Queue({ isOpen, onClose }: QueueProps): JSX.Element | null {
   const { canPerformAction } = useSettings()
+  const playback = usePlayback()
   const [queue, setQueue] = useState<QueueTrack[]>([])
   const [currentTrack, setCurrentTrack] = useState<string | CurrentTrack | null>(null)
   // const [isPlaying, setIsPlaying] = useState(false)
   const [draggedTrack, setDraggedTrack] = useState<string | null>(null)
   const [dragTarget, setDragTarget] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (isOpen) {
-      void loadQueue()
-      const interval = setInterval(() => { void loadQueue() }, 2000)
-      return () => clearInterval(interval)
-    }
-  }, [isOpen])
-
-  const loadQueue = async (): Promise<void> => {
+  const loadQueue = useCallback(async (): Promise<void> => {
     try {
-      const response = await fetch('/api/queue')
-      if (response.ok) {
-        const data = await response.json() as QueueResponse
+      const data = await playback.getState()
+      if (data) {
         // console.log('Queue data loaded:', data)
         setQueue(data.queue ?? [])
         setCurrentTrack(data.currentTrack)
@@ -58,7 +50,15 @@ export default function Queue({ isOpen, onClose }: QueueProps): JSX.Element | nu
     } catch (error) {
       console.error('Error loading queue:', error)
     }
-  }
+  }, [playback])
+
+  useEffect(() => {
+    if (isOpen) {
+      void loadQueue()
+      const interval = setInterval(() => { void loadQueue() }, 2000)
+      return () => clearInterval(interval)
+    }
+  }, [isOpen, loadQueue])
 
   const handleRemoveTrack = async (trackId: string): Promise<void> => {
     if (!canPerformAction('allowRemoveFromQueue')) {
@@ -67,11 +67,7 @@ export default function Queue({ isOpen, onClose }: QueueProps): JSX.Element | nu
     }
 
     try {
-      const response = await fetch(`/api/queue/${trackId}`, {
-        method: 'DELETE',
-      })
-
-      if (response.ok) {
+      if (await playback.removeFromQueue(trackId)) {
         await loadQueue()
       } else {
         console.error('Failed to remove track from queue')
@@ -88,13 +84,7 @@ export default function Queue({ isOpen, onClose }: QueueProps): JSX.Element | nu
     }
 
     try {
-      const response = await fetch('/api/control', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'playTrack', trackId }),
-      })
-
-      if (response.ok) {
+      if (await playback.playTrackNow(trackId)) {
         await loadQueue()
       } else {
         console.error('Failed to play track')
@@ -108,15 +98,7 @@ export default function Queue({ isOpen, onClose }: QueueProps): JSX.Element | nu
     if (!canPerformAction('allowRemoveFromQueue')) return
     if (toIndex < 0 || toIndex >= queue.length) return
     try {
-      const response = await fetch('/api/queue/reorder', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          draggedTrackId: queue[fromIndex].id,
-          targetTrackId: queue[toIndex].id
-        })
-      })
-      if (response.ok) await loadQueue()
+      if (await playback.reorderQueue(queue[fromIndex].id, queue[toIndex].id)) await loadQueue()
     } catch (error) {
       console.error('Error reordering tracks:', error)
     }
@@ -172,26 +154,11 @@ export default function Queue({ isOpen, onClose }: QueueProps): JSX.Element | nu
 
     try {
       // console.log('Sending reorder request:', { draggedTrack, targetTrackId })
-      const response = await fetch('/api/queue/reorder', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          draggedTrackId: draggedTrack,
-          targetTrackId
-        })
-      })
-
-      if (response.ok) {
+      if (await playback.reorderQueue(draggedTrack, targetTrackId)) {
         // console.log('Reorder successful')
         await loadQueue()
       } else {
-        const error: unknown = await response.json()
-        if (typeof error === 'object' && error !== null && 'message' in error) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          console.error('Failed to reorder tracks:', (error as { message?: string }).message)
-        } else {
-          console.error('Failed to reorder tracks:', error)
-        }
+        console.error('Failed to reorder tracks')
       }
     } catch (error) {
       console.error('Error reordering tracks:', error)
