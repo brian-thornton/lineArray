@@ -1,6 +1,7 @@
 import { exec, type ChildProcess } from 'child_process'
 import type { AudioStatus, CurrentSong, AudioManagerInterface } from './types/audio'
 import { NetworkPathHandler } from './utils/networkPathHandler'
+import { VLC_BASE_URL, VLC_DISABLED, VLC_MANAGED, VLC_PASSWORD, VLC_PORT } from './utils/vlcConfig'
 
 // Process-level lock so multiple AudioManager instances (from Next.js module reloads)
 // don't race to start VLC simultaneously.
@@ -10,8 +11,8 @@ const g = global as typeof globalThis & {
 
 class AudioManager implements AudioManagerInterface {
   private vlcProcess: ChildProcess | null = null
-  private vlcPort: number = 8081
-  private vlcPassword: string = 'jukebox'
+  private vlcPort: number = VLC_PORT
+  private vlcPassword: string = VLC_PASSWORD
   private onTrackComplete: (() => void) | null = null
   private currentFile: string | null = null
   private isPlaying = false
@@ -29,6 +30,16 @@ class AudioManager implements AudioManagerInterface {
   }
 
   private async startVLC(): Promise<void> {
+    if (VLC_DISABLED) return
+    if (!VLC_MANAGED) {
+      // VLC lives elsewhere (host / another container) — just connect to it.
+      if (await this.verifyVLCRunning()) {
+        await this.syncVolumeFromVLC()
+      } else {
+        console.error(`🎬 Simple VLC Audio Manager: external VLC not reachable at ${VLC_BASE_URL}`)
+      }
+      return
+    }
     if (this.vlcProcess) {
       console.log('🎬 Simple VLC Audio Manager: VLC already running')
       return
@@ -76,6 +87,11 @@ class AudioManager implements AudioManagerInterface {
         // Only auto-restart on unexpected crash (no signal = natural exit/crash)
         // When killed intentionally via forceStop/stop, do NOT restart automatically
         // — playFile() will restart VLC when needed
+        if (code === 127) {
+          // Shell couldn't find the binary — retrying would just loop forever.
+          console.error('🎬 Simple VLC Audio Manager: `vlc` not found on PATH; server playback unavailable')
+          return
+        }
         if (!signal && code !== 0) {
           console.log('🎬 Simple VLC Audio Manager: VLC crashed unexpectedly, restarting...')
           setTimeout(() => this.startVLC(), 2000)
@@ -110,7 +126,7 @@ class AudioManager implements AudioManagerInterface {
 
   private async verifyVLCRunning(): Promise<boolean> {
     try {
-      const statusUrl = `http://localhost:${this.vlcPort}/requests/status.xml`
+      const statusUrl = `${VLC_BASE_URL}/requests/status.xml`
       const response = await fetch(statusUrl, {
         headers: {
           'Authorization': `Basic ${Buffer.from(`:${this.vlcPassword}`).toString('base64')}`
@@ -220,7 +236,7 @@ class AudioManager implements AudioManagerInterface {
   private async loadLocalFile(filePath: string): Promise<boolean> {
     try {
       // Clear playlist
-      const clearUrl = `http://localhost:${this.vlcPort}/requests/playlist.xml?command=pl_empty`
+      const clearUrl = `${VLC_BASE_URL}/requests/playlist.xml?command=pl_empty`
       await fetch(clearUrl, {
         headers: {
           'Authorization': `Basic ${Buffer.from(`:${this.vlcPassword}`).toString('base64')}`
@@ -228,7 +244,7 @@ class AudioManager implements AudioManagerInterface {
       })
 
       // Load file
-      const loadUrl = `http://localhost:${this.vlcPort}/requests/status.xml?command=in_play&input=${encodeURIComponent(filePath)}`
+      const loadUrl = `${VLC_BASE_URL}/requests/status.xml?command=in_play&input=${encodeURIComponent(filePath)}`
       const loadResponse = await fetch(loadUrl, {
         headers: {
           'Authorization': `Basic ${Buffer.from(`:${this.vlcPassword}`).toString('base64')}`
@@ -241,7 +257,7 @@ class AudioManager implements AudioManagerInterface {
       }
 
       // Start playback
-      const playUrl = `http://localhost:${this.vlcPort}/requests/status.xml?command=pl_play`
+      const playUrl = `${VLC_BASE_URL}/requests/status.xml?command=pl_play`
       const playResponse = await fetch(playUrl, {
         headers: {
           'Authorization': `Basic ${Buffer.from(`:${this.vlcPassword}`).toString('base64')}`
@@ -320,7 +336,7 @@ class AudioManager implements AudioManagerInterface {
       this.stopCompletionChecking()
       
       // Send stop command to VLC
-      const stopUrl = `http://localhost:${this.vlcPort}/requests/status.xml?command=pl_stop`
+      const stopUrl = `${VLC_BASE_URL}/requests/status.xml?command=pl_stop`
       await fetch(stopUrl, {
         headers: {
           'Authorization': `Basic ${Buffer.from(`:${this.vlcPassword}`).toString('base64')}`
@@ -328,7 +344,7 @@ class AudioManager implements AudioManagerInterface {
       })
 
       // Clear the playlist
-      const clearUrl = `http://localhost:${this.vlcPort}/requests/playlist.xml?command=pl_empty`
+      const clearUrl = `${VLC_BASE_URL}/requests/playlist.xml?command=pl_empty`
       await fetch(clearUrl, {
         headers: {
           'Authorization': `Basic ${Buffer.from(`:${this.vlcPassword}`).toString('base64')}`
@@ -348,7 +364,7 @@ class AudioManager implements AudioManagerInterface {
 
   async getVLCStatus(): Promise<any> {
     try {
-      const statusUrl = `http://localhost:${this.vlcPort}/requests/status.xml`
+      const statusUrl = `${VLC_BASE_URL}/requests/status.xml`
       const response = await fetch(statusUrl, {
         headers: {
           'Authorization': `Basic ${Buffer.from(`:${this.vlcPassword}`).toString('base64')}`
@@ -393,7 +409,7 @@ class AudioManager implements AudioManagerInterface {
   // Sync this.volume with whatever VLC is actually set to
   private async syncVolumeFromVLC(): Promise<void> {
     try {
-      const statusUrl = `http://localhost:${this.vlcPort}/requests/status.xml`
+      const statusUrl = `${VLC_BASE_URL}/requests/status.xml`
       const response = await fetch(statusUrl, {
         headers: {
           'Authorization': `Basic ${Buffer.from(`:${this.vlcPassword}`).toString('base64')}`
@@ -439,7 +455,7 @@ class AudioManager implements AudioManagerInterface {
       // Convert to VLC volume range (0-512)
       const vlcVolume = Math.floor(clampedVolume * 512)
       
-      const volumeUrl = `http://localhost:${this.vlcPort}/requests/status.xml?command=volume&val=${vlcVolume}`
+      const volumeUrl = `${VLC_BASE_URL}/requests/status.xml?command=volume&val=${vlcVolume}`
       const response = await fetch(volumeUrl, {
         headers: {
           'Authorization': `Basic ${Buffer.from(`:${this.vlcPassword}`).toString('base64')}`
@@ -555,7 +571,7 @@ class AudioManager implements AudioManagerInterface {
   // Additional required methods for interface compatibility
   async pause(): Promise<boolean> {
     try {
-      const pauseUrl = `http://localhost:${this.vlcPort}/requests/status.xml?command=pl_pause`
+      const pauseUrl = `${VLC_BASE_URL}/requests/status.xml?command=pl_pause`
       await fetch(pauseUrl, {
         headers: {
           'Authorization': `Basic ${Buffer.from(`:${this.vlcPassword}`).toString('base64')}`
@@ -570,7 +586,7 @@ class AudioManager implements AudioManagerInterface {
 
   async resume(): Promise<boolean> {
     try {
-      const resumeUrl = `http://localhost:${this.vlcPort}/requests/status.xml?command=pl_play`
+      const resumeUrl = `${VLC_BASE_URL}/requests/status.xml?command=pl_play`
       await fetch(resumeUrl, {
         headers: {
           'Authorization': `Basic ${Buffer.from(`:${this.vlcPassword}`).toString('base64')}`
@@ -585,7 +601,7 @@ class AudioManager implements AudioManagerInterface {
 
   async seek(position: number): Promise<boolean> {
     try {
-      const seekUrl = `http://localhost:${this.vlcPort}/requests/status.xml?command=seek&val=${position}`
+      const seekUrl = `${VLC_BASE_URL}/requests/status.xml?command=seek&val=${position}`
       await fetch(seekUrl, {
         headers: {
           'Authorization': `Basic ${Buffer.from(`:${this.vlcPassword}`).toString('base64')}`

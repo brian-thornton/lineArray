@@ -20,6 +20,8 @@ export interface PlaybackNotice { id: number; message: string }
 export interface PlaybackApi {
   mode: PlaybackMode
   setMode: (mode: PlaybackMode) => void
+  /** False when the server has VLC playback turned off (e.g. a browser-only Docker deployment). */
+  serverAvailable: boolean
   /** Latest error/info message from local playback, for the UI to surface. */
   notice: PlaybackNotice | null
   getState: () => Promise<QueueResponse | null>
@@ -129,6 +131,7 @@ async function jsonOrNull<T>(res: Response): Promise<T | null> {
 export function PlaybackProvider({ children }: { children: React.ReactNode }): JSX.Element {
   const [mode, setModeState] = useState<PlaybackMode>('browser')
   const [notice, setNotice] = useState<PlaybackNotice | null>(null)
+  const [serverAvailable, setServerAvailable] = useState(true)
   const modeRef = useRef<PlaybackMode>('browser')
 
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -472,6 +475,17 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }): J
       modeRef.current = saved
       setModeState(saved)
     }
+    void fetch('/api/playback')
+      .then(r => jsonOrNull<{ serverPlayback: boolean }>(r))
+      .then(caps => {
+        if (caps && !caps.serverPlayback) {
+          // The saved preference is kept, in case server playback is re-enabled later.
+          setServerAvailable(false)
+          modeRef.current = 'browser'
+          setModeState('browser')
+        }
+      })
+      .catch(() => { /* assume available */ })
   }, [])
 
   const setMode = useCallback((next: PlaybackMode): void => {
@@ -490,6 +504,7 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }): J
       return {
         mode,
         setMode,
+        serverAvailable,
         notice,
         getState: () => Promise.resolve(localSnapshot()),
         addToQueue: (filePath, isAlbum = false) => {
@@ -579,6 +594,7 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }): J
     return {
       mode,
       setMode,
+      serverAvailable,
       notice,
       getState: async () => {
         const res = await fetch('/api/queue')
@@ -631,7 +647,7 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }): J
       },
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, notice, setMode])
+  }, [mode, notice, setMode, serverAvailable])
 
   return <PlaybackContext.Provider value={api}>{children}</PlaybackContext.Provider>
 }

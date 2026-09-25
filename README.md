@@ -2,7 +2,10 @@
 
 A modern, touch-friendly jukebox application built with Next.js and TypeScript. Inspired by TouchTunes — designed for a living room, bar, or party context where the interface needs to look great and work well on any device from phone to desktop.
 
-Audio playback is handled by VLC running in the background; the app communicates with VLC over its HTTP interface.
+Music can play in two ways, chosen per device from the player bar:
+
+- **This device** (default) — audio streams to the browser and plays on the phone/laptop/tablet you're using. Each device has its own queue.
+- **Jukebox** — the shared queue plays through VLC on the machine hosting the app (e.g. a box connected to the room's speakers). The app controls VLC over its HTTP interface.
 
 ---
 
@@ -10,6 +13,7 @@ Audio playback is handled by VLC running in the background; the app communicates
 
 - **Album library** — Recursively scans a local music directory and organizes tracks by album (folder)
 - **Letter navigation** — Jump to any letter in the library; iOS-style index bar on mobile
+- **Two playback modes** — stream to the browser, or play through the host's speakers via VLC
 - **Queue management** — Add individual tracks or full albums, reorder the queue
 - **Playlists** — Create, edit, and play saved playlists
 - **Search** — Full-text search across albums and tracks
@@ -75,7 +79,8 @@ flowchart TD
 | Language | TypeScript 5 |
 | Styling | CSS Modules + custom design system |
 | Icons | Lucide React |
-| Audio backend | VLC Media Player (HTTP API on port 8081) |
+| Audio backend | Browser `<audio>` streaming; VLC Media Player (HTTP API) for server playback |
+| Transcoding | ffmpeg (formats browsers can't decode, e.g. ALAC, AIFF) |
 | Metadata | music-metadata |
 | File I/O | fs-extra |
 | QR codes | qrcode |
@@ -84,11 +89,11 @@ flowchart TD
 
 ## Prerequisites
 
-1. **VLC Media Player** must be installed and running with its HTTP interface enabled:
-   ```
-   vlc --intf http --http-host 127.0.0.1 --http-port 8081 --http-password <your-password>
-   ```
-2. **Node.js** 18+
+1. **Node.js** 20+
+2. **ffmpeg** (optional) — lets browsers play formats they can't decode natively, such as ALAC `.m4a` and AIFF
+3. **VLC Media Player** (optional) — only needed for server ("Jukebox") playback. The app starts VLC itself if `vlc` is on the `PATH`, or connects to one you run separately (see [Configuration](#configuration))
+
+Or skip all of that and use [Docker](#docker).
 
 ---
 
@@ -101,7 +106,43 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Configure the VLC password and music library path in **Settings** on first run.
+Open [http://localhost:3000](http://localhost:3000). Configure the music library path in **Settings** on first run.
+
+---
+
+## Docker
+
+```bash
+cp .env.example .env        # set MUSIC_PATH, and PUBLIC_HOST for the QR code
+docker compose up -d --build
+```
+
+Open `http://<host>:3000`. Settings, the library index, playlists and play counts are stored in `./data` on the host.
+
+Your music folder is mounted read-only at the **same path** it has on the host, because the library index stores absolute file paths. If you already have a `data/` folder from running outside Docker, the existing library keeps working without a rescan.
+
+By default the container runs **browser playback only**. This works on any host, including Docker Desktop/OrbStack on macOS, where containers can't reach the Mac's speakers. For server ("Jukebox") playback, pick one option in `docker-compose.yml`:
+
+- **Option A — Linux host with speakers:** VLC runs inside the container. Pass the sound device through (`devices: [/dev/snd:/dev/snd]`) and remove `VLC_DISABLED`.
+- **Option B — VLC on the host (any OS):** run `vlc --intf http --http-host 0.0.0.0 --http-port 8081 --http-password jukebox --no-video` on the host and set `VLC_HOST=host.docker.internal`. The host must see the music at the same path as the container.
+
+For a smaller browser-only image, build with `--build-arg INSTALL_VLC=false`.
+
+---
+
+## Configuration
+
+Environment variables (all optional):
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `PORT` | `3000` | HTTP port |
+| `PUBLIC_HOST` | — | `host:port` phones should use; overrides the address in the QR code (needed in Docker) |
+| `VLC_HOST` | `localhost` | Where VLC's HTTP interface is. Any non-local host means an external VLC that the app never starts or stops |
+| `VLC_PORT` | `8081` | VLC HTTP port |
+| `VLC_PASSWORD` | `jukebox` | VLC HTTP password |
+| `VLC_EXTERNAL` | `false` | `true` = don't start VLC even though `VLC_HOST` is local |
+| `VLC_DISABLED` | `false` | `true` = browser playback only; hides the Jukebox option |
 
 ---
 

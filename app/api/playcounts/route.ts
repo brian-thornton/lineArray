@@ -114,7 +114,7 @@ export async function GET(): Promise<NextResponse> {
     const playCounts = loadPlayCounts()
     
     // Get all albums to map track paths to track info
-    const albumsResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'}/api/albums`)
+    const albumsResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? `http://127.0.0.1:${process.env.PORT ?? 3000}`}/api/albums`)
     const trackInfo: { [trackPath: string]: TrackInfo } = {}
     
     if (albumsResponse.ok) {

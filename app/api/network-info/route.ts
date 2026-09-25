@@ -21,7 +21,17 @@ export function GET(request: NextRequest): Promise<NextResponse> {
     
     // Get the port from the request
     const host = request.headers.get('host') ?? 'localhost:3000'
-    const port = host.includes(':') ? host.split(':')[1] : '3000'
+    let port = host.includes(':') ? host.split(':')[1] : '3000'
+
+    // Inside Docker the interfaces above are the container's private network,
+    // which phones can't reach. PUBLIC_HOST (e.g. "192.168.1.20:3000") names
+    // the address the jukebox is actually reachable at on the LAN.
+    const publicHost = process.env.PUBLIC_HOST
+    if (publicHost) {
+      const [publicName, publicPort] = publicHost.split(':')
+      localIPs.splice(0, localIPs.length, publicName)
+      if (publicPort) port = publicPort
+    }
     
     // Get the protocol
     const protocol = request.headers.get('x-forwarded-proto') ?? 'http'

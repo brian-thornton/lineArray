@@ -1,0 +1,46 @@
+# Jukebox 2.0 in Docker.
+#
+#   cp .env.example .env      # then set MUSIC_PATH (and PUBLIC_HOST)
+#   docker compose up -d --build
+#
+# Music is mounted read-only at the SAME path it has on the host, because the
+# library index (data/music-library.json) stores absolute paths. Mount it
+# anywhere else and you'll need to rescan from Settings.
+#
+# By default only browser playback ("This device") is enabled — it works on any
+# host, including Docker Desktop / OrbStack on a Mac, which can't reach the Mac's
+# speakers from a container. See the options below for server playback.
+
+services:
+  jukebox:
+    build: .
+    image: jukebox-2.0
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+      - "${MUSIC_PATH:?Set MUSIC_PATH (see .env.example)}:${MUSIC_PATH}:ro"
+    environment:
+      # LAN address phones should use (shown in the QR code). Without it the QR
+      # code points at the container's private Docker IP.
+      PUBLIC_HOST: "${PUBLIC_HOST:-}"
+      # Browser-only by default. Remove to enable server ("Jukebox") playback
+      # with one of the options below.
+      VLC_DISABLED: "true"
+
+      # ── Option A: Linux host with speakers — VLC inside the container ─────
+      # Delete VLC_DISABLED above and uncomment `devices` below.
+
+      # ── Option B: VLC running on the host (e.g. a Mac) ─────────────────────
+      # Start VLC on the host:
+      #   vlc --intf http --http-host 0.0.0.0 --http-port 8081 --http-password jukebox --no-video
+      # then delete VLC_DISABLED and uncomment these. The host must see the
+      # music at the same path as the container (it does with the mount above).
+      # VLC_HOST: host.docker.internal
+      # VLC_PORT: "8081"
+      # VLC_PASSWORD: jukebox
+    # devices:
+    #   - /dev/snd:/dev/snd
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"   # needed for Option B on Linux

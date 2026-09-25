@@ -17,6 +17,7 @@ interface Album {
   title: string
   artist: string
   coverPath: string
+  folderPath?: string
   tracks: Track[]
 }
 
@@ -31,6 +32,7 @@ interface SearchResult {
   artist: string
   album?: string
   path?: string
+  coverPath?: string
 }
 
 export function GET(request: NextRequest): Promise<NextResponse> {
@@ -58,7 +60,7 @@ export function GET(request: NextRequest): Promise<NextResponse> {
     library.albums.forEach(album => {
       // Check if album folder is still accessible
       try {
-        const isAlbumAccessible = fs.existsSync(album.folderPath)
+        const isAlbumAccessible = album.folderPath !== undefined && fs.existsSync(album.folderPath)
         
         if (!isAlbumAccessible) {
           return // Skip albums from unavailable directories

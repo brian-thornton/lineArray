@@ -2,6 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import AudioFactory from './audio-factory'
 import logger from './utils/serverLogger'
+import { VLC_BASE_URL, vlcAuthHeaders } from './utils/vlcConfig'
 import type { QueueTrack, QueueState, DebugInfo, AudioManagerInterface, QueueStateInterface, RadioStation } from './types/audio'
 
 // Queue monitoring function - continuously checks for new tracks and starts playback
@@ -406,7 +407,7 @@ async function playNextInQueue(): Promise<boolean> {
     }
 
     // Record play count (fire-and-forget, don't await)
-    void fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'}/api/playcounts`, {
+    void fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? `http://127.0.0.1:${process.env.PORT ?? 3000}`}/api/playcounts`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ trackPath: nextTrack.path })
@@ -536,11 +537,9 @@ async function seekPlayback(position: number): Promise<boolean> {
 
       // After seek, poll VLC for the latest state/progress.
       try {
-        const statusUrl = `http://localhost:8081/requests/status.xml`;
+        const statusUrl = `${VLC_BASE_URL}/requests/status.xml`;
         const response = await fetch(statusUrl, {
-          headers: {
-            'Authorization': `Basic ${Buffer.from(':jukebox').toString('base64')}`
-          }
+          headers: vlcAuthHeaders()
         });
         if (response.ok) {
           const statusText = await response.text();
@@ -718,11 +717,9 @@ async function getCurrentState(): Promise<{
   // Sync playback state with VLC whenever something is loaded.
   if (qs.currentTrack) {
     try {
-      const statusUrl = `http://localhost:8081/requests/status.xml`;
+      const statusUrl = `${VLC_BASE_URL}/requests/status.xml`;
       const response = await fetch(statusUrl, {
-        headers: {
-          'Authorization': `Basic ${Buffer.from(':jukebox').toString('base64')}`
-        }
+        headers: vlcAuthHeaders()
       });
       if (response.ok) {
         const statusText = await response.text();
@@ -841,9 +838,9 @@ const queueState: QueueStateInterface = {
         await new Promise(r => setTimeout(r, 100))
         // Check VLC state directly
         try {
-          const statusUrl = `http://localhost:8081/requests/status.xml`
+          const statusUrl = `${VLC_BASE_URL}/requests/status.xml`
           const resp = await fetch(statusUrl, {
-            headers: { 'Authorization': `Basic ${Buffer.from(':jukebox').toString('base64')}` }
+            headers: vlcAuthHeaders()
           })
           if (resp.ok) {
             const text = await resp.text()

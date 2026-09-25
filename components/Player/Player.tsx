@@ -697,6 +697,7 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
           </div>
           
           <div className={styles.volume}>
+            {playback.serverAvailable && (
             <button
               onClick={handleToggleMode}
               className={`${styles.modeButton} ${playback.mode === 'browser' ? styles.modeButtonLocal : ''}`}
@@ -706,6 +707,7 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
               {playback.mode === 'browser' ? <Headphones className={styles.volumeIcon} /> : <Speaker className={styles.volumeIcon} />}
               {!isMobile && <span className={styles.modeLabel}>{playback.mode === 'browser' ? 'This device' : 'Jukebox'}</span>}
             </button>
+            )}
             {isMobile ? (
               <button
                 onClick={() => { setShowVolumeOverlay(true); }}

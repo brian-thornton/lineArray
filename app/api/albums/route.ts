@@ -46,17 +46,20 @@ export function GET(): Promise<NextResponse> {
     // Filter out tracks from unavailable directories (removable media)
     const filteredAlbums = albums.map(album => {
       // Check if album folder is still accessible
-      const isAlbumAccessible = fs.existsSync(album.folderPath)
+      // Albums without a recorded folder can't be verified, so treat them as unavailable
+      const folderPath = album.folderPath ?? ''
+      const isAlbumAccessible = folderPath !== '' && fs.existsSync(folderPath)
       
       if (!isAlbumAccessible) {
         // Mark directory as unavailable in scan results
-        const directory = album.folderPath
-        updatedScanResults[directory] = {
-          albums: 0,
-          files: 0,
-          lastScanned: new Date().toISOString(),
-          status: 'unavailable',
-          reason: 'Directory not found or not accessible'
+        if (folderPath) {
+          updatedScanResults[folderPath] = {
+            albums: 0,
+            files: 0,
+            lastScanned: new Date().toISOString(),
+            status: 'unavailable',
+            reason: 'Directory not found or not accessible'
+          }
         }
         // Return album with no tracks if folder is not accessible
         return {
@@ -66,7 +69,7 @@ export function GET(): Promise<NextResponse> {
       }
       
       // Directory is accessible, add to accessible set
-      accessibleDirectories.add(album.folderPath)
+      accessibleDirectories.add(folderPath)
       
       // Filter tracks to only include those with accessible files and exclude macOS metadata files
       const accessibleTracks = album.tracks.filter(track => {
@@ -90,7 +93,7 @@ export function GET(): Promise<NextResponse> {
     }).filter(album => album.tracks.length > 0) // Remove albums with no accessible tracks
 
     // Update scan results for accessible directories
-    for (const directory of accessibleDirectories) {
+    for (const directory of Array.from(accessibleDirectories)) {
       if (updatedScanResults[directory]) {
         updatedScanResults[directory] = {
           ...updatedScanResults[directory],

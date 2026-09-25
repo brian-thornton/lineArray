@@ -102,7 +102,7 @@ export async function POST(request: NextRequest): Promise<Response> {
           try {
             const allAlbums: Album[] = []
             let totalScannedFiles = 0
-            const scanResults: { [path: string]: { albums: number; files: number; lastScanned: string } } = {}
+            const scanResults: { [path: string]: { albums: number; files: number; lastScanned: string; status?: 'available' | 'unavailable'; reason?: string } } = {}
 
             // Send initial progress
             sendProgress({
