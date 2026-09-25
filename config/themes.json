@@ -1,0 +1,584 @@
+{
+  "themes": [
+    {
+      "id": "jukebox-classic",
+      "name": "Jukebox Classic",
+      "description": "The original jukebox theme with gold accents and dark blues",
+      "colors": {
+        "primary": "#1a1a2e",
+        "secondary": "#16213e",
+        "accent": "#ffd700",
+        "background": "#0f0f23",
+        "surface": "rgba(255, 255, 255, 0.05)",
+        "text": "#ffffff",
+        "textSecondary": "#a0a0a0",
+        "textTertiary": "#666666",
+        "border": "rgba(255, 255, 255, 0.1)",
+        "shadow": "0 4px 20px rgba(0, 0, 0, 0.3)",
+        "success": "#4ade80",
+        "error": "#f87171",
+        "warning": "#fbbf24"
+      }
+    },
+    {
+      "id": "ocean-blue",
+      "name": "Ocean Blue",
+      "description": "Deep ocean blues with teal accents",
+      "colors": {
+        "primary": "#0f172a",
+        "secondary": "#1e293b",
+        "accent": "#06b6d4",
+        "background": "#020617",
+        "surface": "rgba(30, 41, 59, 0.8)",
+        "text": "#f8fafc",
+        "textSecondary": "#cbd5e1",
+        "textTertiary": "#64748b",
+        "border": "rgba(148, 163, 184, 0.2)",
+        "shadow": "0 4px 20px rgba(6, 182, 212, 0.1)",
+        "success": "#10b981",
+        "error": "#ef4444",
+        "warning": "#f59e0b"
+      }
+    },
+    {
+      "id": "forest-green",
+      "name": "Forest Green",
+      "description": "Rich forest greens with emerald accents",
+      "colors": {
+        "primary": "#064e3b",
+        "secondary": "#065f46",
+        "accent": "#10b981",
+        "background": "#022c22",
+        "surface": "rgba(6, 95, 70, 0.8)",
+        "text": "#f0fdf4",
+        "textSecondary": "#bbf7d0",
+        "textTertiary": "#86efac",
+        "border": "rgba(16, 185, 129, 0.2)",
+        "shadow": "0 4px 20px rgba(16, 185, 129, 0.1)",
+        "success": "#22c55e",
+        "error": "#ef4444",
+        "warning": "#f59e0b"
+      }
+    },
+    {
+      "id": "sunset-purple",
+      "name": "Sunset Purple",
+      "description": "Warm sunset purples with orange accents",
+      "colors": {
+        "primary": "#581c87",
+        "secondary": "#7c3aed",
+        "accent": "#f97316",
+        "background": "#2e1065",
+        "surface": "rgba(124, 58, 237, 0.8)",
+        "text": "#faf5ff",
+        "textSecondary": "#e9d5ff",
+        "textTertiary": "#c4b5fd",
+        "border": "rgba(249, 115, 22, 0.2)",
+        "shadow": "0 4px 20px rgba(249, 115, 22, 0.1)",
+        "success": "#10b981",
+        "error": "#ef4444",
+        "warning": "#f59e0b"
+      }
+    },
+    {
+      "id": "midnight-gray",
+      "name": "Midnight Gray",
+      "description": "Sophisticated grays with silver accents",
+      "colors": {
+        "primary": "#1f2937",
+        "secondary": "#374151",
+        "accent": "#9ca3af",
+        "background": "#111827",
+        "surface": "rgba(55, 65, 81, 0.8)",
+        "text": "#f9fafb",
+        "textSecondary": "#d1d5db",
+        "textTertiary": "#9ca3af",
+        "border": "rgba(156, 163, 175, 0.2)",
+        "shadow": "0 4px 20px rgba(0, 0, 0, 0.3)",
+        "success": "#10b981",
+        "error": "#ef4444",
+        "warning": "#f59e0b"
+      }
+    },
+    {
+      "id": "crimson-red",
+      "name": "Crimson Red",
+      "description": "Bold crimson reds with gold accents",
+      "colors": {
+        "primary": "#7f1d1d",
+        "secondary": "#991b1b",
+        "accent": "#fbbf24",
+        "background": "#450a0a",
+        "surface": "rgba(153, 27, 27, 0.8)",
+        "text": "#fef2f2",
+        "textSecondary": "#fecaca",
+        "textTertiary": "#fca5a5",
+        "border": "rgba(251, 191, 36, 0.2)",
+        "shadow": "0 4px 20px rgba(251, 191, 36, 0.1)",
+        "success": "#10b981",
+        "error": "#ef4444",
+        "warning": "#f59e0b"
+      }
+    },
+    {
+      "id": "aurora-gradient",
+      "name": "Aurora Gradient",
+      "description": "Northern lights inspired with green to purple gradients",
+      "colors": {
+        "primary": "linear-gradient(135deg, #0f766e 0%, #7c3aed 100%)",
+        "secondary": "linear-gradient(135deg, #065f46 0%, #581c87 100%)",
+        "accent": "#10b981",
+        "background": "linear-gradient(135deg, #022c22 0%, #2e1065 100%)",
+        "surface": "rgba(16, 185, 129, 0.15)",
+        "text": "#f0fdf4",
+        "textSecondary": "#bbf7d0",
+        "textTertiary": "#86efac",
+        "border": "rgba(16, 185, 129, 0.3)",
+        "shadow": "0 4px 20px rgba(16, 185, 129, 0.2)",
+        "success": "#22c55e",
+        "error": "#ef4444",
+        "warning": "#f59e0b"
+      }
+    },
+    {
+      "id": "sunset-gradient",
+      "name": "Sunset Gradient",
+      "description": "Warm sunset gradients from orange to pink",
+      "colors": {
+        "primary": "linear-gradient(135deg, #ea580c 0%, #be185d 100%)",
+        "secondary": "linear-gradient(135deg, #c2410c 0%, #9d174d 100%)",
+        "accent": "#fbbf24",
+        "background": "linear-gradient(135deg, #7c2d12 0%, #831843 100%)",
+        "surface": "rgba(251, 191, 36, 0.15)",
+        "text": "#fef7ed",
+        "textSecondary": "#fed7aa",
+        "textTertiary": "#fdba74",
+        "border": "rgba(251, 191, 36, 0.3)",
+        "shadow": "0 4px 20px rgba(251, 191, 36, 0.2)",
+        "success": "#10b981",
+        "error": "#ef4444",
+        "warning": "#f59e0b"
+      }
+    },
+    {
+      "id": "ocean-depths",
+      "name": "Ocean Depths",
+      "description": "Deep ocean gradients from blue to teal",
+      "colors": {
+        "primary": "linear-gradient(135deg, #0c4a6e 0%, #0f766e 100%)",
+        "secondary": "linear-gradient(135deg, #1e40af 0%, #065f46 100%)",
+        "accent": "#06b6d4",
+        "background": "linear-gradient(135deg, #0c4a6e 0%, #022c22 100%)",
+        "surface": "rgba(6, 182, 212, 0.15)",
+        "text": "#f0f9ff",
+        "textSecondary": "#bae6fd",
+        "textTertiary": "#7dd3fc",
+        "border": "rgba(6, 182, 212, 0.3)",
+        "shadow": "0 4px 20px rgba(6, 182, 212, 0.2)",
+        "success": "#10b981",
+        "error": "#ef4444",
+        "warning": "#f59e0b"
+      }
+    },
+    {
+      "id": "cosmic-purple",
+      "name": "Cosmic Purple",
+      "description": "Space-inspired purple gradients with star accents",
+      "colors": {
+        "primary": "linear-gradient(135deg, #581c87 0%, #1e1b4b 100%)",
+        "secondary": "linear-gradient(135deg, #7c3aed 0%, #3730a3 100%)",
+        "accent": "#a855f7",
+        "background": "linear-gradient(135deg, #2e1065 0%, #0f0f23 100%)",
+        "surface": "rgba(168, 85, 247, 0.15)",
+        "text": "#faf5ff",
+        "textSecondary": "#e9d5ff",
+        "textTertiary": "#c4b5fd",
+        "border": "rgba(168, 85, 247, 0.3)",
+        "shadow": "0 4px 20px rgba(168, 85, 247, 0.2)",
+        "success": "#10b981",
+        "error": "#ef4444",
+        "warning": "#f59e0b"
+      }
+    },
+    {
+      "id": "fire-orange",
+      "name": "Fire Orange",
+      "description": "Burning fire gradients from orange to red",
+      "colors": {
+        "primary": "linear-gradient(135deg, #ea580c 0%, #dc2626 100%)",
+        "secondary": "linear-gradient(135deg, #c2410c 0%, #b91c1c 100%)",
+        "accent": "#f97316",
+        "background": "linear-gradient(135deg, #7c2d12 0%, #7f1d1d 100%)",
+        "surface": "rgba(249, 115, 22, 0.15)",
+        "text": "#fef7ed",
+        "textSecondary": "#fed7aa",
+        "textTertiary": "#fdba74",
+        "border": "rgba(249, 115, 22, 0.3)",
+        "shadow": "0 4px 20px rgba(249, 115, 22, 0.2)",
+        "success": "#10b981",
+        "error": "#ef4444",
+        "warning": "#f59e0b"
+      }
+    },
+    {
+      "id": "emerald-forest",
+      "name": "Emerald Forest",
+      "description": "Lush forest gradients from green to emerald",
+      "colors": {
+        "primary": "linear-gradient(135deg, #166534 0%, #065f46 100%)",
+        "secondary": "linear-gradient(135deg, #15803d 0%, #047857 100%)",
+        "accent": "#10b981",
+        "background": "linear-gradient(135deg, #14532d 0%, #022c22 100%)",
+        "surface": "rgba(16, 185, 129, 0.15)",
+        "text": "#f0fdf4",
+        "textSecondary": "#bbf7d0",
+        "textTertiary": "#86efac",
+        "border": "rgba(16, 185, 129, 0.3)",
+        "shadow": "0 4px 20px rgba(16, 185, 129, 0.2)",
+        "success": "#22c55e",
+        "error": "#ef4444",
+        "warning": "#f59e0b"
+      }
+    },
+    {
+      "id": "midnight-blue",
+      "name": "Midnight Blue",
+      "description": "Deep midnight gradients from navy to slate",
+      "colors": {
+        "primary": "linear-gradient(135deg, #1e3a8a 0%, #1f2937 100%)",
+        "secondary": "linear-gradient(135deg, #1e40af 0%, #374151 100%)",
+        "accent": "#3b82f6",
+        "background": "linear-gradient(135deg, #1e3a8a 0%, #111827 100%)",
+        "surface": "rgba(59, 130, 246, 0.15)",
+        "text": "#f8fafc",
+        "textSecondary": "#cbd5e1",
+        "textTertiary": "#94a3b8",
+        "border": "rgba(59, 130, 246, 0.3)",
+        "shadow": "0 4px 20px rgba(59, 130, 246, 0.2)",
+        "success": "#10b981",
+        "error": "#ef4444",
+        "warning": "#f59e0b"
+      }
+    },
+    {
+      "id": "rose-gold",
+      "name": "Rose Gold",
+      "description": "Elegant rose gold gradients with warm tones",
+      "colors": {
+        "primary": "linear-gradient(135deg, #be185d 0%, #b45309 100%)",
+        "secondary": "linear-gradient(135deg, #9d174d 0%, #92400e 100%)",
+        "accent": "#f59e0b",
+        "background": "linear-gradient(135deg, #831843 0%, #78350f 100%)",
+        "surface": "rgba(245, 158, 11, 0.15)",
+        "text": "#fef7ed",
+        "textSecondary": "#fed7aa",
+        "textTertiary": "#fdba74",
+        "border": "rgba(245, 158, 11, 0.3)",
+        "shadow": "0 4px 20px rgba(245, 158, 11, 0.2)",
+        "success": "#10b981",
+        "error": "#ef4444",
+        "warning": "#f59e0b"
+      }
+    },
+    {
+      "id": "cyber-neon",
+      "name": "Cyber Neon",
+      "description": "Futuristic cyberpunk with neon gradients",
+      "colors": {
+        "primary": "linear-gradient(135deg, #0ea5e9 0%, #8b5cf6 100%)",
+        "secondary": "linear-gradient(135deg, #0284c7 0%, #7c3aed 100%)",
+        "accent": "#06b6d4",
+        "background": "linear-gradient(135deg, #0c4a6e 0%, #2e1065 100%)",
+        "surface": "rgba(6, 182, 212, 0.15)",
+        "text": "#f0f9ff",
+        "textSecondary": "#bae6fd",
+        "textTertiary": "#7dd3fc",
+        "border": "rgba(6, 182, 212, 0.3)",
+        "shadow": "0 4px 20px rgba(6, 182, 212, 0.2)",
+        "success": "#10b981",
+        "error": "#ef4444",
+        "warning": "#f59e0b"
+      }
+    },
+    {
+      "id": "lavender-dream",
+      "name": "Lavender Dream",
+      "description": "Soft lavender gradients with purple accents",
+      "colors": {
+        "primary": "linear-gradient(135deg, #a855f7 0%, #c084fc 100%)",
+        "secondary": "linear-gradient(135deg, #9333ea 0%, #a855f7 100%)",
+        "accent": "#e879f9",
+        "background": "linear-gradient(135deg, #581c87 0%, #7c3aed 100%)",
+        "surface": "rgba(232, 121, 249, 0.15)",
+        "text": "#faf5ff",
+        "textSecondary": "#e9d5ff",
+        "textTertiary": "#c4b5fd",
+        "border": "rgba(232, 121, 249, 0.3)",
+        "shadow": "0 4px 20px rgba(232, 121, 249, 0.2)",
+        "success": "#10b981",
+        "error": "#ef4444",
+        "warning": "#f59e0b"
+      }
+    },
+    {
+      "id": "sapphire-blue",
+      "name": "Sapphire Blue",
+      "description": "Rich sapphire blues with crystal accents",
+      "colors": {
+        "primary": "#1e40af",
+        "secondary": "#3b82f6",
+        "accent": "#60a5fa",
+        "background": "#0f172a",
+        "surface": "rgba(59, 130, 246, 0.1)",
+        "text": "#f8fafc",
+        "textSecondary": "#cbd5e1",
+        "textTertiary": "#94a3b8",
+        "border": "rgba(96, 165, 250, 0.2)",
+        "shadow": "0 4px 20px rgba(96, 165, 250, 0.15)",
+        "success": "#10b981",
+        "error": "#ef4444",
+        "warning": "#f59e0b"
+      }
+    },
+    {
+      "id": "amber-warm",
+      "name": "Amber Warm",
+      "description": "Warm amber tones with golden highlights",
+      "colors": {
+        "primary": "#92400e",
+        "secondary": "#b45309",
+        "accent": "#f59e0b",
+        "background": "#451a03",
+        "surface": "rgba(245, 158, 11, 0.1)",
+        "text": "#fef7ed",
+        "textSecondary": "#fed7aa",
+        "textTertiary": "#fdba74",
+        "border": "rgba(245, 158, 11, 0.2)",
+        "shadow": "0 4px 20px rgba(245, 158, 11, 0.15)",
+        "success": "#10b981",
+        "error": "#ef4444",
+        "warning": "#f59e0b"
+      }
+    },
+    {
+      "id": "emerald-city",
+      "name": "Emerald City",
+      "description": "Vibrant emerald greens with lime accents",
+      "colors": {
+        "primary": "#047857",
+        "secondary": "#059669",
+        "accent": "#10b981",
+        "background": "#022c22",
+        "surface": "rgba(16, 185, 129, 0.1)",
+        "text": "#f0fdf4",
+        "textSecondary": "#bbf7d0",
+        "textTertiary": "#86efac",
+        "border": "rgba(16, 185, 129, 0.2)",
+        "shadow": "0 4px 20px rgba(16, 185, 129, 0.15)",
+        "success": "#22c55e",
+        "error": "#ef4444",
+        "warning": "#f59e0b"
+      }
+    },
+    {
+      "id": "ruby-red",
+      "name": "Ruby Red",
+      "description": "Deep ruby reds with crimson accents",
+      "colors": {
+        "primary": "#991b1b",
+        "secondary": "#b91c1c",
+        "accent": "#dc2626",
+        "background": "#450a0a",
+        "surface": "rgba(220, 38, 38, 0.1)",
+        "text": "#fef2f2",
+        "textSecondary": "#fecaca",
+        "textTertiary": "#fca5a5",
+        "border": "rgba(220, 38, 38, 0.2)",
+        "shadow": "0 4px 20px rgba(220, 38, 38, 0.15)",
+        "success": "#10b981",
+        "error": "#ef4444",
+        "warning": "#f59e0b"
+      }
+    },
+    {
+      "id": "steel-gray",
+      "name": "Steel Gray",
+      "description": "Modern steel grays with metallic accents",
+      "colors": {
+        "primary": "#374151",
+        "secondary": "#4b5563",
+        "accent": "#6b7280",
+        "background": "#1f2937",
+        "surface": "rgba(107, 114, 128, 0.1)",
+        "text": "#f9fafb",
+        "textSecondary": "#d1d5db",
+        "textTertiary": "#9ca3af",
+        "border": "rgba(107, 114, 128, 0.2)",
+        "shadow": "0 4px 20px rgba(0, 0, 0, 0.2)",
+        "success": "#10b981",
+        "error": "#ef4444",
+        "warning": "#f59e0b"
+      }
+    },
+    {
+      "id": "twilight-purple",
+      "name": "Twilight Purple",
+      "description": "Mysterious twilight purples with violet accents",
+      "colors": {
+        "primary": "#4c1d95",
+        "secondary": "#5b21b6",
+        "accent": "#7c3aed",
+        "background": "#1e1b4b",
+        "surface": "rgba(124, 58, 237, 0.1)",
+        "text": "#faf5ff",
+        "textSecondary": "#e9d5ff",
+        "textTertiary": "#c4b5fd",
+        "border": "rgba(124, 58, 237, 0.2)",
+        "shadow": "0 4px 20px rgba(124, 58, 237, 0.15)",
+        "success": "#10b981",
+        "error": "#ef4444",
+        "warning": "#f59e0b"
+      }
+    },
+    {
+      "id": "neon-pink",
+      "name": "Neon Pink",
+      "description": "Vibrant neon pink with electric accents",
+      "colors": {
+        "primary": "#be185d",
+        "secondary": "#db2777",
+        "accent": "#ec4899",
+        "background": "#831843",
+        "surface": "rgba(236, 72, 153, 0.1)",
+        "text": "#fdf2f8",
+        "textSecondary": "#fce7f3",
+        "textTertiary": "#fbcfe8",
+        "border": "rgba(236, 72, 153, 0.2)",
+        "shadow": "0 4px 20px rgba(236, 72, 153, 0.15)",
+        "success": "#10b981",
+        "error": "#ef4444",
+        "warning": "#f59e0b"
+      }
+    },
+    {
+      "id": "golden-hour",
+      "name": "Golden Hour",
+      "description": "Warm golden hour gradients from yellow to orange",
+      "colors": {
+        "primary": "linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)",
+        "secondary": "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+        "accent": "#fbbf24",
+        "background": "linear-gradient(135deg, #78350f 0%, #92400e 100%)",
+        "surface": "rgba(251, 191, 36, 0.15)",
+        "text": "#fef7ed",
+        "textSecondary": "#fed7aa",
+        "textTertiary": "#fdba74",
+        "border": "rgba(251, 191, 36, 0.3)",
+        "shadow": "0 4px 20px rgba(251, 191, 36, 0.2)",
+        "success": "#10b981",
+        "error": "#ef4444",
+        "warning": "#f59e0b"
+      }
+    },
+    {
+      "id": "midnight-aurora",
+      "name": "Midnight Aurora",
+      "description": "Dark midnight with aurora borealis gradients",
+      "colors": {
+        "primary": "linear-gradient(135deg, #0f172a 0%, #0f766e 100%)",
+        "secondary": "linear-gradient(135deg, #1e293b 0%, #065f46 100%)",
+        "accent": "#10b981",
+        "background": "linear-gradient(135deg, #020617 0%, #022c22 100%)",
+        "surface": "rgba(16, 185, 129, 0.15)",
+        "text": "#f0f9ff",
+        "textSecondary": "#bae6fd",
+        "textTertiary": "#7dd3fc",
+        "border": "rgba(16, 185, 129, 0.3)",
+        "shadow": "0 4px 20px rgba(16, 185, 129, 0.2)",
+        "success": "#22c55e",
+        "error": "#ef4444",
+        "warning": "#f59e0b"
+      }
+    },
+    {
+      "id": "candy-crush",
+      "name": "Candy Crush",
+      "description": "Sweet candy gradients from pink to purple",
+      "colors": {
+        "primary": "linear-gradient(135deg, #ec4899 0%, #a855f7 100%)",
+        "secondary": "linear-gradient(135deg, #db2777 0%, #9333ea 100%)",
+        "accent": "#f472b6",
+        "background": "linear-gradient(135deg, #831843 0%, #581c87 100%)",
+        "surface": "rgba(244, 114, 182, 0.15)",
+        "text": "#fdf2f8",
+        "textSecondary": "#fce7f3",
+        "textTertiary": "#fbcfe8",
+        "border": "rgba(244, 114, 182, 0.3)",
+        "shadow": "0 4px 20px rgba(244, 114, 182, 0.2)",
+        "success": "#10b981",
+        "error": "#ef4444",
+        "warning": "#f59e0b"
+      }
+    },
+    {
+      "id": "desert-sunset",
+      "name": "Desert Sunset",
+      "description": "Warm desert sunset gradients from orange to red",
+      "colors": {
+        "primary": "linear-gradient(135deg, #f97316 0%, #dc2626 100%)",
+        "secondary": "linear-gradient(135deg, #ea580c 0%, #b91c1c 100%)",
+        "accent": "#fb923c",
+        "background": "linear-gradient(135deg, #c2410c 0%, #7f1d1d 100%)",
+        "surface": "rgba(251, 146, 60, 0.15)",
+        "text": "#fef7ed",
+        "textSecondary": "#fed7aa",
+        "textTertiary": "#fdba74",
+        "border": "rgba(251, 146, 60, 0.3)",
+        "shadow": "0 4px 20px rgba(251, 146, 60, 0.2)",
+        "success": "#10b981",
+        "error": "#ef4444",
+        "warning": "#f59e0b"
+      }
+    },
+    {
+      "id": "ocean-breeze",
+      "name": "Ocean Breeze",
+      "description": "Fresh ocean breeze gradients from blue to cyan",
+      "colors": {
+        "primary": "linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%)",
+        "secondary": "linear-gradient(135deg, #0284c7 0%, #0891b2 100%)",
+        "accent": "#22d3ee",
+        "background": "linear-gradient(135deg, #0c4a6e 0%, #0e7490 100%)",
+        "surface": "rgba(34, 211, 238, 0.15)",
+        "text": "#f0f9ff",
+        "textSecondary": "#bae6fd",
+        "textTertiary": "#7dd3fc",
+        "border": "rgba(34, 211, 238, 0.3)",
+        "shadow": "0 4px 20px rgba(34, 211, 238, 0.2)",
+        "success": "#10b981",
+        "error": "#ef4444",
+        "warning": "#f59e0b"
+      }
+    },
+    {
+      "id": "forest-mist",
+      "name": "Forest Mist",
+      "description": "Mystical forest mist gradients from green to teal",
+      "colors": {
+        "primary": "linear-gradient(135deg, #10b981 0%, #14b8a6 100%)",
+        "secondary": "linear-gradient(135deg, #059669 0%, #0d9488 100%)",
+        "accent": "#5eead4",
+        "background": "linear-gradient(135deg, #065f46 0%, #134e4a 100%)",
+        "surface": "rgba(94, 234, 212, 0.15)",
+        "text": "#f0fdfa",
+        "textSecondary": "#ccfbf1",
+        "textTertiary": "#99f6e4",
+        "border": "rgba(94, 234, 212, 0.3)",
+        "shadow": "0 4px 20px rgba(94, 234, 212, 0.2)",
+        "success": "#22c55e",
+        "error": "#ef4444",
+        "warning": "#f59e0b"
+      }
+    }
+  ]
+} 

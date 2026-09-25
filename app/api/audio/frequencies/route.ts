@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+
 export function GET(_request: NextRequest): NextResponse {
   try {
     // For now, always return breathing animation (not playing state)

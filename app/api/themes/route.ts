@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
+import bundledThemes from '@/config/themes.json'
+
+// Must run per request: a GET handler that doesn't read the request is otherwise
+// evaluated once at build time and served frozen in production.
+export const dynamic = 'force-dynamic'
 
 interface Theme {
   id: string
@@ -27,47 +32,29 @@ interface ThemesData {
   themes: Theme[]
 }
 
+// Built-in theme catalog. Shipped with the app so fresh clones and Docker
+// containers get every theme; data/themes.json is only an optional local override.
+const BUILT_IN_THEMES = (bundledThemes as ThemesData).themes
+
+// Themes in data/themes.json replace a built-in theme with the same id, or are
+// appended as extra themes.
+function loadThemes(): Theme[] {
+  const overridePath = path.join(process.cwd(), 'data', 'themes.json')
+  if (!fs.existsSync(overridePath)) return BUILT_IN_THEMES
+
+  const overrides = (JSON.parse(fs.readFileSync(overridePath, 'utf-8')) as ThemesData).themes ?? []
+  const byId = new Map(overrides.map(theme => [theme.id, theme]))
+  const merged = BUILT_IN_THEMES.map(theme => byId.get(theme.id) ?? theme)
+  const builtInIds = new Set(BUILT_IN_THEMES.map(theme => theme.id))
+  return [...merged, ...overrides.filter(theme => !builtInIds.has(theme.id))]
+}
+
 export function GET(): Promise<NextResponse> {
   try {
-    const themesPath = path.join(process.cwd(), 'data', 'themes.json')
-    
-    if (fs.existsSync(themesPath)) {
-      const data = fs.readFileSync(themesPath, 'utf-8')
-      const themes = JSON.parse(data) as ThemesData
-      return Promise.resolve(NextResponse.json(themes))
-    } else {
-      // Return default theme if themes.json doesn't exist
-      const defaultThemes: ThemesData = {
-        themes: [
-          {
-            id: 'jukebox-classic',
-            name: 'Jukebox Classic',
-            description: 'The original jukebox theme with gold accents and dark blues',
-            colors: {
-              primary: '#1a1a2e',
-              secondary: '#16213e',
-              accent: '#ffd700',
-              background: '#0f0f23',
-              surface: 'rgba(255, 255, 255, 0.05)',
-              text: '#ffffff',
-              textSecondary: '#a0a0a0',
-              textTertiary: '#666666',
-              border: 'rgba(255, 255, 255, 0.1)',
-              shadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
-              success: '#4ade80',
-              error: '#f87171',
-              warning: '#fbbf24'
-            }
-          }
-        ]
-      }
-      return Promise.resolve(NextResponse.json(defaultThemes))
-    }
+    return Promise.resolve(NextResponse.json({ themes: loadThemes() }))
   } catch (error) {
     console.error('Error loading themes:', error)
-    return Promise.resolve(NextResponse.json(
-      { error: 'Failed to load themes' },
-      { status: 500 }
-    ))
+    // A broken override file shouldn't take the themes away.
+    return Promise.resolve(NextResponse.json({ themes: BUILT_IN_THEMES }))
   }
-} 
+}

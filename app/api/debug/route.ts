@@ -3,6 +3,8 @@ import fs from 'fs'
 import path from 'path'
 import queueState from '../../../queue-state'
 
+export const dynamic = 'force-dynamic'
+
 export function GET(): Promise<NextResponse> {
   try {
     const debugInfo = queueState.getDebugInfo()
