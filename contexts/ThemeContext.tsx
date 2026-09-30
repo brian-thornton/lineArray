@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { Theme } from '@/types/music'
+import { THEME_VAR_MAP, THEME_COLORS_STORAGE_KEY } from '@/utils/themeVars'
 
 interface ThemeContextType {
   currentTheme: Theme
@@ -36,28 +37,9 @@ function applyThemeVars(theme: Theme) {
   const root = document.documentElement;
   const body = document.body;
   const c = theme.colors;
-  // Set all theme variables
-  root.style.setProperty("--jukebox-primary", c.primary);
-  root.style.setProperty("--jukebox-secondary", c.secondary);
-  root.style.setProperty("--jukebox-accent", c.accent);
-  root.style.setProperty("--jukebox-background", c.background);
-  root.style.setProperty("--jukebox-surface", c.surface);
-  root.style.setProperty("--jukebox-text", c.text);
-  root.style.setProperty("--jukebox-text-secondary", c.textSecondary);
-  root.style.setProperty("--jukebox-text-tertiary", c.textTertiary);
-  root.style.setProperty("--jukebox-border", c.border);
-  root.style.setProperty("--jukebox-shadow", c.shadow);
-  root.style.setProperty("--jukebox-success", c.success);
-  root.style.setProperty("--jukebox-error", c.error);
-  root.style.setProperty("--jukebox-warning", c.warning);
-  // Legacy/fallback vars
-  root.style.setProperty("--jukebox-dark", c.primary);
-  root.style.setProperty("--jukebox-darker", c.background);
-  root.style.setProperty("--jukebox-white", c.text);
-  root.style.setProperty("--jukebox-gray", c.textSecondary);
-  root.style.setProperty("--jukebox-purple", c.secondary);
-  root.style.setProperty("--jukebox-gold", c.accent);
-  root.style.setProperty("--jukebox-blue", c.accent);
+  for (const [cssVar, key] of THEME_VAR_MAP) {
+    root.style.setProperty(cssVar, c[key]);
+  }
   // Set body/bg color
   if (body) {
     body.style.backgroundColor = c.background;
@@ -73,10 +55,16 @@ function applyThemeVars(theme: Theme) {
     document.head.appendChild(metaThemeColor);
   }
   metaThemeColor.content = c.background;
+  try {
+    localStorage.setItem(THEME_COLORS_STORAGE_KEY, JSON.stringify(c));
+  } catch {
+    // Storage unavailable; the next full page load just starts from the default.
+  }
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }): JSX.Element {
   const [themes, setThemes] = useState<Theme[]>([defaultTheme]);
+  const [themesLoaded, setThemesLoaded] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<Theme>(defaultTheme);
 
   // Load themes from backend
@@ -95,12 +83,16 @@ export function ThemeProvider({ children }: { children: ReactNode }): JSX.Elemen
         // eslint-disable-next-line no-console
         console.error("[Theme] Failed to load themes", e);
       }
+      if (!cancelled) setThemesLoaded(true);
     })();
     return () => { cancelled = true; };
   }, []);
 
-  // Load selected theme from localStorage or backend, fallback to default
+  // Load selected theme from localStorage or backend, fallback to default.
+  // Waits for the theme list: resolving against the built-in default alone would
+  // briefly apply the default theme before the saved one.
   useEffect(() => {
+    if (!themesLoaded) return;
     let cancelled = false;
     (async () => {
       let themeId = localStorage.getItem("jukebox-theme");
@@ -136,16 +128,9 @@ export function ThemeProvider({ children }: { children: ReactNode }): JSX.Elemen
         localStorage.setItem("jukebox-theme", themeId!);
       }
     })();
-    // Also re-apply theme if themes change
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [themes]);
-
-  // Always re-apply theme when currentTheme changes
-  useEffect(() => {
-    if (currentTheme) {
-      applyThemeVars(currentTheme);
-    }
-  }, [currentTheme]);
+  }, [themesLoaded, themes]);
 
   // Set theme by ID
   const setTheme = (themeId: string) => {

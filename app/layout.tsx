@@ -9,6 +9,7 @@ import { LibraryProvider } from '@/contexts/LibraryContext'
 import { PlayerProvider } from '@/contexts/PlayerContext'
 import { PlaybackProvider } from '@/contexts/PlaybackContext'
 import AppShell from '@/components/AppShell'
+import { themeBootScript } from '@/utils/themeVars'
 
 export const metadata: Metadata = {
   title: 'Jukebox 2.0',
@@ -29,9 +30,11 @@ export default function RootLayout({
   children: React.ReactNode
 }): JSX.Element {
   return (
-    <html lang="en">
+    // suppressHydrationWarning: themeBootScript sets inline theme styles on <html> before hydration.
+    <html lang="en" suppressHydrationWarning>
       <head>
         <meta name="theme-color" content="#0f0f23" />
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
       </head>
       <body>
         <PlaybackProvider>

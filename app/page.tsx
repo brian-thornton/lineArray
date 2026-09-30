@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Album, Track } from '@/types/music'
 import AlbumGrid from '@/components/AlbumGrid/AlbumGrid'
@@ -19,7 +19,18 @@ interface WindowWithPlayer extends Window {
   checkPlayerStatusImmediately?: () => Promise<void>
 }
 
+// useSearchParams() needs a Suspense boundary. Without one, production builds deopt
+// the page and its client-navigation request fails, so every link back to the
+// library turns into a full page reload.
 export default function Home(): JSX.Element {
+  return (
+    <Suspense fallback={null}>
+      <HomeContent />
+    </Suspense>
+  )
+}
+
+function HomeContent(): JSX.Element {
   // const router = useRouter()
   const searchParams = useSearchParams()
   const { searchQuery, searchResults, isSearching, addTrackToQueue, hideKeyboard } = useSearch()
