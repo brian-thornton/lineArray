@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { Play, Clock, Music } from 'lucide-react'
 import { useSettings } from '@/contexts/SettingsContext'
 import { useSearch } from '@/contexts/SearchContext'
-import { useAddToQueue } from '@/hooks/useAddToQueue'
+import { usePlayNow } from '@/hooks/usePlayNow'
 import styles from './RecentlyPlayed.module.css'
 
 interface WindowWithPlayer extends Window {
@@ -30,7 +30,7 @@ interface RecentlyPlayedProps {
 export default function RecentlyPlayed({ limit = 10, showTitle = true }: RecentlyPlayedProps): JSX.Element {
   const { canPerformAction } = useSettings()
   const { hideKeyboard } = useSearch()
-  const addToQueue = useAddToQueue()
+  const playNow = usePlayNow()
   const [recentTracks, setRecentTracks] = useState<RecentlyPlayedTrack[]>([])
   const [loading, setLoading] = useState(true)
   const [coverErrors, setCoverErrors] = useState<Set<string>>(new Set())
@@ -69,7 +69,7 @@ export default function RecentlyPlayed({ limit = 10, showTitle = true }: Recentl
 
   const handlePlayTrack = async (track: RecentlyPlayedTrack): Promise<void> => {
     if (!canPerformAction('allowAddToQueue')) return
-    const ok = await addToQueue({ path: track.path, title: track.title || getTrackName(track.path) })
+    const ok = await playNow({ path: track.path, title: track.title || getTrackName(track.path) })
     if (ok) {
       hideKeyboard()
       if (typeof window !== 'undefined') {

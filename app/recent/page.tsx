@@ -8,17 +8,17 @@ import { useToast } from '@/contexts/ToastContext'
 import styles from './page.module.css'
 
 export default function RecentPage(): JSX.Element {
-  const { searchQuery, searchResults, isSearching, addTrackToQueue, hideKeyboard } = useSearch()
+  const { searchQuery, searchResults, isSearching, playTrack, hideKeyboard } = useSearch()
   const { showToast } = useToast()
 
   const handleTrackClick = async (path: string): Promise<void> => {
-    await addTrackToQueue(path)
+    const outcome = await playTrack(path)
     hideKeyboard()
     
     // Find the track title for the toast
     const track = searchResults.find(result => result.path === path)
-    if (track) {
-      showToast(`Added "${track.title}" to queue`, 'success')
+    if (track && outcome) {
+      showToast(outcome === 'playing' ? `Playing "${track.title}"` : `Added "${track.title}" to queue`, 'success')
     }
   }
 

@@ -12,7 +12,7 @@ import { useSearch } from '@/contexts/SearchContext'
 import { useToast } from '@/contexts/ToastContext'
 import { useLibrary } from '@/contexts/LibraryContext'
 import { useQueueToast } from '@/components/QueueToast/QueueToastContext'
-import { useAddToQueue } from '@/hooks/useAddToQueue'
+import { usePlayNow } from '@/hooks/usePlayNow'
 import { usePlayback } from '@/contexts/PlaybackContext'
 import styles from './page.module.css'
 import Image from 'next/image'
@@ -30,7 +30,7 @@ export default function AlbumDetail(): JSX.Element {
   const { showToast } = useToast()
   const { libraryState } = useLibrary()
   const { showQueueToast } = useQueueToast()
-  const addToQueue = useAddToQueue()
+  const playNow = usePlayNow()
   const playback = usePlayback()
   const [album, setAlbum] = useState<Album | null>(null)
   const [loading, setLoading] = useState(true)
@@ -104,9 +104,14 @@ export default function AlbumDetail(): JSX.Element {
 
     try {
       let lastQueueLength = 0
-      for (const track of album.tracks) {
-        const data = await playback.addToQueue(track.path, true)
-        if (data) lastQueueLength = data.queue.length
+      if (playback.mode === 'browser') {
+        // Playing on this device: start the album now, ahead of anything queued.
+        await playback.playNow(album.tracks.map(track => track.path), true)
+      } else {
+        for (const track of album.tracks) {
+          const data = await playback.addToQueue(track.path, true)
+          if (data) lastQueueLength = data.queue.length
+        }
       }
       hideKeyboard()
       // Show one summary toast for the whole album
@@ -120,7 +125,7 @@ export default function AlbumDetail(): JSX.Element {
   const handlePlayTrack = async (track: Track): Promise<void> => {
     if (!canPerformAction('allowAddToQueue')) return
 
-    const ok = await addToQueue({ path: track.path, title: track.title })
+    const ok = await playNow({ path: track.path, title: track.title })
     if (ok) {
       hideKeyboard()
       setFlashingTrackId(track.id)
@@ -218,7 +223,7 @@ export default function AlbumDetail(): JSX.Element {
 
   const handleTrackClick = async (path: string): Promise<void> => {
     const track = searchResults.find(result => result.path === path)
-    await addToQueue({ path, title: track?.title })
+    await playNow({ path, title: track?.title })
     hideKeyboard()
 
     // Set flag to show player controls

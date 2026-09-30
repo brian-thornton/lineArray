@@ -25,7 +25,7 @@ interface SectionConfig {
 
 export default function SettingsPage(): JSX.Element {
   const { settings } = useSettings()
-  const { searchQuery, searchResults, isSearching, addTrackToQueue, hideKeyboard } = useSearch()
+  const { searchQuery, searchResults, isSearching, playTrack, hideKeyboard } = useSearch()
   const { showToast } = useToast()
   const [activeSection, setActiveSection] = useState<SettingsSection>('admin')
   const [pin, setPin] = useState('')
@@ -75,13 +75,13 @@ export default function SettingsPage(): JSX.Element {
           results={searchResults}
           onTrackClick={(path): void => {
             void (async () => {
-              await addTrackToQueue(path)
+              const outcome = await playTrack(path)
               hideKeyboard()
               
               // Find the track title for the toast
               const track = searchResults.find(result => result.path === path)
-              if (track) {
-                showToast(`Added "${track.title}" to queue`, 'success')
+              if (track && outcome) {
+                showToast(outcome === 'playing' ? `Playing "${track.title}"` : `Added "${track.title}" to queue`, 'success')
               }
             })()
           }}

@@ -25,7 +25,8 @@ interface SearchContextType {
   isSearching: boolean
   performSearch: (query: string) => Promise<void>
   clearSearch: () => void
-  addTrackToQueue: (path: string) => Promise<void>
+  /** Search-result click: plays now on this device, queues on the server jukebox. */
+  playTrack: (path: string) => Promise<'playing' | 'queued' | null>
   hideKeyboard: () => void
   searchBoxRef: React.RefObject<SearchBoxRef>
 }
@@ -76,12 +77,14 @@ export function SearchProvider({ children }: { children: React.ReactNode }): JSX
     searchBoxRef.current?.hideKeyboard()
   }, [])
 
-  const addTrackToQueue = useCallback(async (path: string): Promise<void> => {
+  const playTrack = useCallback(async (path: string): Promise<'playing' | 'queued' | null> => {
     try {
-      const data = await playback.addToQueue(path)
+      const playsHere = playback.mode === 'browser'
+      const data = playsHere ? await playback.playNow([path]) : await playback.addToQueue(path)
 
       if (!data) {
-        console.error('Failed to add track to queue')
+        console.error('Failed to play track')
+        return null
       } else {
         // Set flag to show player controls
         if (typeof window !== 'undefined') {
@@ -94,9 +97,11 @@ export function SearchProvider({ children }: { children: React.ReactNode }): JSX
             (window as WindowWithPlayer).checkPlayerStatusImmediately?.()
           }, 100)
         }
+        return playsHere ? 'playing' : 'queued'
       }
     } catch (error) {
-      console.error('Error adding track to queue:', error)
+      console.error('Error playing track:', error)
+      return null
     }
   }, [playback])
 
@@ -107,7 +112,7 @@ export function SearchProvider({ children }: { children: React.ReactNode }): JSX
     performSearch,
     clearSearch,
     hideKeyboard,
-    addTrackToQueue,
+    playTrack,
     searchBoxRef,
   }
 

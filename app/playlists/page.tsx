@@ -15,7 +15,7 @@ export default function PlaylistsPage(): JSX.Element {
   const router = useRouter()
   const { canPerformAction } = useSettings()
   const playback = usePlayback()
-  const { searchQuery, searchResults, isSearching, addTrackToQueue, hideKeyboard } = useSearch()
+  const { searchQuery, searchResults, isSearching, playTrack, hideKeyboard } = useSearch()
   const { showToast } = useToast()
   const [playlists, setPlaylists] = useState<Playlist[]>([])
   const [loading, setLoading] = useState(true)
@@ -141,13 +141,13 @@ export default function PlaylistsPage(): JSX.Element {
   }
 
   const handleTrackClick = async (path: string): Promise<void> => {
-    await addTrackToQueue(path)
+    const outcome = await playTrack(path)
     hideKeyboard()
     
     // Find the track title for the toast
     const track = searchResults.find(result => result.path === path)
-    if (track) {
-      showToast(`Added "${track.title}" to queue`, 'success')
+    if (track && outcome) {
+      showToast(outcome === 'playing' ? `Playing "${track.title}"` : `Added "${track.title}" to queue`, 'success')
     }
   }
 

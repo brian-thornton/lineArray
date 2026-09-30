@@ -33,7 +33,7 @@ export default function Home(): JSX.Element {
 function HomeContent(): JSX.Element {
   // const router = useRouter()
   const searchParams = useSearchParams()
-  const { searchQuery, searchResults, isSearching, addTrackToQueue, hideKeyboard } = useSearch()
+  const { searchQuery, searchResults, isSearching, playTrack, hideKeyboard } = useSearch()
   const { showToast } = useToast()
   const { settings } = useSettings()
   const { libraryState, updateLibraryState } = useLibrary()
@@ -108,13 +108,13 @@ function HomeContent(): JSX.Element {
   }
 
   const handleTrackClick = async (path: string): Promise<void> => {
-    await addTrackToQueue(path)
+    const outcome = await playTrack(path)
     hideKeyboard()
     
     // Find the track title for the toast
     const track = searchResults.find(result => result.path === path)
-    if (track) {
-      showToast(`Added "${track.title}" to queue`, 'success')
+    if (track && outcome) {
+      showToast(outcome === 'playing' ? `Playing "${track.title}"` : `Added "${track.title}" to queue`, 'success')
     }
     
     // Set flag to show player controls

@@ -26,6 +26,12 @@ export interface PlaybackApi {
   notice: PlaybackNotice | null
   getState: () => Promise<QueueResponse | null>
   addToQueue: (path: string, isAlbum?: boolean) => Promise<QueueResponse | null>
+  /**
+   * The "play" button. On this device the tracks start right away, replacing the
+   * current track, with the rest of the queue kept after them. On the shared server
+   * jukebox they are queued like addToQueue, so nobody jumps the line.
+   */
+  playNow: (paths: string[], isAlbum?: boolean) => Promise<QueueResponse | null>
   clearQueue: () => Promise<QueueResponse | null>
   removeFromQueue: (trackId: string) => Promise<boolean>
   reorderQueue: (draggedTrackId: string, targetTrackId: string) => Promise<boolean>
@@ -517,6 +523,14 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }): J
           else persist()
           return Promise.resolve(localSnapshot())
         },
+        playNow: (paths, isAlbum = false) => {
+          if (paths.length === 0) return Promise.resolve(null)
+          const s = st.current
+          s.queue.unshift(...paths.map(filePath => makeTrack(filePath, isAlbum)))
+          // Synchronous, so playback still starts inside the click (mobile autoplay).
+          playNext()
+          return Promise.resolve(localSnapshot())
+        },
         clearQueue: () => {
           st.current.queue = []
           localStop()
@@ -604,6 +618,15 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }): J
         const res = await post('/api/queue', { path: filePath, isAlbum })
         const data = await jsonOrNull<QueueResponse>(res)
         return data?.success ? data : null
+      },
+      playNow: async (paths, isAlbum = false) => {
+        let last: QueueResponse | null = null
+        for (const filePath of paths) {
+          const res = await post('/api/queue', { path: filePath, isAlbum })
+          const data = await jsonOrNull<QueueResponse>(res)
+          if (data?.success) last = data
+        }
+        return last
       },
       clearQueue: async () => {
         const res = await fetch('/api/queue', { method: 'DELETE' })
