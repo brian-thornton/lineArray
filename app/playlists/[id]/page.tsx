@@ -179,10 +179,10 @@ export default function PlaylistDetailPage({ params }: { params: { id: string } 
     const outcome = await playTrack(path)
     hideKeyboard()
     
-    // Find the track title for the toast
+    // Find the track title for the toast (none when it just started playing here)
     const track = searchResults.find(result => result.path === path)
-    if (track && outcome) {
-      showToast(outcome === 'playing' ? `Playing "${track.title}"` : `Added "${track.title}" to queue`, 'success')
+    if (track && outcome === 'queued') {
+      showToast(`Added "${track.title}" to queue`, 'success')
     }
   }
 

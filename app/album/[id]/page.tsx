@@ -114,8 +114,8 @@ export default function AlbumDetail(): JSX.Element {
         }
       }
       hideKeyboard()
-      // Show one summary toast for the whole album
-      showQueueToast(album.title, lastQueueLength > 0 ? lastQueueLength : null)
+      // Show one summary toast for the whole album. Not needed when it just started playing here.
+      if (playback.mode !== 'browser') showQueueToast(album.title, lastQueueLength > 0 ? lastQueueLength : null)
       triggerPlayerRefresh()
     } catch (error) {
       console.error('Error playing album:', error)
