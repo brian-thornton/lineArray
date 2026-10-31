@@ -34,7 +34,7 @@
   border-color: var(--jukebox-accent);
   background: var(--jukebox-accent);
   color: var(--jukebox-background);
-  box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--jukebox-accent) 30%, transparent);
 }
 
 .numberPad {
@@ -70,17 +70,19 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-.numberButton:hover:not(:disabled) {
-  background: var(--jukebox-accent);
-  border-color: var(--jukebox-accent);
-  color: var(--jukebox-background);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+@media (hover: hover) {
+  .numberButton:hover:not(:disabled) {
+    background: var(--jukebox-accent);
+    border-color: var(--jukebox-accent);
+    color: var(--jukebox-background);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--jukebox-accent) 30%, transparent);
+  }
 }
 
 .numberButton:active:not(:disabled) {
   transform: translateY(0);
-  box-shadow: 0 2px 6px rgba(255, 215, 0, 0.3);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--jukebox-accent) 30%, transparent);
 }
 
 .numberButton:disabled {
@@ -126,17 +128,19 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-.actionButton:hover:not(:disabled) {
-  background: var(--jukebox-accent);
-  border-color: var(--jukebox-accent);
-  color: var(--jukebox-background);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+@media (hover: hover) {
+  .actionButton:hover:not(:disabled) {
+    background: var(--jukebox-accent);
+    border-color: var(--jukebox-accent);
+    color: var(--jukebox-background);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--jukebox-accent) 30%, transparent);
+  }
 }
 
 .actionButton:active:not(:disabled) {
   transform: translateY(0);
-  box-shadow: 0 2px 6px rgba(255, 215, 0, 0.3);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--jukebox-accent) 30%, transparent);
 }
 
 .actionButton:disabled {
@@ -151,10 +155,12 @@
   color: #f87171;
 }
 
-.clearButton:hover:not(:disabled) {
-  background: #ef4444;
-  border-color: #ef4444;
-  color: white;
+@media (hover: hover) {
+  .clearButton:hover:not(:disabled) {
+    background: #ef4444;
+    border-color: #ef4444;
+    color: white;
+  }
 }
 
 .deleteButton {
@@ -164,10 +170,12 @@
   font-size: 1.2rem;
 }
 
-.deleteButton:hover:not(:disabled) {
-  background: #f59e0b;
-  border-color: #f59e0b;
-  color: white;
+@media (hover: hover) {
+  .deleteButton:hover:not(:disabled) {
+    background: #f59e0b;
+    border-color: #f59e0b;
+    color: white;
+  }
 }
 
 /* Mobile and touch screen optimizations */

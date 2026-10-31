@@ -4,6 +4,11 @@
   overflow: auto;
 }
 
+/* Up Next docked on the right (wide screens): pages reflow into the remaining width */
+.withRail {
+  margin-right: var(--upnext-width);
+}
+
 /* Mobile and touch screen optimizations */
 @media (max-width: 768px) {
   .main {

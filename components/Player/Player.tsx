@@ -13,6 +13,8 @@ import type { Track } from '@/types/api'
 import { createPortal } from 'react-dom'
 import Equalizer from './Equalizer'
 import NowPlayingOverlay from './NowPlayingOverlay'
+import { useHeightVar } from '@/hooks/useHeightVar'
+import { useTrackInfo } from '@/hooks/useTrackInfo'
 
 interface PlayerStatus {
   isPlaying: boolean
@@ -26,7 +28,7 @@ interface PlayerStatus {
 }
 
 interface PlayerProps {
-  setShowQueue: (open: boolean) => void
+  onToggleQueue: () => void
   showQueue: boolean
 }
 
@@ -35,8 +37,9 @@ interface WindowWithPlayer extends Window {
   checkPlayerStatusImmediately?: () => Promise<void>
 }
 
-function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
+function Player({ onToggleQueue, showQueue }: PlayerProps): JSX.Element | null {
   const { canPerformAction, settings } = useSettings()
+  const playerBarRef = useHeightVar('--player-bar-h')
   const { hideKeyboard } = useSearch()
   const { showToast } = useToast()
   const { setCurrentTrackPath } = usePlayer()
@@ -56,6 +59,14 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
     volume: undefined,
     isMuted: false
   })
+  // Queue entries only carry file names; show the same clean song names and show titles as the rest of the app
+  const currentPath = playerStatus.isStream ? '' : playerStatus.currentTrack?.path ?? ''
+  const nextPath = playerStatus.queue[0]?.path ?? ''
+  const libraryInfo = useTrackInfo([currentPath, nextPath].filter(Boolean))
+  const currentInfo = currentPath ? libraryInfo.get(currentPath) : null
+  const nextInfo = nextPath ? libraryInfo.get(nextPath) : null
+  const knownArtist = (artist?: string): string | null =>
+    artist && artist !== 'Unknown' && artist !== 'Unknown Artist' ? artist : null
   const [isSeeking, setIsSeeking] = useState(false)
   const [seekPreview, setSeekPreview] = useState<number | null>(null)
   const [showConfirmClear, setShowConfirmClear] = useState(false)
@@ -513,7 +524,7 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
 
   const getCurrentTrackName = (): string => {
     if (!playerStatus.currentTrack) return 'No track playing'
-    return playerStatus.currentTrack.title ?? 'Unknown Track'
+    return currentInfo?.title ?? playerStatus.currentTrack.title ?? 'Unknown Track'
   }
 
   const getTrackStatus = (): string => {
@@ -561,7 +572,7 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
 
   return (
     <>
-      <div className={styles.player}>
+      <div ref={playerBarRef} className={styles.player}>
         <div className={styles.content}>
           <div className={styles.trackInfo}>
             <button
@@ -602,12 +613,12 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
               <p className={styles.artist}>
                 {playerStatus.isStream
                   ? (playerStatus.nowPlaying ?? playerStatus.currentTrack?.artist ?? 'Internet Radio')
-                  : (playerStatus.currentTrack?.artist ?? getTrackStatus())}
+                  : (knownArtist(playerStatus.currentTrack?.artist) ?? currentInfo?.albumTitle ?? getTrackStatus())}
               </p>
               {playerStatus.queue.length > 0 && !playerStatus.isStream ? (
-                <p className={styles.upNext} title={playerStatus.queue[0].title ?? undefined}>
+                <p className={styles.upNext} title={nextInfo?.title ?? playerStatus.queue[0].title ?? undefined}>
                   <span className={styles.upNextLabel}>Next</span>
-                  {playerStatus.queue[0].title ?? 'Unknown Track'}
+                  {nextInfo?.title ?? playerStatus.queue[0].title ?? 'Unknown Track'}
                 </p>
               ) : (
                 <p className={styles.album}>{playerStatus.isStream ? 'Internet Radio' : getTrackInfo()}</p>
@@ -679,9 +690,9 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
             </button>
             <button
               className={`${styles.controlButton} ${showQueue ? styles.activeButton : ''}`}
-              onClick={() => { setShowQueue(!showQueue); }}
-              aria-label={showQueue ? 'Hide queue' : 'Show queue'}
-              title={showQueue ? 'Hide queue' : `Show queue (${playerStatus.queue.length} tracks)`}
+              onClick={onToggleQueue}
+              aria-label={showQueue ? 'Hide up next' : 'Show up next'}
+              title={showQueue ? 'Hide up next' : `Up next (${playerStatus.queue.length} tracks)`}
             >
               <List className={styles.controlIcon} />
             </button>
@@ -701,8 +712,11 @@ function Player({ setShowQueue, showQueue }: PlayerProps): JSX.Element | null {
             <button
               onClick={handleToggleMode}
               className={`${styles.modeButton} ${playback.mode === 'browser' ? styles.modeButtonLocal : ''}`}
+              disabled={settings.partyMode.enabled}
               aria-label={playback.mode === 'browser' ? 'Playing on this device. Switch to jukebox speakers' : 'Playing on jukebox speakers. Switch to this device'}
-              title={playback.mode === 'browser' ? 'Playing on this device — click to play on the jukebox speakers' : 'Playing on the jukebox speakers — click to play on this device'}
+              title={settings.partyMode.enabled
+                ? 'Switching speakers is locked in party mode'
+                : playback.mode === 'browser' ? 'Playing on this device — click to play on the jukebox speakers' : 'Playing on the jukebox speakers — click to play on this device'}
             >
               {playback.mode === 'browser' ? <Headphones className={styles.volumeIcon} /> : <Speaker className={styles.volumeIcon} />}
               {!isMobile && <span className={styles.modeLabel}>{playback.mode === 'browser' ? 'This device' : 'Jukebox'}</span>}

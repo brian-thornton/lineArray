@@ -3,6 +3,7 @@
 import React from 'react'
 import { Volume2, VolumeX, X } from 'lucide-react'
 import styles from './VolumeModal.module.css'
+import { useDialogFocus } from '@/hooks/useDialogFocus'
 
 interface VolumeModalProps {
   isOpen: boolean
@@ -21,6 +22,8 @@ function VolumeModal({
   onVolumeChange, 
   onMuteToggle 
 }: VolumeModalProps): JSX.Element | null {
+  const dialogRef = useDialogFocus(isOpen)
+
   if (!isOpen) return null
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -36,20 +39,20 @@ function VolumeModal({
       className={styles.overlay}
       onClick={onClose}
       onKeyDown={e => { if (e.key === 'Escape') onClose() }}
-      tabIndex={0}
-      role="button"
-      aria-label="Close volume modal"
+      role="presentation"
     >
       <div
         className={styles.modal}
         onClick={(e) => e.stopPropagation()}
         onKeyDown={e => { if (e.key === 'Escape') onClose() }}
-        tabIndex={0}
-        role="button"
-        aria-label="Volume modal content"
+        ref={dialogRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="volume-title"
       >
         <div className={styles.header}>
-          <h3 className={styles.title}>Volume Control</h3>
+          <h3 id="volume-title" className={styles.title}>Volume Control</h3>
           <button onClick={onClose} className={styles.closeButton} aria-label="Close">
             <X className={styles.closeIcon} />
           </button>

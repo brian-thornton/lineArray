@@ -37,10 +37,12 @@
   transition: all 0.2s ease;
 }
 
-.refreshButton:hover {
-  background: var(--jukebox-accent);
-  color: var(--jukebox-background);
-  transform: translateY(-1px);
+@media (hover: hover) {
+  .refreshButton:hover {
+    background: var(--jukebox-accent);
+    color: var(--jukebox-background);
+    transform: translateY(-1px);
+  }
 }
 
 .statsGrid {
@@ -61,9 +63,11 @@
   transition: all 0.2s ease;
 }
 
-.statCard:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--jukebox-shadow);
+@media (hover: hover) {
+  .statCard:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--jukebox-shadow);
+  }
 }
 
 .statIcon {
@@ -142,14 +146,16 @@
   transition: all 0.2s ease;
 }
 
-.trackItem:hover {
-  background: var(--jukebox-surface);
-  transform: translateX(4px);
+@media (hover: hover) {
+  .trackItem:hover {
+    background: var(--jukebox-surface);
+    transform: translateX(4px);
+  }
 }
 
 .trackItem:nth-child(1) {
-  border-color: #ffd700;
-  background: rgba(255, 215, 0, 0.1);
+  border-color: var(--jukebox-accent);
+  background: color-mix(in srgb, var(--jukebox-accent) 10%, transparent);
 }
 
 .trackItem:nth-child(2) {
@@ -251,9 +257,11 @@
   transition: all 0.2s ease;
 }
 
-.retryButton:hover {
-  background: var(--jukebox-accent);
-  color: var(--jukebox-background);
+@media (hover: hover) {
+  .retryButton:hover {
+    background: var(--jukebox-accent);
+    color: var(--jukebox-background);
+  }
 }
 
 @keyframes spin {

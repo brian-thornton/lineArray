@@ -76,10 +76,12 @@
   -webkit-backdrop-filter: blur(10px);
 }
 
-.closeButton:hover {
-  color: var(--jukebox-white);
-  background: rgba(255, 255, 255, 0.2);
-  transform: scale(1.1);
+@media (hover: hover) {
+  .closeButton:hover {
+    color: var(--jukebox-white);
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+  }
 }
 
 .closeIcon {
@@ -149,3 +151,9 @@
     display: none !important;
   }
 } 
+@media (pointer: coarse) {
+  .closeButton {
+    width: 44px;
+    height: 44px;
+  }
+}

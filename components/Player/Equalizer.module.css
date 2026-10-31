@@ -10,9 +10,11 @@
   min-width: 200px;
 }
 
-.equalizer:hover {
-  border-color: rgba(255, 255, 255, 0.2);
-  background: rgba(0, 0, 0, 0.4);
+@media (hover: hover) {
+  .equalizer:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.4);
+  }
 }
 
 .equalizer:disabled {
@@ -20,9 +22,11 @@
   cursor: not-allowed;
 }
 
-.equalizer:disabled:hover {
-  border-color: rgba(255, 255, 255, 0.1);
-  background: rgba(0, 0, 0, 0.3);
+@media (hover: hover) {
+  .equalizer:disabled:hover {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.3);
+  }
 }
 
 /* Mobile responsive adjustments */

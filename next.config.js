@@ -7,6 +7,10 @@ const nextConfig = {
     // them, but they shouldn't block production builds.
     ignoreDuringBuilds: true,
   },
+  // The Recent page was folded into search ("Recently played"); keep old links working
+  async redirects() {
+    return [{ source: '/recent', destination: '/', permanent: false }]
+  },
   webpack: (config) => {
     config.externals.push({
       'fs-extra': 'commonjs fs-extra',

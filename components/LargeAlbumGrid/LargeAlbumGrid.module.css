@@ -104,10 +104,12 @@
   box-shadow: none;
 }
 
-.navArrow:hover {
-  background: rgba(0, 0, 0, 0.8);
-  border-color: #00bfff;
-  transform: translateY(-50%) scale(1.05);
+@media (hover: hover) {
+  .navArrow:hover {
+    background: rgba(0, 0, 0, 0.8);
+    border-color: #00bfff;
+    transform: translateY(-50%) scale(1.05);
+  }
 }
 
 .navArrowLeft {
@@ -199,7 +201,7 @@
 .letterNav {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: safe center; /* centred when it fits, scrollable from the start when it doesn't */
   gap: 8px;
   padding: var(--spacing-sm) var(--spacing-lg);
   background: rgba(0, 0, 0, 0.9);
@@ -242,14 +244,16 @@
   flex-shrink: 0;
 }
 
-.letterButton:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: var(--jukebox-accent);
+@media (hover: hover) {
+  .letterButton:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: var(--jukebox-accent);
+  }
 }
 
 .letterButton.active {
   background: var(--jukebox-accent);
-  color: var(--jukebox-white);
+  color: var(--jukebox-on-accent);
   border-color: var(--jukebox-accent);
 }
 
@@ -263,9 +267,11 @@
   opacity: 0.5;
 }
 
-.letterButton.unavailable:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.2);
+@media (hover: hover) {
+  .letterButton.unavailable:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
 }
 
 .loadingContainer {
@@ -516,3 +522,14 @@
     display: none;
   }
 } 
+@media (pointer: coarse) and (min-width: 769px) {
+  .letterButton {
+    min-width: 44px;
+    height: 44px;
+  }
+}
+
+/* Stop the A–Z bar at the docked Up Next rail */
+:global(html[data-upnext-docked]) .letterNav {
+  right: var(--upnext-width);
+}

@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { Theme } from '@/types/music'
-import { THEME_VAR_MAP, THEME_COLORS_STORAGE_KEY } from '@/utils/themeVars'
+import { THEME_VAR_MAP, THEME_COLORS_STORAGE_KEY, DEFAULT_THEME_ID, onAccentColor } from '@/utils/themeVars'
 
 interface ThemeContextType {
   currentTheme: Theme
@@ -13,21 +13,21 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 const defaultTheme: Theme = {
-  id: "jukebox-classic",
-  name: "Jukebox Classic",
-  description: "The original jukebox theme with gold accents and dark blues",
+  id: DEFAULT_THEME_ID,
+  name: "Slate Blue",
+  description: "Cool slate grays with a clear blue accent",
   colors: {
-    primary: "#1a1a2e",
-    secondary: "#16213e",
-    accent: "#ffd700",
-    background: "#0f0f23",
-    surface: "rgba(255, 255, 255, 0.05)",
-    text: "#ffffff",
-    textSecondary: "#a0a0a0",
-    textTertiary: "#666666",
-    border: "rgba(255, 255, 255, 0.1)",
-    shadow: "0 4px 20px rgba(0, 0, 0, 0.3)",
-    success: "#4ade80",
+    primary: "#1e293b",
+    secondary: "#334155",
+    accent: "#38a9f5",
+    background: "#0f172a",
+    surface: "rgba(148, 163, 184, 0.08)",
+    text: "#f1f5f9",
+    textSecondary: "#94a3b8",
+    textTertiary: "#64748b",
+    border: "rgba(148, 163, 184, 0.18)",
+    shadow: "0 4px 20px rgba(0, 0, 0, 0.35)",
+    success: "#34d399",
     error: "#f87171",
     warning: "#fbbf24",
   },
@@ -40,6 +40,7 @@ function applyThemeVars(theme: Theme) {
   for (const [cssVar, key] of THEME_VAR_MAP) {
     root.style.setProperty(cssVar, c[key]);
   }
+  root.style.setProperty('--jukebox-on-accent', onAccentColor(c.accent));
   // Set body/bg color
   if (body) {
     body.style.backgroundColor = c.background;

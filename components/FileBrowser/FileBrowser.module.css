@@ -60,9 +60,11 @@
   justify-content: center;
 }
 
-.closeButton:hover {
-  color: var(--jukebox-accent);
-  background: rgba(255, 255, 255, 0.1);
+@media (hover: hover) {
+  .closeButton:hover {
+    color: var(--jukebox-accent);
+    background: rgba(255, 255, 255, 0.1);
+  }
 }
 
 .content {
@@ -104,10 +106,12 @@
   min-height: 80px;
 }
 
-.systemButton:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: var(--jukebox-accent);
-  transform: translateY(-2px);
+@media (hover: hover) {
+  .systemButton:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--jukebox-accent);
+    transform: translateY(-2px);
+  }
 }
 
 .systemIcon {
@@ -134,7 +138,7 @@
 
 .backButton {
   background: var(--jukebox-accent);
-  color: var(--jukebox-white);
+  color: var(--jukebox-on-accent);
   border: none;
   padding: var(--spacing-sm) var(--spacing-md);
   border-radius: var(--radius-sm);
@@ -144,9 +148,11 @@
   min-height: 44px;
 }
 
-.backButton:hover:not(:disabled) {
-  background: var(--jukebox-gold);
-  transform: translateY(-1px);
+@media (hover: hover) {
+  .backButton:hover:not(:disabled) {
+    background: var(--jukebox-gold);
+    transform: translateY(-1px);
+  }
 }
 
 .backButton:disabled {
@@ -206,9 +212,11 @@
   border: 1px solid transparent;
 }
 
-.fileItem:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.1);
+@media (hover: hover) {
+  .fileItem:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
 }
 
 .fileIcon {
@@ -257,7 +265,7 @@
 
 .selectButton {
   background: var(--jukebox-accent);
-  color: var(--jukebox-white);
+  color: var(--jukebox-on-accent);
   border: none;
   padding: var(--spacing-sm) var(--spacing-md);
   border-radius: var(--radius-sm);
@@ -268,9 +276,11 @@
   flex-shrink: 0;
 }
 
-.selectButton:hover {
-  background: var(--jukebox-gold);
-  transform: translateY(-1px);
+@media (hover: hover) {
+  .selectButton:hover {
+    background: var(--jukebox-gold);
+    transform: translateY(-1px);
+  }
 }
 
 @keyframes spin {

@@ -8,14 +8,12 @@ interface Settings {
   jukeboxName: string
   adminPin?: string
   theme: string
-  showPagination: boolean
   showConcertDetails: boolean
   showMobileQR: boolean
-  useMobileAlbumLayout: boolean
-  useSideBySideAlbumLayout: boolean
+  idleScreenMinutes: number
   showPlaybackPosition: boolean
   enableAdminMode: boolean
-  libraryLayout: 'modern' | 'classic' | 'large'
+  libraryLayout: 'classic' | 'large'
   audioPlayer: 'vlc' | 'mpv' | 'ffplay'
   partyMode: {
     enabled: boolean
@@ -34,6 +32,11 @@ interface Settings {
 
 const settingsPath = path.join(process.cwd(), 'data', 'settings.json')
 
+// The "modern" grid layout was removed; anyone who had it saved gets the Large layout
+function normalizeLibraryLayout(value: string | undefined): Settings['libraryLayout'] {
+  return value === 'classic' ? 'classic' : 'large'
+}
+
 function loadSettings(): Settings {
   try {
     if (fs.existsSync(settingsPath)) {
@@ -46,15 +49,13 @@ function loadSettings(): Settings {
         scanPath: existingSettings.scanPath ?? '',
         jukeboxName: existingSettings.jukeboxName ?? 'Jukebox 2.0',
         adminPin: existingSettings.adminPin,
-        theme: existingSettings.theme ?? 'jukebox-classic',
-        showPagination: existingSettings.showPagination ?? true,
+        theme: existingSettings.theme ?? 'slate-blue',
         showConcertDetails: existingSettings.showConcertDetails ?? true,
         showMobileQR: existingSettings.showMobileQR ?? true,
-        useMobileAlbumLayout: existingSettings.useMobileAlbumLayout ?? false,
-        useSideBySideAlbumLayout: existingSettings.useSideBySideAlbumLayout ?? false,
+        idleScreenMinutes: existingSettings.idleScreenMinutes ?? 3,
         showPlaybackPosition: existingSettings.showPlaybackPosition ?? true,
         enableAdminMode: existingSettings.enableAdminMode ?? false,
-        libraryLayout: existingSettings.libraryLayout ?? 'modern',
+        libraryLayout: normalizeLibraryLayout(existingSettings.libraryLayout),
         audioPlayer: existingSettings.audioPlayer ?? 'vlc',
         partyMode: {
           enabled: false,
@@ -83,15 +84,13 @@ function loadSettings(): Settings {
   const defaultSettings: Settings = {
     scanPath: '',
     jukeboxName: 'Jukebox 2.0',
-    theme: 'jukebox-classic',
-    showPagination: true,
+    theme: 'slate-blue',
     showConcertDetails: true,
     showMobileQR: true,
-    useMobileAlbumLayout: false,
-    useSideBySideAlbumLayout: false,
+    idleScreenMinutes: 3,
     showPlaybackPosition: true,
     enableAdminMode: false,
-    libraryLayout: 'modern',
+    libraryLayout: 'large',
     audioPlayer: 'vlc',
     partyMode: {
       enabled: false,
@@ -155,15 +154,13 @@ export function GET(): Promise<NextResponse> {
       scanPath: '',
       jukeboxName: 'Jukebox 2.0',
       adminPin: '1234',
-      theme: 'jukebox-classic',
-      showPagination: true,
+      theme: 'slate-blue',
       showConcertDetails: true,
       showMobileQR: true,
-      useMobileAlbumLayout: false,
-      useSideBySideAlbumLayout: false,
+      idleScreenMinutes: 3,
       showPlaybackPosition: true,
       enableAdminMode: false,
-      libraryLayout: 'modern',
+      libraryLayout: 'large',
       audioPlayer: 'vlc',
       partyMode: {
         enabled: false,
@@ -188,15 +185,13 @@ export function GET(): Promise<NextResponse> {
       scanPath: existingSettings.scanPath ?? '',
       jukeboxName: existingSettings.jukeboxName ?? 'Jukebox 2.0',
       adminPin: existingSettings.adminPin ?? '1234',
-      theme: existingSettings.theme ?? 'jukebox-classic',
-      showPagination: existingSettings.showPagination ?? true,
+      theme: existingSettings.theme ?? 'slate-blue',
       showConcertDetails: existingSettings.showConcertDetails ?? true,
       showMobileQR: existingSettings.showMobileQR ?? true,
-      useMobileAlbumLayout: existingSettings.useMobileAlbumLayout ?? false,
-      useSideBySideAlbumLayout: existingSettings.useSideBySideAlbumLayout ?? false,
+      idleScreenMinutes: existingSettings.idleScreenMinutes ?? 3,
       showPlaybackPosition: existingSettings.showPlaybackPosition ?? true,
       enableAdminMode: existingSettings.enableAdminMode ?? false,
-      libraryLayout: existingSettings.libraryLayout ?? 'modern',
+      libraryLayout: normalizeLibraryLayout(existingSettings.libraryLayout),
       audioPlayer: existingSettings.audioPlayer ?? 'vlc',
       partyMode: {
         enabled: existingSettings.partyMode?.enabled ?? false,

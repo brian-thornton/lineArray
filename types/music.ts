@@ -40,6 +40,12 @@ export interface PlaylistTrack {
   position: number
   addedAt: string
   track: Track
+  /** Filled in by GET /api/playlists/[id] from the library */
+  albumId?: string
+  albumTitle?: string
+  coverPath?: string
+  /** Track title with taper prefixes removed, as on the album screen */
+  displayTitle?: string
 }
 
 export interface Theme {
@@ -69,14 +75,12 @@ export interface Settings {
   jukeboxName: string
   adminPin?: string
   theme: string
-  showPagination: boolean
   showConcertDetails: boolean
   showMobileQR: boolean
-  useMobileAlbumLayout: boolean
-  useSideBySideAlbumLayout: boolean
+  idleScreenMinutes: number
   showPlaybackPosition: boolean
   enableAdminMode: boolean
-  libraryLayout: 'modern' | 'classic' | 'large'
+  libraryLayout: 'classic' | 'large'
   audioPlayer: 'vlc'
   partyMode: {
     enabled: boolean

@@ -1,694 +1,671 @@
+/* Playlist detail: same layout as the album screen.
+   Wide:   playlist panel (sticky) | track list (two columns when there's room)
+   Medium: panel becomes a header strip (cover beside title + actions), tracks below
+   Narrow: smaller cover, actions on their own full-width row
+   Breakpoints are container queries on .container. */
+
 .container {
-  min-height: 100vh;
-  padding: var(--spacing-lg);
-  max-width: 1200px;
+  container: playlist / inline-size;
+  max-width: 1680px;
   margin: 0 auto;
+  padding: var(--spacing-md) var(--spacing-lg) var(--spacing-xl);
 }
 
-.header {
-  margin-bottom: var(--spacing-xl);
+.layout {
+  display: grid;
+  grid-template-columns: clamp(260px, 28cqi, 380px) minmax(0, 1fr);
+  gap: var(--spacing-lg);
+  align-items: start;
 }
 
-.backButton {
+/* ---------- Playlist panel ---------- */
+
+.panel {
   display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--jukebox-white);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.2s ease;
-  min-height: 44px;
-}
-
-.backButton:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: translateY(-1px);
-}
-
-.backIcon {
-  width: 18px;
-  height: 18px;
-}
-
-.playlistInfo {
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-lg);
-  padding: var(--spacing-xl);
-  margin-bottom: var(--spacing-2xl);
   backdrop-filter: blur(10px);
-}
-
-.playlistHeader {
-  display: flex;
-  gap: var(--spacing-xl);
-  margin-bottom: var(--spacing-lg);
-}
-
-.playlistIcon {
-  flex-shrink: 0;
-  width: 80px;
-  height: 80px;
-  background: linear-gradient(135deg, var(--jukebox-accent) 0%, var(--jukebox-purple) 100%);
-  border-radius: var(--radius-lg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.musicIcon {
-  width: 40px;
-  height: 40px;
-  color: var(--jukebox-white);
-}
-
-.playlistDetails {
-  flex: 1;
   min-width: 0;
 }
 
-.playlistName {
-  font-family: var(--font-display);
-  font-size: 2.5rem;
+@media (min-height: 950px) {
+  .panel {
+    position: sticky;
+    top: var(--spacing-md);
+  }
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  align-self: flex-start;
+  min-height: 32px;
+  padding: 0 var(--spacing-sm) 0 0;
+  background: none;
+  border: none;
+  color: var(--jukebox-gray);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+@media (hover: hover) {
+  .backLink:hover {
+    color: var(--jukebox-gold);
+  }
+}
+
+.backLinkIcon {
+  width: 16px;
+  height: 16px;
+}
+
+/* Visuals come from PlaylistCover; this class only places it in the panel grid */
+.cover {
+  flex-shrink: 0;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  min-width: 0;
+}
+
+.eyebrow {
+  font-size: 0.75rem;
   font-weight: 700;
-  color: var(--jukebox-white);
-  margin: 0 0 var(--spacing-sm) 0;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--jukebox-gold);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
   line-height: 1.2;
-}
-
-.playlistDescription {
-  font-size: 1.1rem;
-  color: var(--jukebox-gray);
-  margin: 0 0 var(--spacing-lg) 0;
-  line-height: 1.4;
-}
-
-.playlistMeta {
-  display: flex;
-  gap: var(--spacing-lg);
-  font-size: 0.9rem;
-  color: var(--jukebox-gray);
-  flex-wrap: wrap;
-}
-
-.trackCount {
-  color: var(--jukebox-accent);
-  font-weight: 500;
-}
-
-.createdDate,
-.updatedDate {
-  opacity: 0.8;
-}
-
-.editForm {
-  margin-bottom: var(--spacing-lg);
-}
-
-.editInput,
-.editTextarea {
-  width: 100%;
-  padding: var(--spacing-md);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: var(--radius-md);
   color: var(--jukebox-white);
-  font-size: 1rem;
-  margin-bottom: var(--spacing-sm);
-  transition: border-color 0.2s ease;
+  margin: 0;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-.editInput:focus,
-.editTextarea:focus {
-  outline: none;
-  border-color: var(--jukebox-accent);
+.description {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: var(--jukebox-text-secondary, var(--jukebox-gray));
+  overflow-wrap: anywhere;
 }
 
-.editInput::placeholder,
-.editTextarea::placeholder {
+.metaLine {
+  margin: 0;
+  font-size: 0.85rem;
   color: var(--jukebox-gray);
 }
 
-.playlistActions {
-  display: flex;
-  gap: var(--spacing-md);
-  flex-wrap: wrap;
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-sm);
 }
 
 .playButton,
-.editButton,
-.deleteButton,
+.shuffleButton,
 .saveButton,
-.cancelButton {
+.secondaryButton,
+.doneButton,
+.deleteConfirmButton {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: var(--spacing-sm);
-  padding: var(--spacing-md) var(--spacing-lg);
-  border: none;
+  min-height: 48px;
+  padding: 0 var(--spacing-md);
   border-radius: var(--radius-md);
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
   transition: all 0.2s ease;
-  min-height: 48px;
 }
 
-.playButton {
-  background: linear-gradient(135deg, var(--jukebox-accent) 0%, #ff5252 100%);
-  color: var(--jukebox-white);
-  box-shadow: var(--shadow-md);
-}
-
-.playButton:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
-}
-
-.playButton:disabled {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--jukebox-gray);
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-.playButton:disabled:hover {
-  transform: none;
-  box-shadow: none;
-}
-
-.editButton {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--jukebox-white);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.editButton:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.2);
-  transform: translateY(-1px);
-}
-
-.editButton:disabled {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--jukebox-gray);
-  border-color: rgba(255, 255, 255, 0.1);
-  cursor: not-allowed;
-  transform: none;
-}
-
-.editButton:disabled:hover {
-  background: rgba(255, 255, 255, 0.05);
-  transform: none;
-}
-
-.deleteButton {
-  background: transparent;
-  color: #ff3b30;
-  border: 1px solid rgba(255, 59, 48, 0.3);
-}
-
-.deleteButton:hover:not(:disabled) {
-  background: rgba(255, 59, 48, 0.1);
-  transform: translateY(-1px);
-}
-
-.deleteButton:disabled {
-  background: transparent;
-  color: var(--jukebox-gray);
-  border-color: rgba(255, 59, 48, 0.1);
-  cursor: not-allowed;
-  transform: none;
-}
-
-.deleteButton:disabled:hover {
-  background: transparent;
-  transform: none;
-}
-
+.playButton,
 .saveButton {
-  background: linear-gradient(135deg, var(--jukebox-accent) 0%, #ff5252 100%);
-  color: var(--jukebox-white);
-}
-
-.saveButton:hover:not(:disabled) {
-  transform: translateY(-1px);
+  background: var(--jukebox-accent);
+  color: var(--jukebox-on-accent);
+  border: none;
   box-shadow: var(--shadow-md);
 }
 
-.saveButton:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.cancelButton {
+.shuffleButton,
+.secondaryButton {
   background: rgba(255, 255, 255, 0.1);
   color: var(--jukebox-white);
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.cancelButton:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.2);
-  transform: translateY(-1px);
+.secondaryButton {
+  min-height: 40px;
+  font-size: 0.9rem;
 }
 
-.cancelButton:disabled {
-  opacity: 0.5;
+.doneButton {
+  min-height: 40px;
+  font-size: 0.9rem;
+  background: var(--jukebox-gold);
+  color: var(--jukebox-on-accent);
+  border: 1px solid var(--jukebox-gold);
+}
+
+@media (hover: hover) {
+  .playButton:hover:not(:disabled),
+  .saveButton:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .shuffleButton:hover:not(:disabled),
+  .secondaryButton:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .doneButton:hover {
+    filter: brightness(1.1);
+  }
+}
+
+.playButton:disabled,
+.shuffleButton:disabled,
+.saveButton:disabled,
+.secondaryButton:disabled {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--jukebox-gray);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: none;
   cursor: not-allowed;
 }
 
-.playIcon,
-.editIcon,
-.deleteIcon,
-.saveIcon,
-.cancelIcon {
+.buttonIcon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* Back link on the left, Rename / Delete as quiet icon buttons on the right */
+.panelTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  margin: -4px -4px 0 0;
+}
+
+.manage {
+  display: flex;
+  gap: 2px;
+}
+
+.manageButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 50%;
+  color: var(--jukebox-text-secondary, var(--jukebox-gray));
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+@media (hover: hover) {
+  .manageButton:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--jukebox-white);
+  }
+
+  .danger:hover:not(:disabled) {
+    background: rgba(255, 59, 48, 0.14);
+    color: #ff6b62;
+  }
+}
+
+.manageButton:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.manageIcon {
   width: 18px;
   height: 18px;
 }
 
-.tracksSection {
+/* ---------- Rename form (in the dialog) ---------- */
+
+.fieldLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--jukebox-gray);
+}
+
+.input {
+  width: 100%;
+  padding: 0.7rem var(--spacing-md);
+  background: rgba(255, 255, 255, 0.07);
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-md);
+  color: var(--jukebox-white);
+  font: inherit;
+  font-size: 1rem;
+  resize: vertical;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--jukebox-gold);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--jukebox-accent) 15%, transparent);
+}
+
+.input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* ---------- Tracks ---------- */
+
+.tracksPanel {
+  container: tracks / inline-size;
+  min-width: 0;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-lg);
   overflow: hidden;
+}
+
+.tracksEditing {
+  border-color: color-mix(in srgb, var(--jukebox-accent) 35%, transparent);
 }
 
 .tracksHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--spacing-lg);
+  gap: var(--spacing-md);
+  min-height: 60px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: rgba(255, 255, 255, 0.05);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .tracksTitle {
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
   color: var(--jukebox-white);
   margin: 0;
 }
 
-.addTracksButton {
+.tracksActions {
   display: flex;
-  align-items: center;
   gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: linear-gradient(135deg, var(--jukebox-accent) 0%, #ff5252 100%);
-  color: var(--jukebox-white);
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  min-height: 40px;
-}
-
-.addTracksButton:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
-}
-
-.addTracksButton:disabled {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--jukebox-gray);
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-.addTracksButton:disabled:hover {
-  transform: none;
-  box-shadow: none;
-}
-
-.plusIcon {
-  width: 16px;
-  height: 16px;
-}
-
-.emptyTracks {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 4rem 2rem;
-  text-align: center;
-  color: var(--jukebox-gray);
-}
-
-.emptyIcon {
-  width: 60px;
-  height: 60px;
-  margin-bottom: var(--spacing-lg);
-  opacity: 0.5;
-}
-
-.emptyTracks h3 {
-  font-size: 1.3rem;
-  font-weight: 600;
-  margin-bottom: var(--spacing-sm);
-  color: var(--jukebox-white);
-}
-
-.emptyTracks p {
-  font-size: 1rem;
-  margin-bottom: var(--spacing-xl);
-}
-
-.addFirstTracksButton {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-md) var(--spacing-lg);
-  background: linear-gradient(135deg, var(--jukebox-accent) 0%, #ff5252 100%);
-  color: var(--jukebox-white);
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  min-height: 48px;
-}
-
-.addFirstTracksButton:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
 }
 
 .trackList {
-  max-height: 600px;
-  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: var(--spacing-xs) 0;
+}
+
+/* Two columns, numbered top-to-bottom then across, when there's room (not while editing,
+   so up/down always means the row above/below) */
+@container tracks (min-width: 820px) {
+  .tracksPanel:not(.tracksEditing) .trackList {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: repeat(var(--track-rows), auto);
+    grid-auto-flow: column;
+    /* divider between the columns */
+    background: linear-gradient(rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.06)) center / 1px 100% no-repeat;
+  }
 }
 
 .trackItem {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  padding: var(--spacing-md) var(--spacing-lg);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  transition: all 0.2s ease;
-  cursor: grab;
-}
-
-.trackItem:hover {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.trackItem:last-child {
-  border-bottom: none;
-}
-
-.trackItem.dragging {
-  opacity: 0.5;
-  cursor: grabbing;
-}
-
-.dragHandle {
-  flex-shrink: 0;
-  color: var(--jukebox-gray);
-  cursor: grab;
-  padding: var(--spacing-xs);
-}
-
-.dragHandle:active {
-  cursor: grabbing;
-}
-
-.gripIcon {
-  width: 16px;
-  height: 16px;
-}
-
-.trackInfo {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  flex: 1;
   min-width: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.trackRow,
+.editRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  width: 100%;
+  min-height: 64px;
+  padding: var(--spacing-xs) var(--spacing-md) var(--spacing-xs) 0;
+  color: var(--jukebox-white);
+  text-align: left;
+  font: inherit;
+}
+
+.trackRow {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+@media (hover: hover) {
+  .trackRow:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .trackRow:hover:not(:disabled) .playIcon {
+    background: var(--jukebox-gold);
+    color: var(--jukebox-on-accent);
+  }
+
+  .trackRow:hover:not(:disabled) .trackNumber {
+    color: var(--jukebox-gold);
+  }
+}
+
+.trackRow:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .trackNumber {
   flex-shrink: 0;
-  width: 30px;
-  text-align: center;
-  font-size: 0.9rem;
+  width: 2.5rem;
+  text-align: right;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
   color: var(--jukebox-gray);
-  font-weight: 500;
 }
 
-.trackDetails {
+.thumb {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--jukebox-accent) 0%, var(--jukebox-purple) 100%);
+}
+
+.thumbImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.thumbIcon {
+  width: 20px;
+  height: 20px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.trackText {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xs);
+  gap: 2px;
 }
 
 .trackTitle {
   font-size: 1rem;
-  font-weight: 500;
-  color: var(--jukebox-white);
+  font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.trackAlbum {
-  font-size: 0.8rem;
+.trackSubtitle {
+  font-size: 0.82rem;
   color: var(--jukebox-gray);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.trackActions {
+.playIcon {
   flex-shrink: 0;
-}
-
-.removeTrackButton {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  background: transparent;
-  color: #ff3b30;
-  border: 1px solid rgba(255, 59, 48, 0.3);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all 0.2s ease;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--jukebox-accent) 40%, transparent);
+  color: var(--jukebox-gold);
+  transition: all 0.15s ease;
 }
 
-.removeTrackButton:hover:not(:disabled) {
-  background: rgba(255, 59, 48, 0.1);
-  transform: translateY(-1px);
+.playGlyph {
+  width: 18px;
+  height: 18px;
 }
 
-.removeTrackButton:disabled {
-  background: transparent;
+@keyframes flash {
+  0%   { background-color: transparent; }
+  30%  { background-color: color-mix(in srgb, var(--jukebox-accent) 25%, transparent); }
+  100% { background-color: transparent; }
+}
+
+.flash {
+  animation: flash 0.6s ease-out;
+}
+
+/* ---------- Edit mode ---------- */
+
+.editRow {
+  padding-left: 0;
+  gap: var(--spacing-sm);
+  cursor: grab;
+}
+
+.editRow .trackNumber {
+  width: 1.75rem;
+}
+
+.dragging {
+  opacity: 0.4;
+}
+
+.grip {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-left: var(--spacing-sm);
   color: var(--jukebox-gray);
-  border-color: rgba(255, 59, 48, 0.1);
-  cursor: not-allowed;
-  transform: none;
 }
 
-.removeTrackButton:disabled:hover {
-  background: transparent;
-  transform: none;
+.editControls {
+  flex-shrink: 0;
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.iconButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--jukebox-white);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+@media (hover: hover) {
+  .iconButton:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.16);
+  }
+
+  .removeButton:hover {
+    background: rgba(255, 59, 48, 0.18);
+  }
+}
+
+.iconButton:disabled {
+  opacity: 0.25;
+  cursor: default;
 }
 
 .removeButton {
+  margin-left: var(--spacing-xs);
+  color: #ff6b62;
+  border-color: rgba(255, 59, 48, 0.35);
+}
+
+.iconGlyph {
+  width: 20px;
+  height: 20px;
+}
+
+/* ---------- Empty ---------- */
+
+.empty {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  background: transparent;
-  color: #ff3b30;
-  border: 1px solid rgba(255, 59, 48, 0.3);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.removeButton:hover:not(:disabled) {
-  background: rgba(255, 59, 48, 0.1);
-  transform: translateY(-1px);
-}
-
-.removeButton:disabled {
-  background: transparent;
+  gap: var(--spacing-sm);
+  padding: 10vh var(--spacing-lg);
+  text-align: center;
   color: var(--jukebox-gray);
-  border-color: rgba(255, 59, 48, 0.1);
-  cursor: not-allowed;
-  transform: none;
 }
 
-.removeButton:disabled:hover {
-  background: transparent;
-  transform: none;
-}
-
-.removeIcon {
-  width: 16px;
-  height: 16px;
-}
-
-/* Modal Styles */
-.modalOverlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: var(--spacing-lg);
-}
-
-.modal {
-  background: var(--jukebox-dark);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-xl);
-  max-width: 500px;
-  width: 100%;
-  backdrop-filter: blur(20px);
-}
-
-.modal h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
+.empty h3 {
+  margin: 0;
+  font-size: 1.15rem;
   color: var(--jukebox-white);
-  margin: 0 0 var(--spacing-lg) 0;
 }
 
-.modal p {
-  color: var(--jukebox-gray);
-  margin-bottom: var(--spacing-lg);
+.empty p {
+  margin: 0;
+  max-width: 34ch;
   line-height: 1.5;
 }
 
-.modalActions {
+.empty strong {
+  color: var(--jukebox-white);
+}
+
+.emptyIcon {
+  width: 56px;
+  height: 56px;
+  margin-bottom: var(--spacing-sm);
+  color: color-mix(in srgb, var(--jukebox-accent) 60%, transparent);
+}
+
+/* ---------- Delete dialog ---------- */
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
   display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-lg);
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+}
+
+.modal {
+  width: 100%;
+  max-width: 460px;
+  padding: var(--spacing-xl);
+  background: var(--jukebox-dark);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+form.modal {
+  display: flex;
+  flex-direction: column;
   gap: var(--spacing-md);
-  justify-content: flex-end;
+}
+
+form.modal .modalActions {
+  margin-top: var(--spacing-sm);
+}
+
+.modal h2 {
+  margin: 0 0 var(--spacing-sm);
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  color: var(--jukebox-white);
+  overflow-wrap: anywhere;
+}
+
+.modal p {
+  margin: 0;
+  line-height: 1.5;
+  color: var(--jukebox-gray);
+}
+
+.modalActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-sm);
   margin-top: var(--spacing-xl);
 }
 
-.addToQueueActionButton {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  background: transparent;
-  color: var(--jukebox-gold, #c9a84c);
-  border: 1px solid var(--jukebox-gold, #c9a84c);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-md) var(--spacing-lg);
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
+.modalActions .secondaryButton {
   min-height: 48px;
 }
 
-.addToQueueActionButton:hover:not(:disabled) {
-  background: rgba(201, 168, 76, 0.15);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-
-.addToQueueActionButton:disabled {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--jukebox-gray);
-  border-color: rgba(255, 255, 255, 0.1);
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-.addToQueueButton {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  background: rgba(255, 215, 0, 0.15);
-  color: var(--jukebox-gold);
-  border: 1px solid rgba(255, 215, 0, 0.4);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-md) var(--spacing-lg);
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  min-height: 44px;
-}
-
-.addToQueueButton:hover {
-  background: rgba(255, 215, 0, 0.25);
-  border-color: var(--jukebox-gold);
-  transform: translateY(-1px);
-}
-
-.replaceQueueButton {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  background: linear-gradient(135deg, var(--jukebox-primary, #7c3aed) 0%, #9f5ef0 100%);
-  color: var(--jukebox-white);
-  border: none;
-  border-radius: var(--radius-md);
-  padding: var(--spacing-md) var(--spacing-lg);
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  min-height: 44px;
-}
-
-.replaceQueueButton:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
-}
-
 .deleteConfirmButton {
-  background: linear-gradient(135deg, #ff3b30 0%, #ff6b6b 100%);
+  background: #e5342a;
   color: var(--jukebox-white);
   border: none;
-  border-radius: var(--radius-md);
-  padding: var(--spacing-md) var(--spacing-lg);
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  min-height: 44px;
-  min-width: 100px;
 }
 
-.deleteConfirmButton:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+@media (hover: hover) {
+  .deleteConfirmButton:hover:not(:disabled) {
+    background: #ff3b30;
+  }
 }
 
-.deleteConfirmButton:disabled {
+.deleteConfirmButton:disabled,
+.doneButton:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-/* Loading and Error Styles */
-.loadingContainer,
-.errorContainer {
+/* ---------- Loading ---------- */
+
+.loadingContainer {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: var(--spacing-md);
   min-height: 50vh;
   color: var(--jukebox-gray);
 }
@@ -697,105 +674,135 @@
   width: 40px;
   height: 40px;
   border: 3px solid rgba(255, 255, 255, 0.1);
-  border-top: 3px solid var(--jukebox-accent);
+  border-top-color: var(--jukebox-gold);
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin-bottom: var(--spacing-lg);
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  to { transform: rotate(360deg); }
 }
 
-/* Mobile Responsive */
-@media (max-width: 768px) {
-  .container {
-    padding: var(--spacing-md);
+/* ---------- Touch ---------- */
+
+@media (pointer: coarse) {
+  .grip {
+    display: none;
   }
 
-  .playlistHeader {
-    flex-direction: column;
-    text-align: center;
-    gap: var(--spacing-lg);
+  .editRow {
+    padding-left: var(--spacing-sm);
+    cursor: default;
   }
 
-  .playlistIcon {
-    align-self: center;
+  .playIcon {
+    width: 44px;
+    height: 44px;
+    background: var(--jukebox-gold);
+    color: var(--jukebox-on-accent);
+    border-color: var(--jukebox-gold);
   }
 
-  .playlistName {
-    font-size: 2rem;
+  .trackRow,
+  .editRow {
+    min-height: 68px;
   }
 
-  .playlistMeta {
-    justify-content: center;
+  .secondaryButton,
+  .doneButton {
+    min-height: 48px;
   }
 
-  .playlistActions {
-    justify-content: center;
+  .iconButton {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+/* ---------- Medium: panel becomes a header strip ---------- */
+
+@container playlist (max-width: 860px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--spacing-md);
+  }
+
+  .panel {
+    position: static;
+    display: grid;
+    grid-template-columns: clamp(120px, 22cqi, 180px) minmax(0, 1fr);
+    grid-template-areas:
+      "top     top"
+      "cover   info"
+      "cover   actions";
+    column-gap: var(--spacing-lg);
+    row-gap: var(--spacing-sm);
+    align-items: start;
+  }
+
+  .panelTop { grid-area: top; }
+  .cover { grid-area: cover; }
+  .info { grid-area: info; align-self: end; }
+  .actions { grid-area: actions; max-width: 420px; }
+}
+
+/* ---------- Narrow (phones) ---------- */
+
+@container playlist (max-width: 540px) {
+  .panel {
+    grid-template-columns: 96px minmax(0, 1fr);
+    grid-template-areas:
+      "top     top"
+      "cover   info"
+      "actions actions";
+    column-gap: var(--spacing-md);
+  }
+
+
+  .actions { max-width: none; }
+
+  .title {
+    font-size: 1.2rem;
   }
 
   .tracksHeader {
-    flex-direction: column;
-    gap: var(--spacing-md);
-    align-items: stretch;
-  }
-
-  .addTracksButton {
-    justify-content: center;
-  }
-
-  .trackItem {
-    padding: var(--spacing-sm) var(--spacing-md);
-  }
-
-  .trackInfo {
-    gap: var(--spacing-sm);
+    padding-left: var(--spacing-sm);
+    padding-right: var(--spacing-sm);
   }
 
   .trackNumber {
-    width: 25px;
-    font-size: 0.8rem;
+    display: none;
   }
 
-  .modal {
-    margin: var(--spacing-md);
-    padding: var(--spacing-lg);
+  .trackRow {
+    padding-left: var(--spacing-sm);
   }
 
-  .modalActions {
-    flex-direction: column;
+  .editRow {
+    padding-left: var(--spacing-sm);
+  }
+
+  .editControls {
+    gap: 2px;
+  }
+
+  /* Give titles room next to the edit buttons */
+  .editRow .thumb {
+    display: none;
+  }
+
+  .editRow .iconButton {
+    width: 44px;
+    height: 44px;
+  }
+
+  .removeButton {
+    margin-left: 2px;
   }
 }
 
-@media (max-width: 480px) {
-  .playlistMeta {
-    flex-direction: column;
-    gap: var(--spacing-xs);
+@media (max-width: 540px) {
+  .container {
+    padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-xl);
   }
-
-  .playlistActions {
-    flex-direction: column;
-    gap: var(--spacing-sm);
-  }
-
-  .trackItem {
-    flex-direction: column;
-    align-items: stretch;
-    gap: var(--spacing-sm);
-  }
-
-  .trackInfo {
-    flex-direction: row;
-    align-items: center;
-  }
-
-  .trackDetails {
-    flex: 1;
-  }
-
-  .trackActions {
-    align-self: flex-end;
-  }
-} 
+}

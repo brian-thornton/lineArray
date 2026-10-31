@@ -2,9 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useSettings } from '@/contexts/SettingsContext'
-import { useSearch } from '@/contexts/SearchContext'
 import { useToast } from '@/contexts/ToastContext'
-import SearchResults from '@/components/SearchResults/SearchResults'
 import styles from './page.module.css'
 import { useThemeContext } from '@/contexts/ThemeContext'
 import MusicFoldersManager from '@/components/MusicFoldersManager/MusicFoldersManager'
@@ -25,8 +23,6 @@ interface SectionConfig {
 
 export default function SettingsPage(): JSX.Element {
   const { settings } = useSettings()
-  const { searchQuery, searchResults, isSearching, playTrack, hideKeyboard } = useSearch()
-  const { showToast } = useToast()
   const [activeSection, setActiveSection] = useState<SettingsSection>('admin')
   const [pin, setPin] = useState('')
   const [pinError, setPinError] = useState('')
@@ -65,30 +61,6 @@ export default function SettingsPage(): JSX.Element {
   const handlePinCancel = (): void => {
     // Redirect back to home page if user cancels PIN entry
     window.history.back()
-  }
-
-  // If there's an active search, show search results
-  if (searchQuery) {
-    return (
-      <div className={styles.container}>
-        <SearchResults 
-          results={searchResults}
-          onTrackClick={(path): void => {
-            void (async () => {
-              const outcome = await playTrack(path)
-              hideKeyboard()
-              
-              // Find the track title for the toast
-              const track = searchResults.find(result => result.path === path)
-              if (track && outcome === 'queued') {
-                showToast(`Added "${track.title}" to queue`, 'success')
-              }
-            })()
-          }}
-          isLoading={isSearching}
-        />
-      </div>
-    )
   }
 
   const sections: SectionConfig[] = [
@@ -249,7 +221,7 @@ function UserInterfaceSection(): JSX.Element {
   }
 
   const handleLibraryLayoutChange = (e: React.ChangeEvent<HTMLSelectElement>): void => {
-    void updateSettings({ libraryLayout: e.target.value as 'modern' | 'classic' | 'large' })
+    void updateSettings({ libraryLayout: e.target.value as 'classic' | 'large' })
   }
 
   return (
@@ -263,21 +235,6 @@ function UserInterfaceSection(): JSX.Element {
         </p>
         
         <div className={styles.featuresGrid}>
-          <div className={styles.featureSection}>
-            <h4 className={styles.featureTitle}>Navigation</h4>
-            <div className={styles.toggleSetting}>
-              <label className={styles.toggleLabel}>
-                <input
-                  type="checkbox"
-                  checked={settings.showPagination}
-                  onChange={() => handleToggle('showPagination', !settings.showPagination)}
-                  className={styles.toggle}
-                />
-                <span className={styles.toggleText}>Show Pagination</span>
-              </label>
-            </div>
-          </div>
-
           <div className={styles.featureSection}>
             <h4 className={styles.featureTitle}>Information Display</h4>
             <div className={styles.toggleSetting}>
@@ -310,28 +267,6 @@ function UserInterfaceSection(): JSX.Element {
 
           <div className={styles.featureSection}>
             <h4 className={styles.featureTitle}>Layout</h4>
-            <div className={styles.toggleSetting}>
-              <label className={styles.toggleLabel}>
-                <input
-                  type="checkbox"
-                  checked={settings.useMobileAlbumLayout}
-                  onChange={() => handleToggle('useMobileAlbumLayout', !settings.useMobileAlbumLayout)}
-                  className={styles.toggle}
-                />
-                <span className={styles.toggleText}>Use Mobile Album Layout</span>
-              </label>
-            </div>
-            <div className={styles.toggleSetting}>
-              <label className={styles.toggleLabel}>
-                <input
-                  type="checkbox"
-                  checked={settings.useSideBySideAlbumLayout}
-                  onChange={() => handleToggle('useSideBySideAlbumLayout', !settings.useSideBySideAlbumLayout)}
-                  className={styles.toggle}
-                />
-                <span className={styles.toggleText}>Use Side-by-Side Album Layout</span>
-              </label>
-            </div>
             <div className={styles.setting}>
               <label htmlFor="libraryLayout" className={styles.label}>Library Layout Style</label>
               <select
@@ -340,9 +275,29 @@ function UserInterfaceSection(): JSX.Element {
                 onChange={handleLibraryLayoutChange}
                 className={styles.select}
               >
-                <option value="modern">Modern (Grid)</option>
                 <option value="classic">Classic (4-up with tracks)</option>
                 <option value="large">Large (2x6 with letters)</option>
+              </select>
+            </div>
+          </div>
+
+          <div className={styles.featureSection}>
+            <h4 className={styles.featureTitle}>Idle Screen</h4>
+            <div className={styles.setting}>
+              <label htmlFor="idleScreenMinutes" className={styles.label}>
+                Show now playing full-screen after no touches for
+              </label>
+              <select
+                id="idleScreenMinutes"
+                value={settings.idleScreenMinutes}
+                onChange={(e) => { void updateSettings({ idleScreenMinutes: Number(e.target.value) }) }}
+                className={styles.select}
+              >
+                <option value={0}>Off</option>
+                <option value={1}>1 minute</option>
+                <option value={3}>3 minutes</option>
+                <option value={5}>5 minutes</option>
+                <option value={10}>10 minutes</option>
               </select>
             </div>
           </div>
@@ -445,7 +400,7 @@ function ThemeSection(): JSX.Element {
                     >
                       <div
                         className={styles.themeAccent}
-                        style={{ backgroundColor: theme.colors.accent || '#ffd700' }}
+                        style={{ backgroundColor: theme.colors.accent || '#38a9f5' }}
                       />
                       <div
                         className={styles.themeSurface}

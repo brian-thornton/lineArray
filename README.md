@@ -17,7 +17,7 @@ Music can play in two ways, chosen per device from the player bar:
 - **Queue management** — Add individual tracks or full albums, reorder the queue
 - **Playlists** — Create, edit, and play saved playlists
 - **Search** — Full-text search across albums and tracks
-- **Recently played** — Tracks recently played with quick replay
+- **Recently played** — Shown in search before you type, with quick replay
 - **Play counts** — Tracks how many times each album has been played
 - **Volume control** — Bottom-sheet slider on mobile, inline controls on desktop
 - **Cover art** — Automatically finds and serves folder artwork
@@ -35,7 +35,7 @@ Music can play in two ways, chosen per device from the player bar:
 flowchart TD
     subgraph Browser["🌐 Browser"]
         Pages["Pages\nHome · Album · Playlists · Recent · Settings"]
-        Components["Components\nPlayer · Queue · AlbumGrid · SearchBox · Header"]
+        Components["Components\nPlayer · Queue · LargeAlbumGrid · SearchBox · Header"]
         Contexts["Context Providers\nLibrary · Settings · Search · Toast"]
         Pages <--> Components
         Components <--> Contexts
@@ -187,9 +187,7 @@ jukebox_2.0/
 │   │   ├── settings/            # App settings
 │   │   └── themes/              # Theme management
 │   ├── album/[id]/              # Album detail page
-│   ├── classic-library/         # Classic list layout
 │   ├── playlists/               # Playlists page
-│   ├── recent/                  # Recently played page
 │   ├── settings/                # Settings page
 │   └── page.tsx                 # Home / album grid
 ├── components/
@@ -197,12 +195,10 @@ jukebox_2.0/
 │   ├── AppShell.tsx             # Root layout shell
 │   ├── LargeAlbumCard/          # Album card (grid view)
 │   ├── LargeAlbumGrid/          # Album grid + letter nav
-│   ├── AlbumCard/               # Compact album card
 │   ├── Player/                  # Fixed player bar
 │   ├── Queue/                   # Queue panel
 │   ├── SearchBox/               # Search input + results
 │   ├── SearchResults/           # Search result list
-│   ├── RecentlyPlayed/          # Recently played panel
 │   ├── PlaylistModal/           # Add-to-playlist modal
 │   ├── PinPad/                  # Party mode PIN entry
 │   ├── MeterBridge/             # VU meter display

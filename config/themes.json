@@ -1,6 +1,26 @@
 {
   "themes": [
     {
+      "id": "slate-blue",
+      "name": "Slate Blue",
+      "description": "Cool slate grays with a clear blue accent",
+      "colors": {
+        "primary": "#1e293b",
+        "secondary": "#334155",
+        "accent": "#38a9f5",
+        "background": "#0f172a",
+        "surface": "rgba(148, 163, 184, 0.08)",
+        "text": "#f1f5f9",
+        "textSecondary": "#94a3b8",
+        "textTertiary": "#64748b",
+        "border": "rgba(148, 163, 184, 0.18)",
+        "shadow": "0 4px 20px rgba(0, 0, 0, 0.35)",
+        "success": "#34d399",
+        "error": "#f87171",
+        "warning": "#fbbf24"
+      }
+    },
+    {
       "id": "jukebox-classic",
       "name": "Jukebox Classic",
       "description": "The original jukebox theme with gold accents and dark blues",
@@ -581,4 +601,4 @@
       }
     }
   ]
-} 
+}

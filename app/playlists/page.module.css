@@ -1,501 +1,371 @@
+/* Playlists: a cover grid like the library. Tap a tile to open it, tap the gold button to play.
+   Rename, reorder and delete live on the playlist itself. */
+
 .container {
-  min-height: 100vh;
-  padding: var(--spacing-lg);
-  padding-bottom: calc(var(--spacing-lg) + 120px); /* Extra space for player */
-  max-width: 1200px;
+  max-width: 1680px;
   margin: 0 auto;
+  padding: var(--spacing-lg) var(--spacing-lg) var(--spacing-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
 }
 
-.header {
+/* ---------- Toolbar ---------- */
+
+.toolbar {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--spacing-xl);
-  flex-wrap: wrap;
+  justify-content: space-between;
   gap: var(--spacing-md);
 }
 
 .title {
-  font-family: var(--font-display);
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: var(--jukebox-white);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
   margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  color: var(--jukebox-white);
+}
+
+.titleIcon {
+  width: 26px;
+  height: 26px;
+  color: var(--jukebox-gold);
+}
+
+.count {
+  min-width: 26px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--jukebox-accent) 15%, transparent);
+  color: var(--jukebox-gold);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 26px;
+  text-align: center;
+}
+
+.createButton,
+.saveButton,
+.secondaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  min-height: 48px;
+  padding: 0 1.25rem;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .createButton {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-md) var(--spacing-lg);
-  background: linear-gradient(135deg, var(--jukebox-accent) 0%, #ff5252 100%);
-  color: var(--jukebox-white);
+  background: var(--jukebox-gold);
+  color: var(--jukebox-on-accent);
   border: none;
+}
+
+.saveButton {
   border-radius: var(--radius-md);
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  min-height: 48px;
+  background: var(--jukebox-accent);
+  color: var(--jukebox-on-accent);
+  border: none;
   box-shadow: var(--shadow-md);
 }
 
-.createButton:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
-}
-
-.createButton:disabled {
+.secondaryButton {
+  border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.1);
+  color: var(--jukebox-white);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+@media (hover: hover) {
+  .createButton:hover:not(:disabled) {
+    filter: brightness(1.1);
+  }
+
+  .saveButton:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .secondaryButton:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}
+
+.createButton:disabled,
+.saveButton:disabled,
+.secondaryButton:disabled {
+  background: rgba(255, 255, 255, 0.08);
   color: var(--jukebox-gray);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: none;
   cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
 }
 
-.createButton:disabled:hover {
-  transform: none;
-  box-shadow: none;
+.buttonIcon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
-.plusIcon {
-  width: 20px;
-  height: 20px;
+/* ---------- Grid ---------- */
+
+.grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+  gap: var(--spacing-lg) var(--spacing-md);
 }
 
-.emptyState {
+.tile {
+  position: relative;
+  min-width: 0;
+  container-type: inline-size; /* lets the play button find the cover's corner with cqw */
+}
+
+.tileMain {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 4rem 2rem;
-  text-align: center;
-  color: var(--jukebox-gray);
-}
-
-.emptyIcon {
-  width: 80px;
-  height: 80px;
-  margin-bottom: var(--spacing-lg);
-  opacity: 0.5;
-}
-
-.emptyState h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin-bottom: var(--spacing-sm);
-  color: var(--jukebox-white);
-}
-
-.emptyState p {
-  font-size: 1rem;
-  margin-bottom: var(--spacing-xl);
-}
-
-.createFirstButton {
-  display: flex;
-  align-items: center;
+  justify-content: flex-start;
   gap: var(--spacing-sm);
-  padding: var(--spacing-md) var(--spacing-lg);
-  background: linear-gradient(135deg, var(--jukebox-accent) 0%, #ff5252 100%);
-  color: var(--jukebox-white);
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  min-height: 48px;
-}
-
-.createFirstButton:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
-}
-
-.createFirstButton:disabled {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--jukebox-gray);
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-.createFirstButton:disabled:hover {
-  transform: none;
-  box-shadow: none;
-}
-
-.playlistsGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: var(--spacing-lg);
-}
-
-.playlistCard {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  width: 100%;
+  height: 100%;
+  padding: var(--spacing-sm);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-lg);
-  padding: var(--spacing-lg);
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-}
-
-.playlistCard:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-.playlistHeader {
-  display: flex;
-  gap: var(--spacing-md);
-  margin-bottom: var(--spacing-lg);
-}
-
-.playlistIcon {
-  flex-shrink: 0;
-  width: 60px;
-  height: 60px;
-  background: linear-gradient(135deg, var(--jukebox-accent) 0%, var(--jukebox-purple) 100%);
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.musicIcon {
-  width: 30px;
-  height: 30px;
   color: var(--jukebox-white);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
 }
 
-.playlistInfo {
-  flex: 1;
+@media (hover: hover) {
+  .tileMain:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: color-mix(in srgb, var(--jukebox-accent) 35%, transparent);
+  }
+
+  .tileMain:hover .tileCover {
+    transform: translateY(-3px);
+  }
+}
+
+.tileCover {
+  transition: transform 0.2s ease;
+}
+
+.tileText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   min-width: 0;
+  padding: 0 2px 2px;
 }
 
-.playlistName {
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: var(--jukebox-white);
-  margin: 0 0 var(--spacing-xs) 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.playlistDescription {
-  font-size: 0.9rem;
-  color: var(--jukebox-gray);
-  margin: 0 0 var(--spacing-sm) 0;
-  line-height: 1.4;
+.tileName {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-.playlistMeta {
-  display: flex;
-  gap: var(--spacing-md);
-  font-size: 0.8rem;
+.tileMeta {
+  font-size: 0.82rem;
   color: var(--jukebox-gray);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.trackCount {
-  color: var(--jukebox-accent);
-  font-weight: 500;
-}
-
-.createdDate {
-  opacity: 0.8;
-}
-
-.playlistActions {
-  display: flex;
-  gap: var(--spacing-sm);
-  justify-content: flex-end;
-}
-
-.playButton,
-.editButton,
-.deleteButton {
+/* Gold play button sitting on the cover's bottom-right corner.
+   The tile is padding + square cover, so the cover's bottom edge is at
+   (tile width − 2×padding) + padding from the top. */
+.playFab {
+  position: absolute;
+  top: calc(100cqw - 56px - var(--spacing-sm) - 10px);
+  right: calc(var(--spacing-sm) + 10px);
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border-radius: 50%;
   border: none;
-  border-radius: var(--radius-md);
+  background: var(--jukebox-gold);
+  color: var(--jukebox-on-accent);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
   cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 1rem;
+  transition: transform 0.15s ease, filter 0.15s ease;
 }
 
-.playButton {
-  background: linear-gradient(135deg, var(--jukebox-accent) 0%, #ff5252 100%);
-  color: var(--jukebox-white);
+@media (hover: hover) {
+  .playFab:hover:not(:disabled) {
+    transform: scale(1.08);
+    filter: brightness(1.08);
+  }
 }
 
-.playButton:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
-}
-
-.playButton:disabled {
-  background: rgba(255, 255, 255, 0.1);
+.playFab:disabled {
+  background: rgba(40, 40, 55, 0.9);
   color: var(--jukebox-gray);
   cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
 }
 
-.playButton:disabled:hover {
-  transform: none;
-  box-shadow: none;
+.playFabBusy:disabled {
+  background: var(--jukebox-gold);
+  color: var(--jukebox-on-accent);
+  animation: pulse 0.8s ease-in-out infinite;
+  cursor: progress;
 }
 
-.editButton {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--jukebox-white);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+@keyframes pulse {
+  50% { transform: scale(0.92); }
 }
 
-.editButton:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.2);
-  transform: translateY(-1px);
+.playFabIcon {
+  width: 24px;
+  height: 24px;
+  margin-left: 3px;
+  fill: currentColor;
 }
 
-.editButton:disabled {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--jukebox-gray);
-  border-color: rgba(255, 255, 255, 0.1);
-  cursor: not-allowed;
-  transform: none;
-}
+/* ---------- Empty ---------- */
 
-.editButton:disabled:hover {
-  background: rgba(255, 255, 255, 0.05);
-  transform: none;
-}
-
-.deleteButton {
-  background: transparent;
-  color: #ff3b30;
-  border: 1px solid rgba(255, 59, 48, 0.3);
-}
-
-.deleteButton:hover:not(:disabled) {
-  background: rgba(255, 59, 48, 0.1);
-  transform: translateY(-1px);
-}
-
-.deleteButton:disabled {
-  background: transparent;
-  color: var(--jukebox-gray);
-  border-color: rgba(255, 59, 48, 0.1);
-  cursor: not-allowed;
-  transform: none;
-}
-
-.deleteButton:disabled:hover {
-  background: transparent;
-  transform: none;
-}
-
-.playIcon,
-.editIcon,
-.deleteIcon {
-  width: 18px;
-  height: 18px;
-}
-
-/* Modal Styles */
-.modalOverlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
+.empty {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: var(--spacing-lg);
-}
-
-.modal {
-  background: var(--jukebox-dark);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-xl);
-  max-width: 500px;
-  width: 100%;
-  backdrop-filter: blur(20px);
-}
-
-.modal h2 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--jukebox-white);
-  margin: 0 0 var(--spacing-lg) 0;
-}
-
-.modal p {
+  gap: var(--spacing-sm);
+  padding: 12vh var(--spacing-lg);
+  text-align: center;
   color: var(--jukebox-gray);
-  margin-bottom: var(--spacing-lg);
+}
+
+.empty h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  color: var(--jukebox-white);
+}
+
+.empty p {
+  margin: 0 0 var(--spacing-md);
+  max-width: 36ch;
   line-height: 1.5;
 }
 
-.formGroup {
-  margin-bottom: var(--spacing-lg);
+.empty strong {
+  color: var(--jukebox-white);
 }
 
-.formGroup label {
-  display: block;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--jukebox-white);
+.emptyIcon {
+  width: 64px;
+  height: 64px;
   margin-bottom: var(--spacing-sm);
+  color: color-mix(in srgb, var(--jukebox-accent) 60%, transparent);
 }
 
-.input,
-.textarea {
-  width: 100%;
-  padding: var(--spacing-md);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: var(--radius-md);
-  color: var(--jukebox-white);
-  font-size: 1rem;
-  transition: border-color 0.2s ease;
-}
+/* ---------- Create dialog ---------- */
 
-.input:focus,
-.textarea:focus {
-  outline: none;
-  border-color: var(--jukebox-accent);
-}
-
-.input::placeholder,
-.textarea::placeholder {
-  color: var(--jukebox-gray);
-}
-
-.modalActions {
-  display: flex;
-  gap: var(--spacing-md);
-  justify-content: flex-end;
-  margin-top: var(--spacing-xl);
-}
-
-.cancelButton,
-.saveButton,
-.deleteConfirmButton {
-  padding: var(--spacing-md) var(--spacing-lg);
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  min-height: 44px;
-  min-width: 100px;
-}
-
-.cancelButton {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--jukebox-white);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.cancelButton:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.saveButton {
-  background: linear-gradient(135deg, var(--jukebox-accent) 0%, #ff5252 100%);
-  color: var(--jukebox-white);
-}
-
-.saveButton:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
-}
-
-.saveButton:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.deleteConfirmButton {
-  background: linear-gradient(135deg, #ff3b30 0%, #ff6b6b 100%);
-  color: var(--jukebox-white);
-}
-
-.deleteConfirmButton:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
-}
-
-.deleteConfirmButton:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.addToQueueButton {
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  border: 1px solid var(--jukebox-gold, #c9a84c);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  background: transparent;
-  color: var(--jukebox-gold, #c9a84c);
+  padding: var(--spacing-lg);
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
 }
 
-.addToQueueButton:hover:not(:disabled) {
-  background: rgba(201, 168, 76, 0.15);
-  transform: translateY(-1px);
+.modal {
+  width: 100%;
+  max-width: 460px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-xl);
+  background: var(--jukebox-dark);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
 }
 
-.addToQueueButton:disabled {
-  background: transparent;
-  color: var(--jukebox-gray);
-  border-color: rgba(255, 255, 255, 0.1);
-  cursor: not-allowed;
-  transform: none;
-}
-
-.replaceQueueButton {
-  padding: var(--spacing-md) var(--spacing-lg);
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  min-height: 44px;
-  background: linear-gradient(135deg, var(--jukebox-purple, #6c3fc5) 0%, #9b59b6 100%);
+.modal h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.3rem;
   color: var(--jukebox-white);
 }
 
-.replaceQueueButton:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+.fieldLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--jukebox-gray);
 }
 
-/* Loading Styles */
+.input {
+  width: 100%;
+  padding: 0.7rem var(--spacing-md);
+  background: rgba(255, 255, 255, 0.07);
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-md);
+  color: var(--jukebox-white);
+  font: inherit;
+  font-size: 1rem;
+  resize: vertical;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--jukebox-gold);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--jukebox-accent) 15%, transparent);
+}
+
+.input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.modalActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+
+/* ---------- Loading ---------- */
+
 .loadingContainer {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: var(--spacing-md);
   min-height: 50vh;
   color: var(--jukebox-gray);
 }
@@ -504,86 +374,41 @@
   width: 40px;
   height: 40px;
   border: 3px solid rgba(255, 255, 255, 0.1);
-  border-top: 3px solid var(--jukebox-accent);
+  border-top-color: var(--jukebox-gold);
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin-bottom: var(--spacing-lg);
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  to { transform: rotate(360deg); }
 }
 
-/* Mobile Responsive */
-@media (max-width: 768px) {
-  .container {
-    padding: var(--spacing-md);
-    padding-bottom: calc(var(--spacing-md) + 140px); /* More space on mobile */
-  }
+/* ---------- Phones: two tiles across ---------- */
 
-  .header {
-    flex-direction: column;
-    align-items: stretch;
+@media (max-width: 600px) {
+  .container {
+    padding: var(--spacing-md) var(--spacing-sm) var(--spacing-xl);
     gap: var(--spacing-md);
   }
 
-  .title {
-    font-size: 2rem;
-    text-align: center;
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spacing-md) var(--spacing-sm);
+  }
+
+  .playFab {
+    width: 48px;
+    height: 48px;
+    top: calc(100cqw - 48px - var(--spacing-sm) - 8px);
+    right: calc(var(--spacing-sm) + 8px);
+  }
+
+  .playFabIcon {
+    width: 20px;
+    height: 20px;
   }
 
   .createButton {
-    justify-content: center;
-  }
-
-  .playlistsGrid {
-    grid-template-columns: 1fr;
-    gap: var(--spacing-md);
-  }
-
-  .playlistCard {
-    padding: var(--spacing-md);
-  }
-
-  .playlistHeader {
-    flex-direction: column;
-    text-align: center;
-    gap: var(--spacing-sm);
-  }
-
-  .playlistIcon {
-    align-self: center;
-  }
-
-  .playlistActions {
-    justify-content: center;
-  }
-
-  .modal {
-    margin: var(--spacing-md);
-    padding: var(--spacing-lg);
-  }
-
-  .modalActions {
-    flex-direction: column;
+    padding: 0 1rem;
   }
 }
-
-@media (max-width: 480px) {
-  .playlistMeta {
-    flex-direction: column;
-    gap: var(--spacing-xs);
-  }
-
-  .playlistActions {
-    gap: var(--spacing-xs);
-  }
-
-  .playButton,
-  .editButton,
-  .deleteButton {
-    width: 40px;
-    height: 40px;
-  }
-} 

@@ -68,7 +68,7 @@
 
 .qrCode img {
   border-radius: var(--radius-md);
-  border: 2px solid rgba(255, 215, 0, 0.3);
+  border: 2px solid color-mix(in srgb, var(--jukebox-accent) 30%, transparent);
   background: white;
   padding: var(--spacing-xs);
 }
@@ -107,9 +107,11 @@
   flex-shrink: 0;
 }
 
-.copyButton:hover {
-  color: var(--jukebox-gold);
-  background: rgba(255, 215, 0, 0.1);
+@media (hover: hover) {
+  .copyButton:hover {
+    color: var(--jukebox-gold);
+    background: color-mix(in srgb, var(--jukebox-accent) 10%, transparent);
+  }
 }
 
 .copyIcon {
@@ -126,10 +128,10 @@
 
 .instructions {
   text-align: left;
-  background: rgba(255, 215, 0, 0.05);
+  background: color-mix(in srgb, var(--jukebox-accent) 5%, transparent);
   border-radius: var(--radius-md);
   padding: var(--spacing-sm);
-  border: 1px solid rgba(255, 215, 0, 0.1);
+  border: 1px solid color-mix(in srgb, var(--jukebox-accent) 10%, transparent);
 }
 
 .instructions h4 {

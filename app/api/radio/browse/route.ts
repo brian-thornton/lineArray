@@ -40,16 +40,18 @@ function mapStation(s: RadioBrowserStation): RadioStation {
   }
 }
 
-// GET /api/radio/browse?q=<search> — search the Radio Browser directory.
+// GET /api/radio/browse?q=<search>&tag=<genre> — search the Radio Browser directory.
 // Falls back to a curated list when no query is given or the directory fails.
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const q = request.nextUrl.searchParams.get('q')?.trim() ?? ''
+  const tag = request.nextUrl.searchParams.get('tag')?.trim().toLowerCase() ?? ''
 
   try {
     const base = 'https://de1.api.radio-browser.info/json/stations'
-    const url = q
-      ? `${base}/search?limit=50&hidebroken=true&order=clickcount&reverse=true&name=${encodeURIComponent(q)}`
-      : `${base}/search?limit=50&hidebroken=true&order=clickcount&reverse=true`
+    const params = new URLSearchParams({ limit: '60', hidebroken: 'true', order: 'clickcount', reverse: 'true' })
+    if (q) params.set('name', q)
+    if (tag) params.set('tag', tag)
+    const url = `${base}/search?${params.toString()}`
 
     const response = await fetch(url, {
       headers: { 'User-Agent': 'Jukebox2.0/1.0' },
@@ -65,14 +67,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       .map(mapStation)
 
     // If a search returned nothing, surface the curated list as a hint.
-    const result = stations.length > 0 ? stations : (q ? [] : CURATED)
+    const result = stations.length > 0 ? stations : (q || tag ? [] : CURATED)
     const res = NextResponse.json({ stations: result, source: 'radio-browser' })
     res.headers.set('Cache-Control', 'no-store')
     return res
   } catch (error) {
     logger.error('Radio Browser fetch failed, using curated list', 'RadioBrowse', error)
-    const filtered = q
-      ? CURATED.filter(s => s.name.toLowerCase().includes(q.toLowerCase()) || (s.tags ?? '').toLowerCase().includes(q.toLowerCase()))
+    const term = (q || tag).toLowerCase()
+    const filtered = term
+      ? CURATED.filter(s => s.name.toLowerCase().includes(term) || (s.tags ?? '').toLowerCase().includes(term))
       : CURATED
     const res = NextResponse.json({ stations: filtered, source: 'curated' })
     res.headers.set('Cache-Control', 'no-store')

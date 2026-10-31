@@ -44,8 +44,10 @@
   line-height: 0;
 }
 
-.coverButton:hover {
-  transform: scale(1.05);
+@media (hover: hover) {
+  .coverButton:hover {
+    transform: scale(1.05);
+  }
 }
 
 .coverButton:active {
@@ -217,7 +219,7 @@
 
 .controlButton {
   background: var(--jukebox-accent);
-  color: var(--jukebox-white);
+  color: var(--jukebox-on-accent);
   border-radius: 50%;
   width: 48px;
   height: 48px;
@@ -230,9 +232,11 @@
   cursor: pointer;
 }
 
-.controlButton:hover {
-  background: var(--jukebox-gold);
-  transform: scale(1.1);
+@media (hover: hover) {
+  .controlButton:hover {
+    background: var(--jukebox-gold);
+    transform: scale(1.1);
+  }
 }
 
 .activeButton {
@@ -246,9 +250,11 @@
   color: var(--jukebox-white);
 }
 
-.clearButton:hover {
-  background: rgb(239, 68, 68);
-  transform: scale(1.1);
+@media (hover: hover) {
+  .clearButton:hover {
+    background: rgb(239, 68, 68);
+    transform: scale(1.1);
+  }
 }
 
 .clearButton:disabled {
@@ -258,10 +264,12 @@
   transform: none;
 }
 
-.clearButton:disabled:hover {
-  background: rgba(239, 68, 68, 0.1);
-  color: var(--jukebox-gray);
-  transform: none;
+@media (hover: hover) {
+  .clearButton:disabled:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--jukebox-gray);
+    transform: none;
+  }
 }
 
 .controlIcon {
@@ -336,14 +344,21 @@
   white-space: nowrap;
 }
 
-.modeButton:hover {
-  border-color: var(--jukebox-gold);
-  color: var(--jukebox-gold);
+@media (hover: hover) {
+  .modeButton:hover:not(:disabled) {
+    border-color: var(--jukebox-gold);
+    color: var(--jukebox-gold);
+  }
 }
 
 .modeButtonLocal {
   border-color: var(--jukebox-accent);
   color: var(--jukebox-accent);
+}
+
+.modeButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .modeLabel {
@@ -364,9 +379,11 @@
   justify-content: center;
 }
 
-.volumeButton:hover {
-  background: var(--jukebox-surface);
-  color: var(--jukebox-gold);
+@media (hover: hover) {
+  .volumeButton:hover {
+    background: var(--jukebox-surface);
+    color: var(--jukebox-gold);
+  }
 }
 
 .volumeIcon {
@@ -445,10 +462,12 @@
   transform: none;
 }
 
-.controlButton:disabled:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--jukebox-gray);
-  transform: none;
+@media (hover: hover) {
+  .controlButton:disabled:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--jukebox-gray);
+    transform: none;
+  }
 }
 
 .skipButton {
@@ -666,8 +685,10 @@
   transition: background 0.2s;
 }
 
-.confirmButton:hover {
-  background: var(--jukebox-gold);
+@media (hover: hover) {
+  .confirmButton:hover {
+    background: var(--jukebox-gold);
+  }
 }
 
 .cancelButton {
@@ -682,9 +703,11 @@
   transition: border-color 0.2s, color 0.2s;
 }
 
-.cancelButton:hover {
-  color: var(--jukebox-white);
-  border-color: var(--jukebox-white);
+@media (hover: hover) {
+  .cancelButton:hover {
+    color: var(--jukebox-white);
+    border-color: var(--jukebox-white);
+  }
 } 
 
 /* Volume bottom-sheet — replaces full-screen overlay on mobile */

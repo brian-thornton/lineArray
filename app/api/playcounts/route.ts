@@ -3,6 +3,7 @@ import fs from 'fs'
 import path from 'path'
 import { Album, Track } from '@/types/music'
 import logger from '@/utils/serverLogger'
+import { cleanAlbumTrackTitles } from '@/utils/trackTitles'
 
 const playCountsPath = path.join(process.cwd(), 'data', 'playCounts.json')
 
@@ -15,6 +16,8 @@ interface TrackInfo {
   title: string
   artist: string
   album: string
+  albumId?: string
+  coverPath?: string
 }
 
 // Migrate old format to new format
@@ -120,21 +123,27 @@ export async function GET(): Promise<NextResponse> {
     if (albumsResponse.ok) {
       const albumsData = await albumsResponse.json() as { albums: Album[] }
       albumsData.albums.forEach((album: Album) => {
-        album.tracks.forEach((track: Track) => {
+        const displayTitles = cleanAlbumTrackTitles(album.tracks)
+        album.tracks.forEach((track: Track, i: number) => {
+          const { title } = displayTitles[i]
           // Store with both the exact path and normalized path for better matching
           trackInfo[track.path] = {
-            title: track.title,
+            title,
             artist: track.artist ?? album.artist ?? 'Unknown Artist',
-            album: album.title
+            album: album.title,
+            albumId: album.id,
+            coverPath: album.coverPath
           }
           
           // Also try to match by filename in case paths are slightly different
           const filename = track.path.split('/').pop()
           if (filename) {
             trackInfo[filename] = {
-              title: track.title,
+              title,
               artist: track.artist ?? album.artist ?? 'Unknown Artist',
-              album: album.title
+              album: album.title,
+              albumId: album.id,
+              coverPath: album.coverPath
             }
           }
         })
@@ -158,6 +167,8 @@ export async function GET(): Promise<NextResponse> {
           title: info.title,
           artist: info.artist,
           album: info.album,
+          albumId: info.albumId,
+          coverPath: info.coverPath,
           playCount: trackData.count,
           lastPlayed: trackData.lastPlayed,
           playHistory: trackData.playHistory

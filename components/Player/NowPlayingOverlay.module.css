@@ -47,9 +47,11 @@
   transition: background 0.2s, color 0.2s;
 }
 
-.closeBtn:hover {
-  background: rgba(255, 255, 255, 0.25);
-  color: #fff;
+@media (hover: hover) {
+  .closeBtn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    color: #fff;
+  }
 }
 
 .content {
@@ -149,9 +151,11 @@
   transition: background 0.2s, transform 0.15s;
 }
 
-.controlBtn:hover {
-  background: rgba(255, 255, 255, 0.28);
-  transform: scale(1.08);
+@media (hover: hover) {
+  .controlBtn:hover {
+    background: rgba(255, 255, 255, 0.28);
+    transform: scale(1.08);
+  }
 }
 
 .controlBtn:active {

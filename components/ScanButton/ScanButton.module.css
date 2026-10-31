@@ -60,7 +60,7 @@
 .pathInput:focus {
   outline: none;
   border-color: var(--jukebox-gold);
-  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--jukebox-accent) 20%, transparent);
 }
 
 .scanButton {
@@ -77,14 +77,16 @@
 }
 
 .scanButton.primary {
-  background: linear-gradient(135deg, var(--jukebox-accent) 0%, #ff5252 100%);
-  color: var(--jukebox-white);
+  background: var(--jukebox-accent);
+  color: var(--jukebox-on-accent);
   box-shadow: var(--shadow-md);
 }
 
-.scanButton.primary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
+@media (hover: hover) {
+  .scanButton.primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+  }
 }
 
 .scanButton.secondary {
@@ -93,8 +95,10 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.scanButton.secondary:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.2);
+@media (hover: hover) {
+  .scanButton.secondary:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.2);
+  }
 }
 
 .scanButton.browse {
@@ -103,9 +107,11 @@
   box-shadow: var(--shadow-md);
 }
 
-.scanButton.browse:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
+@media (hover: hover) {
+  .scanButton.browse:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+  }
 }
 
 .scanButton:disabled {

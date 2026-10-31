@@ -3,21 +3,13 @@
 import React, { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Album, Track } from '@/types/music'
-import AlbumGrid from '@/components/AlbumGrid/AlbumGrid'
-import SearchResults from '@/components/SearchResults/SearchResults'
 import { useSearch } from '@/contexts/SearchContext'
-import { useToast } from '@/contexts/ToastContext'
 import { useLibrary } from '@/contexts/LibraryContext'
 import styles from './page.module.css'
 import LibraryLayout from '@/components/LibraryLayout/LibraryLayout'
 import ClassicLibraryGrid from '@/components/ClassicLibraryGrid/ClassicLibraryGrid'
 import LargeAlbumGrid from '@/components/LargeAlbumGrid/LargeAlbumGrid'
 import { useSettings } from '@/contexts/SettingsContext'
-
-interface WindowWithPlayer extends Window {
-  hasAddedTrackToQueue?: boolean
-  checkPlayerStatusImmediately?: () => Promise<void>
-}
 
 // useSearchParams() needs a Suspense boundary. Without one, production builds deopt
 // the page and its client-navigation request fails, so every link back to the
@@ -33,8 +25,7 @@ export default function Home(): JSX.Element {
 function HomeContent(): JSX.Element {
   // const router = useRouter()
   const searchParams = useSearchParams()
-  const { searchQuery, searchResults, isSearching, playTrack, hideKeyboard } = useSearch()
-  const { showToast } = useToast()
+  const { searchQuery, searchOpen } = useSearch()
   const { settings } = useSettings()
   const { libraryState, updateLibraryState } = useLibrary()
   const [albums, setAlbums] = useState<Album[]>([])
@@ -47,10 +38,10 @@ function HomeContent(): JSX.Element {
   const currentPage = pageFromUrl ? parseInt(pageFromUrl, 10) : 1
   const currentLetter = letterFromUrl ?? null
   
-  console.log('Current layout setting:', settings.libraryLayout)
-  
+  // The library fits the screen without scrolling; search results (shown over it) need to scroll
+  const searching = searchOpen || searchQuery !== ''
   useEffect(() => {
-    if (!searchQuery) {
+    if (!searching) {
       document.body.id = 'library-no-scroll'
     } else {
       document.body.id = ''
@@ -58,7 +49,7 @@ function HomeContent(): JSX.Element {
     return () => {
       document.body.id = ''
     }
-  }, [searchQuery])
+  }, [searching])
 
   useEffect(() => {
     void loadAlbums()
@@ -81,13 +72,6 @@ function HomeContent(): JSX.Element {
     }
   }, [currentPage, currentLetter, libraryState.currentPage, libraryState.selectedLetter, updateLibraryState])
 
-  // Only update layout if it's the default layout and settings has a different preference
-  useEffect(() => {
-    if (libraryState.layout === 'modern' && settings.libraryLayout !== 'modern' && !isLoading) {
-      updateLibraryState({ layout: settings.libraryLayout })
-    }
-  }, [settings.libraryLayout, libraryState.layout, updateLibraryState, isLoading])
-
   const loadAlbums = async (): Promise<void> => {
     setIsLoading(true)
     try {
@@ -107,70 +91,29 @@ function HomeContent(): JSX.Element {
     // Track play functionality can be implemented here
   }
 
-  const handleTrackClick = async (path: string): Promise<void> => {
-    const outcome = await playTrack(path)
-    hideKeyboard()
-    
-    // Find the track title for the toast (none when it just started playing here)
-    const track = searchResults.find(result => result.path === path)
-    if (track && outcome === 'queued') {
-      showToast(`Added "${track.title}" to queue`, 'success')
-    }
-    
-    // Set flag to show player controls
-    if (typeof window !== 'undefined') {
-      (window as WindowWithPlayer).hasAddedTrackToQueue = true
-    }
-    
-    // Immediately check player status to show controls faster
-    if (typeof window !== 'undefined' && (window as WindowWithPlayer).checkPlayerStatusImmediately) {
-      setTimeout(() => {
-        void (window as WindowWithPlayer).checkPlayerStatusImmediately?.()
-      }, 100)
-    }
-  }
-
   const totalClassicPages = Math.max(1, Math.ceil(albums.length / albumsPerClassicPage))
   const pagedClassicAlbums = albums.slice((libraryState.currentPage - 1) * albumsPerClassicPage, libraryState.currentPage * albumsPerClassicPage)
 
   return (
-    searchQuery ? (
+    <LibraryLayout>
       <div className={styles.container}>
         <main className={styles.main}>
-          <SearchResults 
-            results={searchResults}
-            onTrackClick={path => { void handleTrackClick(path); }}
-            isLoading={isSearching}
-          />
+          {settings.libraryLayout === 'classic' ? (
+            <ClassicLibraryGrid
+              albums={pagedClassicAlbums}
+              page={libraryState.currentPage}
+              setPage={(page) => updateLibraryState({ currentPage: page })}
+              totalPages={totalClassicPages}
+            />
+          ) : (
+            <LargeAlbumGrid 
+              albums={albums}
+              onPlayTrack={handlePlayTrack}
+              isLoading={isLoading}
+            />
+          )}
         </main>
       </div>
-    ) : (
-      <LibraryLayout>
-        <div className={styles.container}>
-          <main className={styles.main}>
-            {settings.libraryLayout === 'classic' ? (
-              <ClassicLibraryGrid
-                albums={pagedClassicAlbums}
-                page={libraryState.currentPage}
-                setPage={(page) => updateLibraryState({ currentPage: page })}
-                totalPages={totalClassicPages}
-              />
-            ) : settings.libraryLayout === 'large' ? (
-              <LargeAlbumGrid 
-                albums={albums}
-                onPlayTrack={handlePlayTrack}
-                isLoading={isLoading}
-              />
-            ) : (
-              <AlbumGrid 
-                albums={albums}
-                onPlayTrack={handlePlayTrack}
-                isLoading={isLoading}
-              />
-            )}
-          </main>
-        </div>
-      </LibraryLayout>
-    )
+    </LibraryLayout>
   )
 } 

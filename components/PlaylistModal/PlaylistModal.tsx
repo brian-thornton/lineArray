@@ -5,6 +5,7 @@ import { X, Plus, Music } from 'lucide-react'
 import { Playlist } from '../../types/music'
 import { useSettings } from '@/contexts/SettingsContext'
 import styles from './PlaylistModal.module.css'
+import { useDialogFocus } from '@/hooks/useDialogFocus'
 
 interface PlaylistModalProps {
   isOpen: boolean
@@ -101,6 +102,8 @@ export default function PlaylistModal({
     }
   }
 
+  const dialogRef = useDialogFocus(isOpen)
+
   if (!isOpen) return null
 
   return (
@@ -108,21 +111,21 @@ export default function PlaylistModal({
       className={styles.overlay} 
       onClick={onClose}
       onKeyDown={e => { if (e.key === 'Escape') onClose() }}
-      tabIndex={0}
-      role="button"
-      aria-label="Close modal"
+      role="presentation"
     >
       <div 
         className={styles.modal} 
         onClick={(e) => e.stopPropagation()}
         onKeyDown={e => { if (e.key === 'Escape') onClose() }}
-        tabIndex={0}
-        role="button"
-        aria-label="Modal content"
+        ref={dialogRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="playlist-modal-title"
       >
         <div className={styles.header}>
-          <h3>Add to Playlist</h3>
-          <button onClick={onClose} className={styles.closeButton}>
+          <h3 id="playlist-modal-title">Add to Playlist</h3>
+          <button onClick={onClose} className={styles.closeButton} aria-label="Close">
             <X className={styles.closeIcon} />
           </button>
         </div>

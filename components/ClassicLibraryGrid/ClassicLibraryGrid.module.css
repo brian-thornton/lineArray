@@ -42,10 +42,12 @@
   box-shadow: none;
 }
 
-.navArrow:hover {
-  background: rgba(0, 0, 0, 0.8);
-  border-color: #00bfff;
-  transform: translateY(-50%) scale(1.05);
+@media (hover: hover) {
+  .navArrow:hover {
+    background: rgba(0, 0, 0, 0.8);
+    border-color: #00bfff;
+    transform: translateY(-50%) scale(1.05);
+  }
 }
 
 .navArrowLeft {
@@ -80,11 +82,19 @@
   cursor: pointer;
   transition: border 0.2s, box-shadow 0.2s, background 0.2s;
 }
-.albumBox:hover, .albumBox:focus {
+.albumBox:focus {
   border: 2px solid var(--jukebox-accent);
   box-shadow: 0 0 0 2px var(--jukebox-accent), var(--jukebox-shadow);
   background: rgba(255,255,255,0.04);
   outline: none;
+}
+@media (hover: hover) {
+  .albumBox:hover {
+    border: 2px solid var(--jukebox-accent);
+    box-shadow: 0 0 0 2px var(--jukebox-accent), var(--jukebox-shadow);
+    background: rgba(255,255,255,0.04);
+    outline: none;
+  }
 }
 
 .contentRow {

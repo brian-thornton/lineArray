@@ -58,9 +58,11 @@
   min-height: 44px;
 }
 
-.closeButton:hover {
-  color: var(--jukebox-white);
-  background: rgba(255, 255, 255, 0.1);
+@media (hover: hover) {
+  .closeButton:hover {
+    color: var(--jukebox-white);
+    background: rgba(255, 255, 255, 0.1);
+  }
 }
 
 .closeIcon {
@@ -86,7 +88,7 @@
 
 .muteButton {
   background: var(--jukebox-accent);
-  color: var(--jukebox-white);
+  color: var(--jukebox-on-accent);
   border: none;
   border-radius: 50%;
   width: 60px;
@@ -99,9 +101,11 @@
   flex-shrink: 0;
 }
 
-.muteButton:hover {
-  background: var(--jukebox-gold);
-  transform: scale(1.05);
+@media (hover: hover) {
+  .muteButton:hover {
+    background: var(--jukebox-gold);
+    transform: scale(1.05);
+  }
 }
 
 .volumeIcon {
@@ -145,9 +149,11 @@
   transition: all 0.2s ease;
 }
 
-.slider::-webkit-slider-thumb:hover {
-  transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+@media (hover: hover) {
+  .slider::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  }
 }
 
 .slider::-moz-range-thumb {
@@ -161,9 +167,11 @@
   transition: all 0.2s ease;
 }
 
-.slider::-moz-range-thumb:hover {
-  transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+@media (hover: hover) {
+  .slider::-moz-range-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  }
 }
 
 @keyframes fadeIn {

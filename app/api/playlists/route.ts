@@ -3,6 +3,7 @@ import fs from 'fs'
 import path from 'path'
 import { Playlist, CreatePlaylistRequest } from '@/types/music'
 import logger from '@/utils/serverLogger'
+import { withAlbumInfo } from '@/utils/playlistAlbumInfo'
 
 const playlistsPath = path.join(process.cwd(), 'data', 'playlists.json')
 
@@ -75,7 +76,7 @@ function savePlaylists(playlists: Playlist[]): void {
 export function GET(): Promise<NextResponse> {
   try {
     const playlists = loadPlaylists()
-    return Promise.resolve(NextResponse.json(playlists))
+    return Promise.resolve(NextResponse.json(withAlbumInfo(playlists)))
   } catch (error) {
     logger.error('Error getting playlists', 'PlaylistsAPI', error)
     return Promise.resolve(NextResponse.json({ error: 'Failed to get playlists' }, { status: 500 }))

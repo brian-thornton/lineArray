@@ -56,6 +56,10 @@ export interface SearchResult {
   album?: string
   path?: string
   duration?: string
+  coverPath?: string
+  // Track results: the album (show) they belong to
+  albumId?: string
+  albumTitle?: string
 }
 
 export interface RecentlyPlayedResponse {
@@ -95,7 +99,6 @@ export interface Settings {
   showPaginationButtons: boolean
   showConcertDetails: boolean
   showMobileQRControl: boolean
-  useMobileAlbumLayout: boolean
   showPlaybackPosition: boolean
   enableAdminMode: boolean
 }

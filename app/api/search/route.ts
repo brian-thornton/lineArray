@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
+import { cleanAlbumTrackTitles } from '@/utils/trackTitles'
 
 interface Track {
   id: string
@@ -33,7 +34,13 @@ interface SearchResult {
   album?: string
   path?: string
   coverPath?: string
+  // Track results: the album (show) they belong to
+  albumId?: string
+  albumTitle?: string
 }
+
+const MAX_ALBUMS = 40
+const MAX_TRACKS = 400
 
 export function GET(request: NextRequest): Promise<NextResponse> {
   try {
@@ -82,39 +89,35 @@ export function GET(request: NextRequest): Promise<NextResponse> {
         })
       }
 
-      // Search tracks within this album
-      album.tracks.forEach(track => {
-        // Check if track file is still accessible
+      // Search tracks within this album, matching on the cleaned-up song name
+      const displayTitles = cleanAlbumTrackTitles(album.tracks)
+      album.tracks.forEach((track, i) => {
+        const { title } = displayTitles[i]
+        const matches = title.toLowerCase().includes(searchTerm) ||
+          track.artist.toLowerCase().includes(searchTerm) ||
+          track.album.toLowerCase().includes(searchTerm)
+        if (!matches) return
+
+        // Only touch the disk for tracks that matched
         try {
           // Skip macOS metadata files (resource forks)
-          const fileName = path.basename(track.path)
-          if (fileName.startsWith('._')) {
-            return // Skip macOS metadata files
-          }
-          
-          if (!fs.existsSync(track.path)) {
-            return // Skip tracks with unavailable files
-          }
+          if (path.basename(track.path).startsWith('._')) return
+          if (!fs.existsSync(track.path)) return // Skip tracks with unavailable files
         } catch {
           return // Skip tracks with inaccessible files
         }
-        
-        const trackTitle = track.title.toLowerCase()
-        const trackArtist = track.artist.toLowerCase()
-        const trackAlbum = track.album.toLowerCase()
 
-        if (trackTitle.includes(searchTerm) || 
-            trackArtist.includes(searchTerm) || 
-            trackAlbum.includes(searchTerm)) {
-          results.push({
-            type: 'track',
-            id: track.id,
-            title: track.title,
-            artist: track.artist,
-            album: track.album,
-            path: track.path
-          })
-        }
+        results.push({
+          type: 'track',
+          id: track.id,
+          title,
+          artist: track.artist,
+          album: track.album,
+          path: track.path,
+          albumId: album.id,
+          albumTitle: album.title,
+          coverPath: album.coverPath
+        })
       })
     })
 
@@ -127,7 +130,9 @@ export function GET(request: NextRequest): Promise<NextResponse> {
     })
 
     // Limit results to prevent overwhelming response
-    const limitedResults = results.slice(0, 100)
+    const albums = results.filter(r => r.type === 'album').slice(0, MAX_ALBUMS)
+    const tracks = results.filter(r => r.type === 'track').slice(0, MAX_TRACKS)
+    const limitedResults = [...albums, ...tracks]
 
     return Promise.resolve(NextResponse.json({ results: limitedResults }))
 

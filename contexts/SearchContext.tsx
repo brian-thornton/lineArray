@@ -2,21 +2,12 @@
 
 import React, { createContext, useContext, useState, useCallback, useRef } from 'react'
 import { SearchBoxRef } from '@/components/SearchBox/SearchBox'
-import type { SearchResponse } from '@/types/api'
+import type { SearchResponse, SearchResult } from '@/types/api'
 import { usePlayback } from '@/contexts/PlaybackContext'
 
 interface WindowWithPlayer extends Window {
   hasAddedTrackToQueue?: boolean
   checkPlayerStatusImmediately?: () => Promise<void>
-}
-
-interface SearchResult {
-  type: 'album' | 'track'
-  id: string
-  title: string
-  artist: string
-  album?: string
-  path?: string
 }
 
 interface SearchContextType {
@@ -29,6 +20,11 @@ interface SearchContextType {
   playTrack: (path: string) => Promise<'playing' | 'queued' | null>
   hideKeyboard: () => void
   searchBoxRef: React.RefObject<SearchBoxRef>
+  /** The search layer is showing (field focused/opened, or a query is typed) */
+  searchOpen: boolean
+  openSearch: () => void
+  /** Leave search: empties the field and results and hides the search layer */
+  closeSearch: () => void
 }
 
 const SearchContext = createContext<SearchContextType | undefined>(undefined)
@@ -39,6 +35,9 @@ export function SearchProvider({ children }: { children: React.ReactNode }): JSX
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const searchBoxRef = useRef<SearchBoxRef>(null)
+  const [searchOpen, setSearchOpen] = useState(false)
+  // Each search gets a number; only the latest one may write results
+  const latestRequest = useRef(0)
 
   const performSearch = useCallback(async (query: string): Promise<void> => {
     if (!query.trim()) {
@@ -47,13 +46,16 @@ export function SearchProvider({ children }: { children: React.ReactNode }): JSX
       return
     }
 
+    const requestId = ++latestRequest.current
     setIsSearching(true)
     setSearchQuery(query)
 
     try {
       const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`)
+      if (requestId !== latestRequest.current) return
       if (response.ok) {
         const data = await response.json() as SearchResponse
+        if (requestId !== latestRequest.current) return
         setSearchResults(data.results || [])
       } else {
         console.error('Search failed:', response.statusText)
@@ -61,17 +63,27 @@ export function SearchProvider({ children }: { children: React.ReactNode }): JSX
       }
     } catch (error) {
       console.error('Search error:', error)
-      setSearchResults([])
+      if (requestId === latestRequest.current) setSearchResults([])
     } finally {
-      setIsSearching(false)
+      if (requestId === latestRequest.current) setIsSearching(false)
     }
   }, [])
 
   const clearSearch = useCallback((): void => {
+    latestRequest.current++
     setSearchQuery('')
     setSearchResults([])
     setIsSearching(false)
   }, [])
+
+  const openSearch = useCallback((): void => setSearchOpen(true), [])
+
+  const closeSearch = useCallback((): void => {
+    searchBoxRef.current?.clear()
+    searchBoxRef.current?.hideKeyboard()
+    clearSearch()
+    setSearchOpen(false)
+  }, [clearSearch])
 
   const hideKeyboard = useCallback((): void => {
     searchBoxRef.current?.hideKeyboard()
@@ -114,6 +126,9 @@ export function SearchProvider({ children }: { children: React.ReactNode }): JSX
     hideKeyboard,
     playTrack,
     searchBoxRef,
+    searchOpen,
+    openSearch,
+    closeSearch,
   }
 
   return (

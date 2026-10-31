@@ -67,17 +67,21 @@
   transition: left 0.5s;
 }
 
-.clearButton:hover::before,
-.refreshButton:hover::before {
-  left: 100%;
+@media (hover: hover) {
+  .clearButton:hover::before,
+  .refreshButton:hover::before {
+    left: 100%;
+  }
 }
 
-.clearButton:hover,
-.refreshButton:hover {
-  background: var(--background-hover);
-  border-color: var(--accent-color);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+@media (hover: hover) {
+  .clearButton:hover,
+  .refreshButton:hover {
+    background: var(--background-hover);
+    border-color: var(--accent-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
 }
 
 .clearButton:disabled,
@@ -111,10 +115,12 @@
   transition: all 0.3s ease;
 }
 
-.statItem:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border-color: var(--accent-color);
+@media (hover: hover) {
+  .statItem:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: var(--accent-color);
+  }
 }
 
 .statLabel {
@@ -200,14 +206,18 @@
   transition: left 0.5s;
 }
 
-.levelButton:hover::before {
-  left: 100%;
+@media (hover: hover) {
+  .levelButton:hover::before {
+    left: 100%;
+  }
 }
 
-.levelButton:hover {
-  background: var(--background-hover);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+@media (hover: hover) {
+  .levelButton:hover {
+    background: var(--background-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
 }
 
 .levelButton.active {
@@ -258,8 +268,10 @@
   border-radius: 4px;
 }
 
-.logsContainer::-webkit-scrollbar-thumb:hover {
-  background: var(--accent-color);
+@media (hover: hover) {
+  .logsContainer::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-color);
+  }
 }
 
 .loading,
@@ -298,9 +310,11 @@
   position: relative;
 }
 
-.logEntry:hover {
-  background: var(--background-hover);
-  transform: translateX(4px);
+@media (hover: hover) {
+  .logEntry:hover {
+    background: var(--background-hover);
+    transform: translateX(4px);
+  }
 }
 
 .logEntry:last-child {

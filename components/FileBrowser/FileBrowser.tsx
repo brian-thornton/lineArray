@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Folder, Home, Monitor, FileText, Music } from 'lucide-react'
 import styles from './FileBrowser.module.css'
+import { useDialogFocus } from '@/hooks/useDialogFocus'
 
 interface FileBrowserProps {
   onSelectPath: (path: string) => void
@@ -112,6 +113,8 @@ function FileBrowser({ onSelectPath, isOpen, onClose }: FileBrowserProps): JSX.E
     }
   }
 
+  const dialogRef = useDialogFocus(isOpen)
+
   if (!isOpen) return null
 
   return (
@@ -119,21 +122,21 @@ function FileBrowser({ onSelectPath, isOpen, onClose }: FileBrowserProps): JSX.E
       className={styles.overlay}
       onClick={onClose}
       onKeyDown={e => { if (e.key === 'Escape') onClose() }}
-      tabIndex={0}
-      role="button"
-      aria-label="Close file browser modal"
+      role="presentation"
     >
       <div
         className={styles.modal}
         onClick={(e) => e.stopPropagation()}
         onKeyDown={e => { if (e.key === 'Escape') onClose() }}
-        tabIndex={0}
-        role="button"
-        aria-label="File browser modal content"
+        ref={dialogRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="file-browser-title"
       >
         <div className={styles.header}>
-          <h2 className={styles.title}>Browse Music Directory</h2>
-          <button className={styles.closeButton} onClick={onClose}>
+          <h2 id="file-browser-title" className={styles.title}>Browse Music Directory</h2>
+          <button className={styles.closeButton} onClick={onClose} aria-label="Close">
             ×
           </button>
         </div>

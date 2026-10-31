@@ -5,7 +5,6 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 interface LibraryState {
   currentPage: number
   selectedLetter: string | null
-  layout: 'modern' | 'classic' | 'large'
 }
 
 interface LibraryContextType {
@@ -18,8 +17,7 @@ const LibraryContext = createContext<LibraryContextType | undefined>(undefined)
 
 const defaultState: LibraryState = {
   currentPage: 1,
-  selectedLetter: null,
-  layout: 'modern'
+  selectedLetter: null
 }
 
 export function LibraryProvider({ children }: { children: ReactNode }): JSX.Element {
@@ -53,7 +51,6 @@ export function LibraryProvider({ children }: { children: ReactNode }): JSX.Elem
       const updated = { ...prev }
       if (newState.currentPage !== undefined) updated.currentPage = newState.currentPage
       if (newState.selectedLetter !== undefined) updated.selectedLetter = newState.selectedLetter
-      if (newState.layout !== undefined) updated.layout = newState.layout
       return updated
     })
   }, [])

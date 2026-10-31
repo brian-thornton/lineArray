@@ -51,9 +51,11 @@
   transition: all 0.2s ease;
 }
 
-.closeButton:hover {
-  background-color: var(--jukebox-blue);
-  color: var(--jukebox-white);
+@media (hover: hover) {
+  .closeButton:hover {
+    background-color: var(--jukebox-blue);
+    color: var(--jukebox-white);
+  }
 }
 
 .closeIcon {
@@ -157,8 +159,10 @@
   border-radius: var(--radius-sm);
 }
 
-.playlistList::-webkit-scrollbar-thumb:hover {
-  background: var(--jukebox-gold);
+@media (hover: hover) {
+  .playlistList::-webkit-scrollbar-thumb:hover {
+    background: var(--jukebox-gold);
+  }
 }
 
 /* Firefox scrollbar */
@@ -180,11 +184,13 @@
   width: 100%;
 }
 
-.playlistItem:hover {
-  background: var(--jukebox-blue);
-  border-color: var(--jukebox-gold);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-glow);
+@media (hover: hover) {
+  .playlistItem:hover {
+    background: var(--jukebox-blue);
+    border-color: var(--jukebox-gold);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-glow);
+  }
 }
 
 .playlistIcon {
@@ -256,10 +262,12 @@
   border: 2px solid transparent;
 }
 
-.createButton:hover {
-  background: linear-gradient(135deg, var(--jukebox-gold) 0%, var(--jukebox-blue) 100%);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-glow);
+@media (hover: hover) {
+  .createButton:hover {
+    background: linear-gradient(135deg, var(--jukebox-gold) 0%, var(--jukebox-blue) 100%);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-glow);
+  }
 }
 
 .plusIcon {
@@ -288,7 +296,7 @@
 
 .nameInput:focus {
   border-color: var(--jukebox-gold);
-  box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--jukebox-accent) 20%, transparent);
 }
 
 .nameInput::placeholder {
@@ -313,10 +321,12 @@
   transition: all 0.2s ease;
 }
 
-.saveButton:hover:not(:disabled) {
-  background: linear-gradient(135deg, var(--jukebox-gold) 0%, var(--jukebox-blue) 100%);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-glow);
+@media (hover: hover) {
+  .saveButton:hover:not(:disabled) {
+    background: linear-gradient(135deg, var(--jukebox-gold) 0%, var(--jukebox-blue) 100%);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-glow);
+  }
 }
 
 .saveButton:disabled {
@@ -339,10 +349,12 @@
   transition: all 0.2s ease;
 }
 
-.cancelButton:hover {
-  background: var(--jukebox-blue);
-  color: var(--jukebox-white);
-  transform: translateY(-2px);
+@media (hover: hover) {
+  .cancelButton:hover {
+    background: var(--jukebox-blue);
+    color: var(--jukebox-white);
+    transform: translateY(-2px);
+  }
 }
 
 @media (max-width: 640px) {

@@ -2,24 +2,26 @@
 
 :root {
   /* Color Palette - Legacy variables for backward compatibility */
-  --jukebox-dark: #1a1a2e;
-  --jukebox-darker: #16213e;
-  --jukebox-accent: #ffd700;
-  --jukebox-gold: #ffd700;
+  --jukebox-dark: #1e293b;
+  --jukebox-darker: #0f172a;
+  --jukebox-accent: #38a9f5;
+  --jukebox-gold: #38a9f5;
+  --jukebox-on-accent: #111827;
+  --upnext-width: 360px;
   --jukebox-blue: #0ea5e9;
-  --jukebox-purple: #8b5cf6;
+  --jukebox-purple: #334155;
   --jukebox-white: #ffffff;
-  --jukebox-gray: #6b7280;
+  --jukebox-gray: #94a3b8;
   --jukebox-light-gray: #f3f4f6;
   
   /* New theme variables - will be set by ThemeContext */
-  --jukebox-primary: #1a1a2e;
-  --jukebox-secondary: #16213e;
-  --jukebox-background: #1a1a2e;
+  --jukebox-primary: #1e293b;
+  --jukebox-secondary: #334155;
+  --jukebox-background: #0f172a;
   --jukebox-surface: rgba(255, 255, 255, 0.05);
-  --jukebox-text: #ffffff;
-  --jukebox-text-secondary: #a0a0a0;
-  --jukebox-text-tertiary: #666666;
+  --jukebox-text: #f1f5f9;
+  --jukebox-text-secondary: #94a3b8;
+  --jukebox-text-tertiary: #64748b;
   --jukebox-border: rgba(255, 255, 255, 0.1);
   --jukebox-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   --jukebox-success: #4ade80;
@@ -73,11 +75,6 @@ body {
   body {
     background: var(--jukebox-background) !important;
     color: var(--jukebox-text) !important;
-  }
-  
-  /* Force theme colors on mobile Safari */
-  * {
-    background-color: inherit;
   }
   
   /* Additional mobile Safari theme enforcement */
@@ -142,8 +139,10 @@ button {
   border-radius: var(--radius-sm);
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: var(--jukebox-gold);
+@media (hover: hover) {
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--jukebox-gold);
+  }
 }
 
 /* Animations */
@@ -197,3 +196,51 @@ button {
     --spacing-2xl: 2rem;
   }
 } 
+/* ===== Touch / kiosk behaviour ===== */
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  /* No double-tap-to-zoom, so taps register without the ~300ms wait */
+  touch-action: manipulation;
+}
+
+html {
+  /* No pull-to-refresh or rubber-band bounce on the kiosk.
+     Root only: on <body> (a scroll container because of overflow-x: hidden) it
+     would stop scrolls from chaining up to the page at mobile widths. */
+  overscroll-behavior: none;
+}
+
+img {
+  -webkit-user-drag: none;
+}
+
+/* On touch screens a long press should never select text or pop the callout menu.
+   Desktop (mouse) users can still select and copy. */
+@media (pointer: coarse) {
+  body {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  input,
+  textarea,
+  [contenteditable="true"] {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+}
+
+/* Press feedback: a finger covers what it taps, so show the tap registered.
+   :where() keeps specificity at zero so component :active styles still win. */
+:where(button, [role="button"], a):active:not(:disabled) {
+  filter: brightness(0.85);
+  transform: scale(0.97);
+  transition-duration: 0.05s;
+}
+
+/* Dialogs take focus when they open (so Escape works); no ring around the whole panel */
+[role="dialog"]:focus {
+  outline: none;
+}

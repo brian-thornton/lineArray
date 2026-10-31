@@ -50,9 +50,11 @@
   border-right: none;
 }
 
-.navButton:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--jukebox-text);
+@media (hover: hover) {
+  .navButton:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--jukebox-text);
+  }
 }
 
 .navButton.active {
@@ -67,8 +69,10 @@
   transition: transform 0.2s ease;
 }
 
-.navButton:hover .navIcon {
-  transform: scale(1.1);
+@media (hover: hover) {
+  .navButton:hover .navIcon {
+    transform: scale(1.1);
+  }
 }
 
 .navButton.active .navIcon {
@@ -158,7 +162,7 @@
   outline: none;
   border-color: var(--jukebox-accent);
   background: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--jukebox-accent) 20%, transparent);
 }
 
 .input::placeholder {
@@ -235,11 +239,13 @@
   overflow: hidden;
 }
 
-.saveButton:hover:not(:disabled) {
-  background: #e6c200;
-  border-color: #e6c200;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+@media (hover: hover) {
+  .saveButton:hover:not(:disabled) {
+    background: #e6c200;
+    border-color: #e6c200;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
 }
 
 .saveButton:active:not(:disabled) {
@@ -288,15 +294,17 @@
   width: 100%;
 }
 
-.themeCard:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--jukebox-shadow);
-  border-color: var(--jukebox-accent);
+@media (hover: hover) {
+  .themeCard:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--jukebox-shadow);
+    border-color: var(--jukebox-accent);
+  }
 }
 
 .themeCardActive {
   border-color: var(--jukebox-accent);
-  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--jukebox-accent) 20%, transparent);
 }
 
 .themePreview {
@@ -487,8 +495,10 @@
   border: 1px solid var(--border-color);
 }
 
-.pinCancelButton:hover {
-  background: var(--background-color);
+@media (hover: hover) {
+  .pinCancelButton:hover {
+    background: var(--background-color);
+  }
 }
 
 .pinSubmitButton {
@@ -496,8 +506,10 @@
   color: white;
 }
 
-.pinSubmitButton:hover:not(:disabled) {
-  background: var(--accent-hover);
+@media (hover: hover) {
+  .pinSubmitButton:hover:not(:disabled) {
+    background: var(--accent-hover);
+  }
 }
 
 .pinSubmitButton:disabled {

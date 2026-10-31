@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react'
+import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import LargeAlbumCard from '../LargeAlbumCard/LargeAlbumCard'
 import SwipeGestures from '../SwipeGestures/SwipeGestures'
@@ -18,39 +18,29 @@ function LargeAlbumGrid({ albums, onPlayTrack, isLoading }: LargeAlbumGridProps)
   const searchParams = useSearchParams()
   const { libraryState, updateLibraryState } = useLibrary()
   const { selectedLetter, currentPage } = libraryState
-  const [viewportWidth, setViewportWidth] = useState<number>(1300)
-  
-  // Calculate albums per page based on viewport width
-  // 6 columns x 2 rows = 12 items for widths > 1300px
-  // 5 columns x 2 rows = 10 items for widths <= 1300px and > 1100px
-  // 4 columns x 2 rows = 8 items for widths <= 1100px and > 900px
-  // 3 columns x 2 rows = 6 items for widths <= 900px
-  const albumsPerPage = useMemo(() => {
-    let columns = 6
-    if (viewportWidth <= 900) {
-      columns = 3
-    } else if (viewportWidth <= 1100) {
-      columns = 4
-    } else if (viewportWidth <= 1300) {
-      columns = 5
-    }
-    const rows = 2
-    return columns * rows
-  }, [viewportWidth])
+  const [gridWidth, setGridWidth] = useState<number>(1300)
+  const resizeObserver = useRef<ResizeObserver | null>(null)
 
-  // Update viewport width on mount and resize
-  useEffect(() => {
-    const updateViewportWidth = (): void => {
-      if (typeof window !== 'undefined') {
-        setViewportWidth(window.innerWidth)
-      }
-    }
+  // Columns follow the width the library actually gets (not the window), so it reflows when the
+  // Up Next rail docks beside it. 2 rows per page:
+  // 6 columns above 1300px, 5 above 1100px, 4 above 900px, otherwise 3
+  const columns = useMemo(() => {
+    if (gridWidth <= 900) return 3
+    if (gridWidth <= 1100) return 4
+    if (gridWidth <= 1300) return 5
+    return 6
+  }, [gridWidth])
+  const albumsPerPage = columns * 2
 
-    updateViewportWidth()
-    window.addEventListener('resize', updateViewportWidth)
-    return () => window.removeEventListener('resize', updateViewportWidth)
+  const containerRef = useCallback((el: HTMLDivElement | null) => {
+    resizeObserver.current?.disconnect()
+    resizeObserver.current = null
+    if (!el) return
+    const update = (): void => setGridWidth(el.getBoundingClientRect().width)
+    update()
+    resizeObserver.current = new ResizeObserver(update)
+    resizeObserver.current.observe(el)
   }, [])
-
 
   // Filter albums based on selected letter
   const filteredAlbums = useMemo(() => {
@@ -166,7 +156,7 @@ function LargeAlbumGrid({ albums, onPlayTrack, isLoading }: LargeAlbumGridProps)
       onSwipeRight={handleSwipeRight}
       disabled={totalPages <= 1}
     >
-      <div className={styles.container}>
+      <div ref={containerRef} className={styles.container}>
         {/* Album Grid */}
         <div className={styles.gridContainer}>
         {/* Left Navigation Arrow */}
@@ -220,7 +210,7 @@ function LargeAlbumGrid({ albums, onPlayTrack, isLoading }: LargeAlbumGridProps)
           </div>
         )}
 
-        <div className={styles.grid}>
+        <div className={styles.grid} style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
           {currentAlbums.map((album) => (
             <LargeAlbumCard
               key={album.id}

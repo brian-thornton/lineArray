@@ -2,14 +2,6 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { Settings } from '@/types/music'
-import { usePlayback } from '@/contexts/PlaybackContext'
-
-// Party mode protects the shared server jukebox. When this device plays audio
-// itself, its queue and transport controls are private, so these don't apply.
-const LOCAL_PLAYBACK_ACTIONS = new Set<keyof Settings['partyMode']>([
-  'allowPlay', 'allowStop', 'allowNext', 'allowPrevious',
-  'allowAddToQueue', 'allowRemoveFromQueue', 'allowSkipInQueue',
-])
 
 interface SettingsContextType {
   settings: Settings
@@ -22,20 +14,17 @@ interface SettingsContextType {
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined)
 
 export function SettingsProvider({ children }: { children: ReactNode }): JSX.Element {
-  const { mode: playbackMode } = usePlayback()
   const [settings, setSettings] = useState<Settings>({
     scanPath: '',
     jukeboxName: 'Jukebox 2.0',
     adminPin: '1234',
-    theme: 'jukebox-classic',
-    showPagination: true,
+    theme: 'slate-blue',
     showConcertDetails: true,
     showMobileQR: true,
-    useMobileAlbumLayout: false,
-    useSideBySideAlbumLayout: false,
+    idleScreenMinutes: 3,
     showPlaybackPosition: true,
     enableAdminMode: false,
-    libraryLayout: 'modern',
+    libraryLayout: 'large',
     audioPlayer: 'vlc',
     partyMode: {
       enabled: false,
@@ -121,11 +110,7 @@ export function SettingsProvider({ children }: { children: ReactNode }): JSX.Ele
       return true
     }
 
-    if (playbackMode === 'browser' && LOCAL_PLAYBACK_ACTIONS.has(action)) {
-      return true
-    }
-    
-    // Check if the specific action is allowed
+    // Applies in every playback mode: on a kiosk, "This device" playback is the jukebox itself
     return settings.partyMode[action]
   }
 

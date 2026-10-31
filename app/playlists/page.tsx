@@ -1,430 +1,240 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Edit, Trash2, Play, Music, ListPlus } from 'lucide-react'
+import { Plus, Play, ListMusic, Check } from 'lucide-react'
 import { Playlist } from '@/types/music'
 import { useSettings } from '@/contexts/SettingsContext'
-import { usePlayback } from '@/contexts/PlaybackContext'
-import { useSearch } from '@/contexts/SearchContext'
 import { useToast } from '@/contexts/ToastContext'
-import SearchResults from '@/components/SearchResults/SearchResults'
+import { usePlayAll } from '@/hooks/usePlayAll'
+import PlaylistCover from '@/components/PlaylistCover/PlaylistCover'
 import styles from './page.module.css'
+
+function updatedLabel(dateString: string): string {
+  const days = Math.floor((Date.now() - new Date(dateString).getTime()) / 86_400_000)
+  if (days <= 0) return 'Updated today'
+  if (days === 1) return 'Updated yesterday'
+  if (days < 7) return `Updated ${days} days ago`
+  return `Updated ${new Date(dateString).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+}
 
 export default function PlaylistsPage(): JSX.Element {
   const router = useRouter()
   const { canPerformAction } = useSettings()
-  const playback = usePlayback()
-  const { searchQuery, searchResults, isSearching, playTrack, hideKeyboard } = useSearch()
   const { showToast } = useToast()
+  const playAll = usePlayAll()
   const [playlists, setPlaylists] = useState<Playlist[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
-  const [showDeleteModal, setShowDeleteModal] = useState<string | null>(null)
-  const [showQueueModal, setShowQueueModal] = useState<Playlist | null>(null)
   const [newPlaylistName, setNewPlaylistName] = useState('')
   const [newPlaylistDescription, setNewPlaylistDescription] = useState('')
   const [isCreating, setIsCreating] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
+  const [startingId, setStartingId] = useState<string | null>(null)
+  const nameInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    void loadPlaylists()
-  }, [])
-
-  const loadPlaylists = async (): Promise<void> => {
-    try {
-      const response = await fetch('/api/playlists')
-      if (response.ok) {
-        const data = await response.json() as Playlist[]
-        setPlaylists(data)
-      } else {
-        console.error('Failed to load playlists')
+    const load = async (): Promise<void> => {
+      try {
+        const response = await fetch('/api/playlists')
+        if (response.ok) setPlaylists(await response.json() as Playlist[])
+      } catch (error) {
+        console.error('Error loading playlists:', error)
+        showToast('Could not load playlists', 'error')
+      } finally {
+        setLoading(false)
       }
-    } catch (error) {
-      console.error('Error loading playlists:', error)
-    } finally {
-      setLoading(false)
     }
+    void load()
+  }, [showToast])
+
+  useEffect(() => {
+    if (showCreateModal) nameInputRef.current?.focus()
+  }, [showCreateModal])
+
+  const canCreate = canPerformAction('allowCreatePlaylists')
+  const canQueue = canPerformAction('allowAddToQueue')
+
+  const openCreate = (): void => {
+    setNewPlaylistName('')
+    setNewPlaylistDescription('')
+    setShowCreateModal(true)
   }
 
+  // A new playlist is empty, so go straight to it; its empty state explains how to add songs
   const handleCreatePlaylist = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
-    if (!newPlaylistName.trim()) return
-
-    if (!canPerformAction('allowCreatePlaylists')) {
-      // TODO: Show non-blocking UI for restricted action
-      return
-    }
-
+    if (!newPlaylistName.trim() || !canCreate) return
     setIsCreating(true)
     try {
       const response = await fetch('/api/playlists', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: newPlaylistName.trim(),
-          description: newPlaylistDescription.trim()
-        })
+        body: JSON.stringify({ name: newPlaylistName.trim(), description: newPlaylistDescription.trim() })
       })
-
       if (response.ok) {
-        const newPlaylist = await response.json() as Playlist
-        setPlaylists(prev => [...prev, newPlaylist])
-        setShowCreateModal(false)
-        setNewPlaylistName('')
-        setNewPlaylistDescription('')
+        const created = await response.json() as Playlist
+        void router.push(`/playlists/${created.id}`)
       } else {
-        // TODO: Show non-blocking UI for error
+        const data = await response.json().catch(() => ({})) as { error?: string }
+        showToast(data.error ?? 'Could not create playlist', 'error')
+        setIsCreating(false)
       }
     } catch (error) {
       console.error('Error creating playlist:', error)
-      // TODO: Show non-blocking UI for error
-    } finally {
+      showToast('Could not create playlist', 'error')
       setIsCreating(false)
     }
   }
 
-  const handleDeletePlaylist = async (playlistId: string): Promise<void> => {
-    if (!canPerformAction('allowDeletePlaylists')) {
-      // TODO: Show non-blocking UI for restricted action
-      return
-    }
-
-    setIsDeleting(true)
+  const handlePlay = async (playlist: Playlist): Promise<void> => {
+    if (!canQueue || playlist.tracks.length === 0) return
+    setStartingId(playlist.id)
     try {
-      const response = await fetch(`/api/playlists/${playlistId}`, {
-        method: 'DELETE'
-      })
-
-      if (response.ok) {
-        setPlaylists(prev => prev.filter(p => p.id !== playlistId))
-        setShowDeleteModal(null)
-      } else {
-        // TODO: Show non-blocking UI for error
-      }
+      await playAll(playlist.tracks.map(pt => pt.track.path), playlist.name)
     } catch (error) {
-      console.error('Error deleting playlist:', error)
-      // TODO: Show non-blocking UI for error
+      console.error('Error playing playlist:', error)
+      showToast('Could not play playlist', 'error')
     } finally {
-      setIsDeleting(false)
+      setStartingId(null)
     }
-  }
-
-  const doLoadPlaylist = async (playlist: Playlist, replace: boolean): Promise<void> => {
-    try {
-      if (replace) {
-        await playback.clearQueue()
-      }
-      for (const playlistTrack of playlist.tracks) {
-        await playback.addToQueue(playlistTrack.track.path)
-      }
-      void router.push('/')
-    } catch (error) {
-      console.error('Error loading playlist into queue:', error)
-    }
-  }
-
-  const handlePlayPlaylist = async (playlist: Playlist): Promise<void> => {
-    if (!canPerformAction('allowAddToQueue')) return
-    if (playlist.tracks.length === 0) return
-
-    const state = await playback.getState()
-    if (state) {
-      const hasContent = state.queue.length > 0 || !!state.currentTrack
-      if (hasContent) {
-        setShowQueueModal(playlist)
-        return
-      }
-    }
-
-    await doLoadPlaylist(playlist, true)
-  }
-
-  const handleTrackClick = async (path: string): Promise<void> => {
-    const outcome = await playTrack(path)
-    hideKeyboard()
-    
-    // Find the track title for the toast (none when it just started playing here)
-    const track = searchResults.find(result => result.path === path)
-    if (track && outcome === 'queued') {
-      showToast(`Added "${track.title}" to queue`, 'success')
-    }
-  }
-
-  const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleDateString()
   }
 
   if (loading) {
     return (
       <div className={styles.loadingContainer}>
         <div className={styles.loadingSpinner} />
-        <p>Loading playlists...</p>
+        <p>Loading playlists…</p>
       </div>
     )
   }
 
+  const sorted = [...playlists].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+
   return (
-    <>
-      {searchQuery ? (
-        <div className={styles.container}>
-          <SearchResults 
-            results={searchResults}
-            onTrackClick={path => { void handleTrackClick(path); }}
-            isLoading={isSearching}
-          />
+    <div className={styles.container}>
+      <div className={styles.toolbar}>
+        <h1 className={styles.title}>
+          <ListMusic className={styles.titleIcon} />
+          Playlists
+          {playlists.length > 0 && <span className={styles.count}>{playlists.length}</span>}
+        </h1>
+        {playlists.length > 0 && (
+          <button
+            onClick={openCreate}
+            className={styles.createButton}
+            disabled={!canCreate}
+            title={!canCreate ? 'Creating playlists is restricted in party mode' : 'Create a new playlist'}
+          >
+            <Plus className={styles.buttonIcon} />
+            New playlist
+          </button>
+        )}
+      </div>
+
+      {playlists.length === 0 ? (
+        <div className={styles.empty}>
+          <ListMusic className={styles.emptyIcon} />
+          <h2>No playlists yet</h2>
+          <p>Make one for the party, then fill it from any album with <strong>Add to Playlist</strong>.</p>
+          <button
+            onClick={openCreate}
+            className={styles.createButton}
+            disabled={!canCreate}
+            title={!canCreate ? 'Creating playlists is restricted in party mode' : 'Create your first playlist'}
+          >
+            <Plus className={styles.buttonIcon} />
+            Create a playlist
+          </button>
         </div>
       ) : (
-        <div className={styles.container}>
-          <div className={styles.header}>
-            <h1 className={styles.title}>Playlists</h1>
-            <button 
-              onClick={() => setShowCreateModal(true)}
-              className={styles.createButton}
-              disabled={!canPerformAction('allowCreatePlaylists')}
-              title={!canPerformAction('allowCreatePlaylists') ? 'Creating playlists is restricted in party mode' : 'Create new playlist'}
-            >
-              <Plus className={styles.plusIcon} />
-              New Playlist
-            </button>
-          </div>
-
-          {playlists.length === 0 ? (
-            <div className={styles.emptyState}>
-              <Music className={styles.emptyIcon} />
-              <h2>No playlists yet</h2>
-              <p>Create your first playlist to get started</p>
-              <button 
-                onClick={() => setShowCreateModal(true)}
-                className={styles.createFirstButton}
-                disabled={!canPerformAction('allowCreatePlaylists')}
-                title={!canPerformAction('allowCreatePlaylists') ? 'Creating playlists is restricted in party mode' : 'Create your first playlist'}
-              >
-                <Plus className={styles.plusIcon} />
-                Create Playlist
-              </button>
-            </div>
-          ) : (
-            <div className={styles.playlistsGrid}>
-              {playlists.map((playlist) => (
-                <div key={playlist.id} className={styles.playlistCard}>
-                  <div className={styles.playlistHeader}>
-                    <div className={styles.playlistIcon}>
-                      <Music className={styles.musicIcon} />
-                    </div>
-                    <div className={styles.playlistInfo}>
-                      <h3 className={styles.playlistName}>{playlist.name}</h3>
-                      {playlist.description && (
-                        <p className={styles.playlistDescription}>{playlist.description}</p>
-                      )}
-                      <div className={styles.playlistMeta}>
-                        <span className={styles.trackCount}>
-                          {playlist.trackCount} {playlist.trackCount === 1 ? 'track' : 'tracks'}
-                        </span>
-                        <span className={styles.createdDate}>
-                          Created {formatDate(playlist.createdAt)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className={styles.playlistActions}>
-                    <button
-                      onClick={() => { void handlePlayPlaylist(playlist) }}
-                      className={styles.playButton}
-                      disabled={playlist.trackCount === 0 || !canPerformAction('allowAddToQueue')}
-                      title={
-                        playlist.trackCount === 0
-                          ? 'Playlist is empty'
-                          : !canPerformAction('allowAddToQueue')
-                          ? 'Adding to queue is restricted in party mode'
-                          : 'Play playlist'
-                      }
-                    >
-                      <Play className={styles.playIcon} />
-                    </button>
-                    <button
-                      onClick={() => { void doLoadPlaylist(playlist, false) }}
-                      className={styles.addToQueueButton}
-                      disabled={playlist.trackCount === 0 || !canPerformAction('allowAddToQueue')}
-                      title={
-                        playlist.trackCount === 0
-                          ? 'Playlist is empty'
-                          : !canPerformAction('allowAddToQueue')
-                          ? 'Adding to queue is restricted in party mode'
-                          : 'Add playlist to end of queue'
-                      }
-                    >
-                      <ListPlus className={styles.playIcon} />
-                    </button>
-                    <button
-                      onClick={() => { void router.push(`/playlists/${playlist.id}`) }}
-                      className={styles.editButton}
-                      disabled={!canPerformAction('allowEditPlaylists')}
-                      title={!canPerformAction('allowEditPlaylists') ? 'Editing playlists is restricted in party mode' : 'Edit playlist'}
-                    >
-                      <Edit className={styles.editIcon} />
-                    </button>
-                    <button
-                      onClick={() => setShowDeleteModal(playlist.id)}
-                      className={styles.deleteButton}
-                      disabled={!canPerformAction('allowDeletePlaylists')}
-                      title={!canPerformAction('allowDeletePlaylists') ? 'Deleting playlists is restricted in party mode' : 'Delete playlist'}
-                    >
-                      <Trash2 className={styles.deleteIcon} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <ul className={styles.grid}>
+          {sorted.map(playlist => {
+            const count = playlist.tracks.length
+            const playDisabled = count === 0 || !canQueue
+            return (
+              <li key={playlist.id} className={styles.tile}>
+                <button
+                  className={styles.tileMain}
+                  onClick={() => router.push(`/playlists/${playlist.id}`)}
+                  aria-label={`Open ${playlist.name}`}
+                >
+                  <PlaylistCover tracks={playlist.tracks} className={styles.tileCover} />
+                  <span className={styles.tileText}>
+                    <span className={styles.tileName}>{playlist.name}</span>
+                    <span className={styles.tileMeta}>
+                      {count === 0 ? 'Empty' : `${count} ${count === 1 ? 'track' : 'tracks'}`} · {updatedLabel(playlist.updatedAt)}
+                    </span>
+                  </span>
+                </button>
+                {count > 0 && (
+                  <button
+                    className={`${styles.playFab} ${startingId === playlist.id ? styles.playFabBusy : ''}`}
+                    onClick={() => { void handlePlay(playlist) }}
+                    disabled={playDisabled || startingId === playlist.id}
+                    title={!canQueue ? 'Adding to queue is restricted in party mode' : `Play ${playlist.name}`}
+                    aria-label={`Play ${playlist.name}`}
+                  >
+                    <Play className={styles.playFabIcon} />
+                  </button>
+                )}
+              </li>
+            )
+          })}
+        </ul>
       )}
 
-      {/* Create Playlist Modal */}
       {showCreateModal && (
-        <div 
-          className={styles.modalOverlay} 
-          onClick={() => setShowCreateModal(false)}
-          onKeyDown={e => { if (e.key === 'Escape') setShowCreateModal(false) }}
-          tabIndex={0}
-          role="button"
-        >
-          <div 
-            className={styles.modal} 
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={e => { if (e.key === 'Escape') setShowCreateModal(false) }}
-            tabIndex={0}
-            role="button"
-          >
-            <h2>Create New Playlist</h2>
-            <form onSubmit={e => { void handleCreatePlaylist(e) }}>
-              <div className={styles.formGroup}>
-                <label htmlFor="playlistName">Name *</label>
-                <input
-                  id="playlistName"
-                  type="text"
-                  value={newPlaylistName}
-                  onChange={(e) => setNewPlaylistName(e.target.value)}
-                  placeholder="Enter playlist name"
-                  required
-                  className={styles.input}
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label htmlFor="playlistDescription">Description</label>
-                <textarea
-                  id="playlistDescription"
-                  value={newPlaylistDescription}
-                  onChange={(e) => setNewPlaylistDescription(e.target.value)}
-                  placeholder="Enter playlist description (optional)"
-                  className={styles.textarea}
-                  rows={3}
-                />
-              </div>
-              <div className={styles.modalActions}>
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className={styles.cancelButton}
-                  disabled={isCreating}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className={styles.saveButton}
-                  disabled={isCreating || !newPlaylistName.trim()}
-                >
-                  {isCreating ? 'Creating...' : 'Create Playlist'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Queue Conflict Modal */}
-      {showQueueModal && (
         <div
           className={styles.modalOverlay}
-          onClick={() => setShowQueueModal(null)}
-          onKeyDown={e => { if (e.key === 'Escape') setShowQueueModal(null) }}
-          tabIndex={0}
-          role="button"
+          onClick={() => setShowCreateModal(false)}
+          onKeyDown={e => { if (e.key === 'Escape') setShowCreateModal(false) }}
+          role="presentation"
         >
-          <div
+          <form
             className={styles.modal}
-            onClick={e => e.stopPropagation()}
-            onKeyDown={e => { if (e.key === 'Escape') setShowQueueModal(null) }}
-            tabIndex={0}
-            role="button"
-          >
-            <h2>Play Playlist</h2>
-            <p>
-              There are tracks currently in the queue. Would you like to replace the queue with &ldquo;{showQueueModal.name}&rdquo;, or add it to the end?
-            </p>
-            <div className={styles.modalActions}>
-              <button
-                onClick={() => setShowQueueModal(null)}
-                className={styles.cancelButton}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => { const p = showQueueModal; setShowQueueModal(null); void doLoadPlaylist(p, false) }}
-                className={styles.addToQueueButton}
-              >
-                Add to Queue
-              </button>
-              <button
-                onClick={() => { const p = showQueueModal; setShowQueueModal(null); void doLoadPlaylist(p, true) }}
-                className={styles.replaceQueueButton}
-              >
-                Replace Queue
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div 
-          className={styles.modalOverlay} 
-          onClick={() => setShowDeleteModal(null)}
-          onKeyDown={e => { if (e.key === 'Escape') setShowDeleteModal(null) }}
-          tabIndex={0}
-          role="button"
-        >
-          <div 
-            className={styles.modal} 
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="create-modal-title"
             onClick={(e) => e.stopPropagation()}
-            onKeyDown={e => { if (e.key === 'Escape') setShowDeleteModal(null) }}
-            tabIndex={0}
-            role="button"
+            onKeyDown={e => { if (e.key === 'Escape') setShowCreateModal(false) }}
+            onSubmit={e => { void handleCreatePlaylist(e) }}
           >
-            <h2>Delete Playlist</h2>
-            <p>Are you sure you want to delete this playlist? This action cannot be undone.</p>
+            <h2 id="create-modal-title">New playlist</h2>
+            <label className={styles.fieldLabel}>
+              Name
+              <input
+                ref={nameInputRef}
+                type="text"
+                value={newPlaylistName}
+                onChange={(e) => setNewPlaylistName(e.target.value)}
+                placeholder="Friday night"
+                className={styles.input}
+                enterKeyHint="done"
+                required
+              />
+            </label>
+            <label className={styles.fieldLabel}>
+              Description
+              <textarea
+                value={newPlaylistDescription}
+                onChange={(e) => setNewPlaylistDescription(e.target.value)}
+                placeholder="Optional"
+                className={styles.input}
+                rows={2}
+              />
+            </label>
             <div className={styles.modalActions}>
-              <button
-                onClick={() => setShowDeleteModal(null)}
-                className={styles.cancelButton}
-                disabled={isDeleting}
-              >
+              <button type="button" onClick={() => setShowCreateModal(false)} className={styles.secondaryButton} disabled={isCreating}>
                 Cancel
               </button>
-              <button
-                onClick={() => { void handleDeletePlaylist(showDeleteModal) }}
-                className={styles.deleteConfirmButton}
-                disabled={isDeleting}
-              >
-                {isDeleting ? 'Deleting...' : 'Delete'}
+              <button type="submit" className={styles.saveButton} disabled={isCreating || !newPlaylistName.trim()}>
+                <Check className={styles.buttonIcon} />
+                {isCreating ? 'Creating…' : 'Create'}
               </button>
             </div>
-          </div>
+          </form>
         </div>
       )}
-    </>
+    </div>
   )
-} 
+}

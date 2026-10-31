@@ -3,6 +3,7 @@ import fs from 'fs'
 import path from 'path'
 import { Playlist, UpdatePlaylistRequest } from '@/types/music'
 import logger from '@/utils/serverLogger'
+import { withAlbumInfo } from '@/utils/playlistAlbumInfo'
 
 const playlistsPath = path.join(process.cwd(), 'data', 'playlists.json')
 
@@ -81,7 +82,7 @@ export function GET(
       return Promise.resolve(NextResponse.json({ error: 'Playlist not found' }, { status: 404 }))
     }
 
-    return Promise.resolve(NextResponse.json(playlist))
+    return Promise.resolve(NextResponse.json(withAlbumInfo([playlist])[0]))
   } catch (error) {
     logger.error('Error getting playlist', 'PlaylistsAPI', error)
     return Promise.resolve(NextResponse.json({ error: 'Failed to get playlist' }, { status: 500 }))

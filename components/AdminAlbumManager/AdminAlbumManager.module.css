@@ -44,14 +44,16 @@
   margin-bottom: var(--spacing-lg);
 }
 
-.uploadArea:hover {
-  border-color: var(--jukebox-accent);
-  background: rgba(255, 255, 255, 0.05);
+@media (hover: hover) {
+  .uploadArea:hover {
+    border-color: var(--jukebox-accent);
+    background: rgba(255, 255, 255, 0.05);
+  }
 }
 
 .uploadArea:focus-within {
   border-color: var(--jukebox-accent);
-  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--jukebox-accent) 20%, transparent);
 }
 
 .uploadContent {
@@ -84,9 +86,11 @@
   transition: all 0.2s ease;
 }
 
-.selectButton:hover:not(:disabled) {
-  background: #e6c200;
-  transform: translateY(-1px);
+@media (hover: hover) {
+  .selectButton:hover:not(:disabled) {
+    background: #e6c200;
+    transform: translateY(-1px);
+  }
 }
 
 .selectButton:disabled {
@@ -112,9 +116,11 @@
   margin-top: var(--spacing-sm);
 }
 
-.deleteButton:hover:not(:disabled) {
-  background: #dc2626;
-  transform: translateY(-1px);
+@media (hover: hover) {
+  .deleteButton:hover:not(:disabled) {
+    background: #dc2626;
+    transform: translateY(-1px);
+  }
 }
 
 .deleteButton:disabled {
@@ -199,10 +205,12 @@
   flex-shrink: 0;
 }
 
-.copyButton:hover {
-  background: rgba(var(--jukebox-accent-rgb), 0.1);
-  opacity: 1;
-  transform: scale(1.1);
+@media (hover: hover) {
+  .copyButton:hover {
+    background: rgba(var(--jukebox-accent-rgb), 0.1);
+    opacity: 1;
+    transform: scale(1.1);
+  }
 }
 
 .copyButton:active {

@@ -33,7 +33,7 @@ export default function RootLayout({
     // suppressHydrationWarning: themeBootScript sets inline theme styles on <html> before hydration.
     <html lang="en" suppressHydrationWarning>
       <head>
-        <meta name="theme-color" content="#0f0f23" />
+        <meta name="theme-color" content="#0f172a" />
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
       </head>
       <body>

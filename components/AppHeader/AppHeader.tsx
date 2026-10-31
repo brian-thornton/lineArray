@@ -1,23 +1,36 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { flushSync } from 'react-dom'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Settings, Smartphone, Library, Clock, ListMusic, Radio, Menu, X } from 'lucide-react'
+import { Settings, Smartphone, Library, ListMusic, Radio, Menu, X, Search } from 'lucide-react'
 import styles from './AppHeader.module.css'
 import JukeboxHeader from '@/components/JukeboxHeader/JukeboxHeader'
 import SearchBox from '@/components/SearchBox/SearchBox'
 import QRCode from '@/components/QRCode/QRCode'
 import { useSearch } from '@/contexts/SearchContext'
 import { useSettings } from '@/contexts/SettingsContext'
+import { useHeightVar } from '@/hooks/useHeightVar'
 
 export default function AppHeader(): JSX.Element {
+  const headerRef = useHeightVar('--app-header-h')
   const pathname = usePathname()
-  const isAlbumPage = pathname?.startsWith('/album/')
-  const { clearSearch, hideKeyboard, searchBoxRef } = useSearch()
+  const { clearSearch, hideKeyboard, searchBoxRef, searchOpen, openSearch: showSearch, closeSearch } = useSearch()
   const { settings } = useSettings()
   const [showQR, setShowQR] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
+  // Below the widest breakpoint search is a button; tapping it turns the header bar into search mode
+  const openSearch = (): void => {
+    // Render the field synchronously so focus() runs inside the tap and the on-screen keyboard opens
+    flushSync(() => showSearch())
+    searchBoxRef.current?.focus()
+  }
+
+  // Picking a result navigates; leave search mode when that happens
+  useEffect(() => {
+    closeSearch()
+  }, [pathname, closeSearch])
 
   const handleLibraryClick = (): void => {
     clearSearch()
@@ -43,17 +56,20 @@ export default function AppHeader(): JSX.Element {
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape' && showMobileMenu) {
+      if (e.key !== 'Escape') return
+      if (showMobileMenu) {
         setShowMobileMenu(false)
+      } else if (searchOpen) {
+        closeSearch()
       }
     }
     document.addEventListener('keydown', handleEscape)
     return () => document.removeEventListener('keydown', handleEscape)
-  }, [showMobileMenu])
+  }, [showMobileMenu, searchOpen, closeSearch])
   
   return (
-    <header className={`${styles.header} ${isAlbumPage ? styles.albumPage : ''}`}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+    <header ref={headerRef} className={`${styles.header} ${searchOpen ? styles.searchOpen : ''}`}>
+      <div className={styles.brand}>
         <JukeboxHeader />
         {settings.showMobileQR && (
           <button
@@ -70,14 +86,31 @@ export default function AppHeader(): JSX.Element {
       <div className={styles.searchSection}>
         <SearchBox ref={searchBoxRef} />
         <button
-          className={styles.mobileMenuButton}
-          onClick={() => setShowMobileMenu(!showMobileMenu)}
-          aria-label="Toggle menu"
-          aria-expanded={showMobileMenu}
+          type="button"
+          className={styles.searchCancel}
+          onClick={closeSearch}
+          aria-label="Close search"
         >
-          {showMobileMenu ? <X size={24} /> : <Menu size={24} />}
+          <X size={24} />
         </button>
       </div>
+      <button
+        type="button"
+        className={styles.searchToggle}
+        onClick={openSearch}
+        aria-label="Search"
+      >
+        <Search className={styles.searchToggleIcon} />
+        <span className={styles.searchToggleText}>Search</span>
+      </button>
+      <button
+        className={styles.mobileMenuButton}
+        onClick={() => setShowMobileMenu(!showMobileMenu)}
+        aria-label="Toggle menu"
+        aria-expanded={showMobileMenu}
+      >
+        {showMobileMenu ? <X size={24} /> : <Menu size={24} />}
+      </button>
       {showMobileMenu && (
         <div 
           className={styles.menuOverlay}
@@ -96,14 +129,6 @@ export default function AppHeader(): JSX.Element {
         >
           <Library size={22} className={styles.navIcon} />
           <span className={styles.navText}>Library</span>
-        </Link>
-        <Link 
-          href="/recent" 
-          onClick={() => setShowMobileMenu(false)}
-          className={`${styles.navLink} ${pathname === '/recent' ? styles.active : ''}`}
-        >
-          <Clock size={22} className={styles.navIcon} />
-          <span className={styles.navText}>Recent</span>
         </Link>
         <Link
           href="/playlists"
