@@ -46,15 +46,11 @@ export default function AlbumDetail(): JSX.Element {
 
   const loadAlbum = useCallback(async (): Promise<void> => {
     try {
-      const response = await fetch('/api/albums')
+      const response = await fetch(`/api/albums/${encodeURIComponent(String(params.id))}`)
       if (response.ok) {
-        const data = await response.json() as { albums: Album[] }
-        const foundAlbum = data.albums.find((a: Album) => a.id === params.id)
-        if (foundAlbum) {
-          setAlbum(foundAlbum)
-        } else {
-          setError('Album not found')
-        }
+        setAlbum(await response.json() as Album)
+      } else if (response.status === 404) {
+        setError('Album not found')
       } else {
         setError('Failed to load album')
       }

@@ -2,35 +2,38 @@ import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import LargeAlbumCard from '../LargeAlbumCard/LargeAlbumCard'
 import SwipeGestures from '../SwipeGestures/SwipeGestures'
-import { Album, Track } from '@/types/music'
+import { Track } from '@/types/music'
+import { useAlbumPage } from '@/hooks/useAlbumPage'
 import { Music, Hash, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useLibrary } from '@/contexts/LibraryContext'
 import styles from './LargeAlbumGrid.module.css'
 
 interface LargeAlbumGridProps {
-  albums: Album[]
   onPlayTrack: (track: Track) => void
-  isLoading: boolean
 }
 
-function LargeAlbumGrid({ albums, onPlayTrack, isLoading }: LargeAlbumGridProps): JSX.Element {
+// The library is loaded one page at a time: only the albums on the current page come from
+// the server (see /api/albums), so a large library doesn't have to download all at once.
+function LargeAlbumGrid({ onPlayTrack }: LargeAlbumGridProps): JSX.Element {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { libraryState, updateLibraryState } = useLibrary()
   const { selectedLetter, currentPage } = libraryState
-  const [gridWidth, setGridWidth] = useState<number>(1300)
+  // null until measured; the first page isn't requested before we know how many fit
+  const [gridWidth, setGridWidth] = useState<number | null>(null)
   const resizeObserver = useRef<ResizeObserver | null>(null)
 
   // Columns follow the width the library actually gets (not the window), so it reflows when the
   // Up Next rail docks beside it. 2 rows per page:
   // 6 columns above 1300px, 5 above 1100px, 4 above 900px, otherwise 3
   const columns = useMemo(() => {
+    if (gridWidth === null) return null
     if (gridWidth <= 900) return 3
     if (gridWidth <= 1100) return 4
     if (gridWidth <= 1300) return 5
     return 6
   }, [gridWidth])
-  const albumsPerPage = columns * 2
+  const albumsPerPage = columns === null ? null : columns * 2
 
   const containerRef = useCallback((el: HTMLDivElement | null) => {
     resizeObserver.current?.disconnect()
@@ -42,54 +45,19 @@ function LargeAlbumGrid({ albums, onPlayTrack, isLoading }: LargeAlbumGridProps)
     resizeObserver.current.observe(el)
   }, [])
 
-  // Filter albums based on selected letter
-  const filteredAlbums = useMemo(() => {
-    if (!selectedLetter) return albums
-    
-    return albums.filter(album => {
-      const firstChar = album.title.charAt(0).toUpperCase()
-      if (selectedLetter === '#') {
-        return /[0-9]/.test(firstChar)
-      }
-      if (selectedLetter === '~') {
-        return /[^A-Z0-9]/.test(firstChar)
-      }
-      return firstChar === selectedLetter
-    })
-  }, [albums, selectedLetter])
-
-  // Calculate pagination
-  const totalPages = Math.ceil(filteredAlbums.length / albumsPerPage)
-  const startIndex = (currentPage - 1) * albumsPerPage
-  const endIndex = startIndex + albumsPerPage
-  const currentAlbums = filteredAlbums.slice(startIndex, endIndex)
+  const { data, isLoading } = useAlbumPage(currentPage, albumsPerPage, selectedLetter)
+  const totalPages = data?.totalPages ?? 1
+  const currentAlbums = data?.albums ?? []
+  const availableLetters = data?.letters ?? []
 
   // Reset to page 1 if current page is out of bounds after resize
   useEffect(() => {
-    if (currentPage > totalPages && totalPages > 0) {
+    if (data && currentPage > totalPages && totalPages > 0) {
       const params = new URLSearchParams(searchParams.toString())
       params.set('page', '1')
       router.push(`/?${params.toString()}`)
     }
-  }, [totalPages, currentPage, searchParams, router])
-
-  // Generate available letters from albums
-  const availableLetters = useMemo(() => {
-    const letters = new Set<string>()
-    
-    albums.forEach(album => {
-      const firstChar = album.title.charAt(0).toUpperCase()
-      if (/[0-9]/.test(firstChar)) {
-        letters.add('#')
-      } else if (/[^A-Z0-9]/.test(firstChar)) {
-        letters.add('~')
-      } else if (/[A-Z]/.test(firstChar)) {
-        letters.add(firstChar)
-      }
-    })
-    
-    return Array.from(letters).sort()
-  }, [albums])
+  }, [data, totalPages, currentPage, searchParams, router])
 
   // Note: Page reset is now handled through URL navigation in handleLetterClick
 
@@ -129,16 +97,19 @@ function LargeAlbumGrid({ albums, onPlayTrack, isLoading }: LargeAlbumGridProps)
     handlePreviousPage()
   }
 
-  if (isLoading) {
+  // First load: the container is rendered so its width can be measured for the page size
+  if (!data) {
     return (
-      <div className={styles.loadingContainer}>
-        <div className={styles.loadingSpinner} />
-        <p className={styles.loadingText}>Loading…</p>
+      <div ref={containerRef} className={styles.container}>
+        <div className={styles.loadingContainer}>
+          {isLoading && <div className={styles.loadingSpinner} />}
+          <p className={styles.loadingText}>{isLoading ? 'Loading…' : 'Could not load the library'}</p>
+        </div>
       </div>
     )
   }
 
-  if (albums.length === 0) {
+  if (data.totalAlbums === 0) {
     return (
       <div className={styles.emptyState}>
         <div className={styles.emptyIcon}>🎵</div>
@@ -210,7 +181,11 @@ function LargeAlbumGrid({ albums, onPlayTrack, isLoading }: LargeAlbumGridProps)
           </div>
         )}
 
-        <div className={styles.grid} style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+        <div
+          className={`${styles.grid} ${isLoading ? styles.gridLoading : ''}`}
+          style={{ gridTemplateColumns: `repeat(${columns ?? 5}, minmax(0, 1fr))` }}
+          aria-busy={isLoading}
+        >
           {currentAlbums.map((album) => (
             <LargeAlbumCard
               key={album.id}
@@ -222,7 +197,7 @@ function LargeAlbumGrid({ albums, onPlayTrack, isLoading }: LargeAlbumGridProps)
         </div>
       </div>
 
-      {filteredAlbums.length === 0 && selectedLetter && (
+      {data.matchingAlbums === 0 && selectedLetter && (
         <div className={styles.noResults}>
           <p>No albums found starting with &quot;{selectedLetter}&quot;</p>
         </div>

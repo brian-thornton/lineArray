@@ -654,7 +654,8 @@ function MusicScanSection(): JSX.Element {
 
   const loadCurrentPaths = async (): Promise<void> => {
     try {
-      const response = await fetch('/api/albums')
+      // limit=0: just the scan locations and their status, no albums
+      const response = await fetch('/api/albums?limit=0')
       if (response.ok) {
         const data = await response.json() as { scanPaths?: string[]; scanResults?: { [path: string]: { albums: number; files: number; lastScanned: string; status?: string; reason?: string } } }
         setCurrentPaths(data.scanPaths ?? [])

@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState, useEffect, Suspense } from 'react'
+import React, { useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Album, Track } from '@/types/music'
+import { Track } from '@/types/music'
 import { useSearch } from '@/contexts/SearchContext'
 import { useLibrary } from '@/contexts/LibraryContext'
 import styles from './page.module.css'
@@ -10,6 +10,7 @@ import LibraryLayout from '@/components/LibraryLayout/LibraryLayout'
 import ClassicLibraryGrid from '@/components/ClassicLibraryGrid/ClassicLibraryGrid'
 import LargeAlbumGrid from '@/components/LargeAlbumGrid/LargeAlbumGrid'
 import { useSettings } from '@/contexts/SettingsContext'
+import { useAlbumPage } from '@/hooks/useAlbumPage'
 
 // useSearchParams() needs a Suspense boundary. Without one, production builds deopt
 // the page and its client-navigation request fails, so every link back to the
@@ -28,8 +29,6 @@ function HomeContent(): JSX.Element {
   const { searchQuery, searchOpen } = useSearch()
   const { settings } = useSettings()
   const { libraryState, updateLibraryState } = useLibrary()
-  const [albums, setAlbums] = useState<Album[]>([])
-  const [isLoading, setIsLoading] = useState(true)
   const albumsPerClassicPage = 4
   
   // Get page and letter from URL query parameters
@@ -51,10 +50,6 @@ function HomeContent(): JSX.Element {
     }
   }, [searching])
 
-  useEffect(() => {
-    void loadAlbums()
-  }, [])
-
   // Update library state with page and letter from URL
   useEffect(() => {
     const updates: Partial<{ currentPage: number; selectedLetter: string | null }> = {}
@@ -72,45 +67,27 @@ function HomeContent(): JSX.Element {
     }
   }, [currentPage, currentLetter, libraryState.currentPage, libraryState.selectedLetter, updateLibraryState])
 
-  const loadAlbums = async (): Promise<void> => {
-    setIsLoading(true)
-    try {
-      const response = await fetch('/api/albums')
-      if (response.ok) {
-        const data = await response.json() as { albums: Album[]; scanPaths: string[]; scanResults: { [path: string]: { albums: number; files: number; lastScanned: string } } }
-        setAlbums(data.albums || [])
-      }
-    } catch (error) {
-      console.error('Error loading albums:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   const handlePlayTrack = (_track: Track): void => {
     // Track play functionality can be implemented here
   }
 
-  const totalClassicPages = Math.max(1, Math.ceil(albums.length / albumsPerClassicPage))
-  const pagedClassicAlbums = albums.slice((libraryState.currentPage - 1) * albumsPerClassicPage, libraryState.currentPage * albumsPerClassicPage)
+  // The classic layout shows a fixed 4 albums a page; the large grid loads its own pages
+  const classic = settings.libraryLayout === 'classic'
+  const { data: classicPage } = useAlbumPage(libraryState.currentPage, classic ? albumsPerClassicPage : null, null)
 
   return (
     <LibraryLayout>
       <div className={styles.container}>
         <main className={styles.main}>
-          {settings.libraryLayout === 'classic' ? (
+          {classic ? (
             <ClassicLibraryGrid
-              albums={pagedClassicAlbums}
+              albums={classicPage?.albums ?? []}
               page={libraryState.currentPage}
               setPage={(page) => updateLibraryState({ currentPage: page })}
-              totalPages={totalClassicPages}
+              totalPages={classicPage?.totalPages ?? 1}
             />
           ) : (
-            <LargeAlbumGrid 
-              albums={albums}
-              onPlayTrack={handlePlayTrack}
-              isLoading={isLoading}
-            />
+            <LargeAlbumGrid onPlayTrack={handlePlayTrack} />
           )}
         </main>
       </div>

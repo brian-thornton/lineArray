@@ -2,138 +2,68 @@ import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
 import { Album } from '@/types/music'
+import { getAvailableLibrary, letterOf, LIBRARY_PATH, LibraryData } from '@/utils/libraryStore'
 
-interface LibraryData {
-  albums: Album[]
-  scanPaths?: string[]
-  scanPath?: string
-  lastScanned?: string | null
-  totalFiles?: number
-  totalAlbums?: number
-  scanResults?: Record<string, unknown>
+export const dynamic = 'force-dynamic'
+
+function matchesLetter(album: Album, letter: string | null): boolean {
+  return letter === null || letterOf(album.title) === letter
 }
 
-export function GET(): Promise<NextResponse> {
+/** Grid cards don't need the setlist text (it is most of an album's size) */
+function forGrid(album: Album): Album {
+  if (!album.setlistInfo) return album
+  const card = { ...album }
+  delete card.setlistInfo
+  return card
+}
+
+// GET /api/albums — the albums that are on disk, one page at a time.
+//
+//   ?page=N&limit=M   page N (1-based) of M albums; limit=0 returns no albums, only the
+//                     library info (scan locations, counts, letters)
+//   &letter=X         only albums whose title starts with X ('A'–'Z', '#' digits, '~' other)
+//
+// Without page/limit every album is returned (large for big libraries; the UI never asks
+// for that). Albums for a single screen come from /api/albums/[id].
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
-    const dataPath = path.join(process.cwd(), 'data', 'music-library.json')
-    
-    if (!fs.existsSync(dataPath)) {
-      return Promise.resolve(NextResponse.json({
-        albums: [],
-        scanPaths: [],
-        lastScanned: null,
-        totalFiles: 0,
-        totalAlbums: 0,
-        scanResults: {}
-      }))
+    const params = request.nextUrl.searchParams
+    const library = await getAvailableLibrary()
+    const letterParam = params.get('letter')
+    const letter = letterParam ? letterParam : null
+
+    const meta = {
+      scanPaths: library.scanPaths,
+      lastScanned: library.lastScanned,
+      totalFiles: library.totalFiles,
+      totalAlbums: library.albums.length,
+      scanResults: library.scanResults,
     }
 
-    const data = fs.readFileSync(dataPath, 'utf8')
-    const libraryData = JSON.parse(data) as LibraryData
-
-    // Handle both old and new data formats
-    const albums = libraryData.albums ?? []
-    const scanPaths = libraryData.scanPaths ?? (libraryData.scanPath ? [libraryData.scanPath] : [])
-    const lastScanned = libraryData.lastScanned ?? null
-    const totalFiles = libraryData.totalFiles ?? 0
-    const totalAlbums = libraryData.totalAlbums ?? albums.length
-    const scanResults = libraryData.scanResults ?? {}
-
-    // Check directory accessibility and update scan results
-    const updatedScanResults = { ...scanResults }
-    const accessibleDirectories = new Set<string>()
-    
-    // Filter out tracks from unavailable directories (removable media)
-    const filteredAlbums = albums.map(album => {
-      // Check if album folder is still accessible
-      // Albums without a recorded folder can't be verified, so treat them as unavailable
-      const folderPath = album.folderPath ?? ''
-      const isAlbumAccessible = folderPath !== '' && fs.existsSync(folderPath)
-      
-      if (!isAlbumAccessible) {
-        // Mark directory as unavailable in scan results
-        if (folderPath) {
-          updatedScanResults[folderPath] = {
-            albums: 0,
-            files: 0,
-            lastScanned: new Date().toISOString(),
-            status: 'unavailable',
-            reason: 'Directory not found or not accessible'
-          }
-        }
-        // Return album with no tracks if folder is not accessible
-        return {
-          ...album,
-          tracks: []
-        }
-      }
-      
-      // Directory is accessible, add to accessible set
-      accessibleDirectories.add(folderPath)
-      
-      // Filter tracks to only include those with accessible files and exclude macOS metadata files
-      const accessibleTracks = album.tracks.filter(track => {
-        try {
-          // Skip macOS metadata files (resource forks)
-          const fileName = path.basename(track.path)
-          if (fileName.startsWith('._')) {
-            return false
-          }
-          
-          return fs.existsSync(track.path)
-        } catch {
-          return false
-        }
-      })
-      
-      return {
-        ...album,
-        tracks: accessibleTracks
-      }
-    }).filter(album => album.tracks.length > 0) // Remove albums with no accessible tracks
-
-    // Update scan results for accessible directories
-    for (const directory of Array.from(accessibleDirectories)) {
-      if (updatedScanResults[directory]) {
-        updatedScanResults[directory] = {
-          ...updatedScanResults[directory],
-          status: 'available'
-        }
-      }
+    if (!params.has('page') && !params.has('limit')) {
+      return NextResponse.json({ ...meta, albums: library.albums })
     }
 
-    // Check all scan paths and mark unavailable ones
-    for (const scanPath of scanPaths) {
-      if (!accessibleDirectories.has(scanPath)) {
-        // Check if this path exists at all
-        const pathExists = fs.existsSync(scanPath)
-        if (!pathExists) {
-          updatedScanResults[scanPath] = {
-            albums: 0,
-            files: 0,
-            lastScanned: new Date().toISOString(),
-            status: 'unavailable',
-            reason: 'Directory not found or not accessible'
-          }
-        }
-      }
-    }
+    const limit = Math.max(0, parseInt(params.get('limit') ?? '', 10) || 0)
+    const page = Math.max(1, parseInt(params.get('page') ?? '', 10) || 1)
+    const matching = letter === null ? library.albums : library.albums.filter(a => matchesLetter(a, letter))
+    const letters = Array.from(new Set(library.albums.map(a => letterOf(a.title)))).sort()
+    const albums = limit > 0 ? matching.slice((page - 1) * limit, page * limit).map(forGrid) : []
 
-    return Promise.resolve(NextResponse.json({
-      albums: filteredAlbums,
-      scanPaths,
-      lastScanned,
-      totalFiles,
-      totalAlbums: filteredAlbums.length,
-      scanResults: updatedScanResults
-    }))
-
+    return NextResponse.json({
+      ...meta,
+      albums,
+      page,
+      limit,
+      letter,
+      matchingAlbums: matching.length,
+      totalPages: limit > 0 ? Math.max(1, Math.ceil(matching.length / limit)) : 1,
+      letters,
+    })
   } catch (error) {
     console.error('Error loading albums:', error)
-    return Promise.resolve(NextResponse.json(
-      { error: 'Failed to load albums' },
-      { status: 500 }
-    ))
+    return NextResponse.json({ error: 'Failed to load albums' }, { status: 500 })
   }
 }
 
@@ -152,7 +82,7 @@ export function DELETE(request: NextRequest): Promise<NextResponse> {
       ))
     }
 
-    const dataPath = path.join(process.cwd(), 'data', 'music-library.json')
+    const dataPath = LIBRARY_PATH
 
     if (!fs.existsSync(dataPath)) {
       // Nothing persisted yet — treat as already removed.
@@ -177,7 +107,7 @@ export function DELETE(request: NextRequest): Promise<NextResponse> {
     const remainingAlbums = albums.filter(album => !(album.folderPath !== undefined && isWithin(album.folderPath)))
     const remainingScanPaths = scanPaths.filter(p => !isWithin(p))
 
-    const remainingScanResults: Record<string, unknown> = {}
+    const remainingScanResults: NonNullable<LibraryData['scanResults']> = {}
     for (const [key, value] of Object.entries(scanResults)) {
       if (!isWithin(key)) {
         remainingScanResults[key] = value

@@ -4,6 +4,7 @@ import path from 'path'
 import { spawn } from 'child_process'
 import { Readable } from 'stream'
 import logger from '@/utils/serverLogger'
+import { memoByLibrary } from '@/utils/libraryStore'
 
 // GET /api/stream?path=<abs path>            — raw file, with HTTP Range support
 // GET /api/stream?path=<abs path>&transcode=1&start=<sec>
@@ -14,8 +15,6 @@ import logger from '@/utils/serverLogger'
 // used to read arbitrary files off the host.
 
 export const dynamic = 'force-dynamic'
-
-const LIBRARY_PATH = path.join(process.cwd(), 'data', 'music-library.json')
 
 const MIME_TYPES: Record<string, string> = {
   '.mp3': 'audio/mpeg',
@@ -33,25 +32,15 @@ const MIME_TYPES: Record<string, string> = {
   '.wma': 'audio/x-ms-wma',
 }
 
-interface LibraryCache {
-  mtimeMs: number
-  paths: Set<string>
-}
-
-const _g = global as typeof globalThis & { __streamLibraryCache?: LibraryCache }
 
 function getLibraryPaths(): Set<string> {
-  const stat = fs.statSync(LIBRARY_PATH)
-  const cached = _g.__streamLibraryCache
-  if (cached && cached.mtimeMs === stat.mtimeMs) return cached.paths
-
-  const library = JSON.parse(fs.readFileSync(LIBRARY_PATH, 'utf-8')) as { albums?: Array<{ tracks?: Array<{ path: string }> }> }
-  const paths = new Set<string>()
-  for (const album of library.albums ?? []) {
-    for (const track of album.tracks ?? []) paths.add(track.path)
-  }
-  _g.__streamLibraryCache = { mtimeMs: stat.mtimeMs, paths }
-  return paths
+  return memoByLibrary('streamPaths', library => {
+    const paths = new Set<string>()
+    for (const album of library.albums) {
+      for (const track of album.tracks ?? []) paths.add(track.path)
+    }
+    return paths
+  })
 }
 
 function isLibraryTrack(filePath: string): boolean {

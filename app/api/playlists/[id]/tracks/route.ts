@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
-import { Playlist, AddTrackToPlaylistRequest, ReorderPlaylistRequest, Album, Track } from '@/types/music'
+import { Playlist, AddTrackToPlaylistRequest, ReorderPlaylistRequest, Track } from '@/types/music'
 import logger from '@/utils/serverLogger'
+import { memoByLibrary } from '@/utils/libraryStore'
 
 const playlistsPath = path.join(process.cwd(), 'data', 'playlists.json')
-const musicLibraryPath = path.join(process.cwd(), 'data', 'music-library.json')
 
 interface Settings {
   partyMode: {
@@ -66,28 +66,26 @@ function savePlaylists(playlists: Playlist[]): void {
   }
 }
 
-function loadMusicLibrary(): { albums: Album[] } {
+/** Every library track by path (rebuilt when the library changes) */
+function trackIndex(): Map<string, Track> {
   try {
-    if (fs.existsSync(musicLibraryPath)) {
-      const data = fs.readFileSync(musicLibraryPath, 'utf-8')
-      return JSON.parse(data) as { albums: Album[] }
-    }
+    return memoByLibrary('tracksByPath', ({ albums }) => {
+      const index = new Map<string, Track>()
+      for (const album of albums) {
+        for (const track of album.tracks) if (!index.has(track.path)) index.set(track.path, track)
+      }
+      return index
+    })
   } catch (error) {
     logger.error('Error loading music library', 'MusicLibrary', error)
+    return new Map()
   }
-  return { albums: [] }
 }
 
 function findTrackByPath(trackPath: string): Track | null {
-  const library = loadMusicLibrary()
-  for (const album of library.albums) {
-    for (const track of album.tracks) {
-      if (track.path === trackPath) {
-        return track
-      }
-    }
-  }
-  return null
+  const track = trackIndex().get(trackPath)
+  // A copy: the library index is shared and must not be changed through playlists
+  return track ? { ...track } : null
 }
 
 // POST /api/playlists/[id]/tracks - Add track to playlist

@@ -4,6 +4,7 @@ import path from 'path'
 import { Album, Track } from '@/types/music'
 import logger from '@/utils/serverLogger'
 import { cleanAlbumTrackTitles } from '@/utils/trackTitles'
+import { getAvailableLibrary, AvailableLibrary } from '@/utils/libraryStore'
 
 const playCountsPath = path.join(process.cwd(), 'data', 'playCounts.json')
 
@@ -112,50 +113,44 @@ const incrementPlayCount = (trackPath: string): void => {
   savePlayCounts(playCounts)
 }
 
+// Built once per library check (the albums array is replaced when the check reruns)
+const trackInfoCache = new WeakMap<Album[], Map<string, TrackInfo>>()
+function trackInfoIndex(library: AvailableLibrary): Map<string, TrackInfo> {
+  const cached = trackInfoCache.get(library.albums)
+  if (cached) return cached
+  const index = new Map<string, TrackInfo>()
+  for (const album of library.albums) {
+    const displayTitles = cleanAlbumTrackTitles(album.tracks)
+    album.tracks.forEach((track: Track, i: number) => {
+      const info: TrackInfo = {
+        title: displayTitles[i].title,
+        artist: track.artist ?? album.artist ?? 'Unknown Artist',
+        album: album.title,
+        albumId: album.id,
+        coverPath: album.coverPath
+      }
+      index.set(track.path, info)
+      const filename = track.path.split('/').pop()
+      if (filename) index.set(filename, info)
+    })
+  }
+  trackInfoCache.set(library.albums, index)
+  return index
+}
+
 export async function GET(): Promise<NextResponse> {
   try {
     const playCounts = loadPlayCounts()
     
-    // Get all albums to map track paths to track info
-    const albumsResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? `http://127.0.0.1:${process.env.PORT ?? 3000}`}/api/albums`)
-    const trackInfo: { [trackPath: string]: TrackInfo } = {}
-    
-    if (albumsResponse.ok) {
-      const albumsData = await albumsResponse.json() as { albums: Album[] }
-      albumsData.albums.forEach((album: Album) => {
-        const displayTitles = cleanAlbumTrackTitles(album.tracks)
-        album.tracks.forEach((track: Track, i: number) => {
-          const { title } = displayTitles[i]
-          // Store with both the exact path and normalized path for better matching
-          trackInfo[track.path] = {
-            title,
-            artist: track.artist ?? album.artist ?? 'Unknown Artist',
-            album: album.title,
-            albumId: album.id,
-            coverPath: album.coverPath
-          }
-          
-          // Also try to match by filename in case paths are slightly different
-          const filename = track.path.split('/').pop()
-          if (filename) {
-            trackInfo[filename] = {
-              title,
-              artist: track.artist ?? album.artist ?? 'Unknown Artist',
-              album: album.title,
-              albumId: album.id,
-              coverPath: album.coverPath
-            }
-          }
-        })
-      })
-    }
-    
+    // Track info by path (and by file name, in case paths moved), from the on-disk library
+    const trackInfo = trackInfoIndex(await getAvailableLibrary())
+
     // Convert play counts to array and sort by last played time (most recent first)
     const playCountsArray = Object.entries(playCounts.playCounts)
       .map(([trackPath, trackData]) => {
         // Try to find track info by exact path first, then by filename
         const filename = trackPath.split('/').pop()
-        const info = trackInfo[trackPath] ?? (filename ? trackInfo[filename] : null) ?? {
+        const info = trackInfo.get(trackPath) ?? (filename ? trackInfo.get(filename) : undefined) ?? {
           title: filename?.replace(/\.[^/.]+$/, '') ?? 'Unknown Track',
           artist: 'Unknown Artist',
           album: 'Unknown Album'

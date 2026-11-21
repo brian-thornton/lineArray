@@ -2,6 +2,10 @@
 const nextConfig = {
   // Self-contained server bundle (.next/standalone) used by the Docker image.
   output: 'standalone',
+  experimental: {
+    // instrumentation.ts: warms the library cache when the server starts
+    instrumentationHook: true,
+  },
   eslint: {
     // The codebase has pre-existing lint errors; `npm run lint` still reports
     // them, but they shouldn't block production builds.

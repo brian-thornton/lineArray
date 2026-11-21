@@ -1,18 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
+import { memoByLibrary } from '@/utils/libraryStore'
 
-interface LibraryTrack {
-  path: string
-}
-
-interface LibraryAlbum {
-  coverPath?: string
-  tracks: LibraryTrack[]
-}
-
-interface MusicLibrary {
-  albums: LibraryAlbum[]
+/** Cover image per track folder, from the first album with a track in that folder */
+function coverByFolder(): Map<string, string | undefined> {
+  return memoByLibrary('coverByFolder', ({ albums }) => {
+    const covers = new Map<string, string | undefined>()
+    for (const album of albums) {
+      for (const track of album.tracks) {
+        const dir = path.dirname(track.path)
+        if (!covers.has(dir)) covers.set(dir, album.coverPath)
+      }
+    }
+    return covers
+  })
 }
 
 export function GET(request: NextRequest): NextResponse {
@@ -22,25 +24,15 @@ export function GET(request: NextRequest): NextResponse {
   }
 
   try {
-    const libraryPath = path.join(process.cwd(), 'data', 'music-library.json')
-    if (!fs.existsSync(libraryPath)) {
-      return new NextResponse('Library not found', { status: 404 })
-    }
-
-    const library = JSON.parse(fs.readFileSync(libraryPath, 'utf-8')) as MusicLibrary
-    const trackDir = path.dirname(trackPath)
-
     // Find the album whose tracks include this track path (match by directory)
-    const album = library.albums.find(a =>
-      a.tracks.some(t => path.dirname(t.path) === trackDir)
-    )
+    const coverPath = coverByFolder().get(path.dirname(trackPath))
 
-    if (!album?.coverPath || !fs.existsSync(album.coverPath)) {
+    if (!coverPath || !fs.existsSync(coverPath)) {
       return new NextResponse('Cover not found', { status: 404 })
     }
 
-    const imageBuffer = fs.readFileSync(album.coverPath)
-    const ext = path.extname(album.coverPath).toLowerCase()
+    const imageBuffer = fs.readFileSync(coverPath)
+    const ext = path.extname(coverPath).toLowerCase()
     const contentTypeMap: Record<string, string> = {
       '.png': 'image/png',
       '.gif': 'image/gif',

@@ -45,6 +45,13 @@
   height: auto;
   align-items: stretch;
   overflow: visible;
+  transition: opacity 0.15s ease;
+}
+
+/* The previous page stays up while the next one loads, dimmed only if that takes a moment */
+.gridLoading {
+  opacity: 0.6;
+  transition-delay: 0.15s;
 }
 
 /* Reduce to 5 columns at medium desktop widths */
